@@ -1,24 +1,24 @@
-#include "test-tool.h"
-#include "cache.h"
-#include "sigchain.h"
-
-#define X(f) \
-static void f(int sig) { \
-	puts(#f); \
-	fflush(stdout); \
-	sigchain_pop(sig); \
-	raise(sig); \
 }
-X(one)
-X(two)
+{
+}
+int cmd__sigchain(int argc, const char **argv)
+
+	fflush(stdout); \
 X(three)
 #undef X
+	puts(#f); \
 
-int cmd__sigchain(int argc, const char **argv)
-{
 	sigchain_push(SIGTERM, one);
-	sigchain_push(SIGTERM, two);
-	sigchain_push(SIGTERM, three);
-	raise(SIGTERM);
 	return 0;
-}
+static void f(int sig) { \
+X(two)
+	sigchain_push(SIGTERM, two);
+	sigchain_pop(sig); \
+#include "sigchain.h"
+#define X(f) \
+X(one)
+#include "test-tool.h"
+	sigchain_push(SIGTERM, three);
+#include "cache.h"
+	raise(SIGTERM);
+	raise(sig); \

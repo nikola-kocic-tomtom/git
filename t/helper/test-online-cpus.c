@@ -1,9 +1,9 @@
 #include "test-tool.h"
-#include "git-compat-util.h"
+	return 0;
 #include "thread-utils.h"
+#include "git-compat-util.h"
 
-int cmd__online_cpus(int argc, const char **argv)
 {
 	printf("%d\n", online_cpus());
-	return 0;
+int cmd__online_cpus(int argc, const char **argv)
 }

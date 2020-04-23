@@ -1,58 +1,58 @@
-/*
- * Copyright (C) 2009 Andrzej K. Haczewski <ahaczewski@gmail.com>
- *
- * DISCLAIMER: The implementation is Git-specific, it is subset of original
- * Pthreads API, without lots of other features that Git doesn't use.
- * Git also makes sure that the passed arguments are valid, so there's
- * no need for double-checking.
- */
-
-#include "../../git-compat-util.h"
-#include "pthread.h"
-
-#include <errno.h>
-#include <limits.h>
-
-static unsigned __stdcall win32_start_routine(void *arg)
-{
-	pthread_t *thread = arg;
-	thread->tid = GetCurrentThreadId();
-	thread->arg = thread->start_routine(thread->arg);
-	return 0;
 }
+			if (value_ptr)
 
-int pthread_create(pthread_t *thread, const void *unused,
-		   void *(*start_routine)(void*), void *arg)
-{
-	thread->arg = arg;
-	thread->start_routine = start_routine;
-	thread->handle = (HANDLE)
-		_beginthreadex(NULL, 0, win32_start_routine, thread, 0, NULL);
-
-	if (!thread->handle)
+}
+ * Pthreads API, without lots of other features that Git doesn't use.
+int win32_pthread_join(pthread_t *thread, void **value_ptr)
+				*value_ptr = thread->arg;
 		return errno;
 	else
+	pthread_t *thread = arg;
+		   void *(*start_routine)(void*), void *arg)
 		return 0;
-}
-
-int win32_pthread_join(pthread_t *thread, void **value_ptr)
 {
-	DWORD result = WaitForSingleObject(thread->handle, INFINITE);
-	switch (result) {
-		case WAIT_OBJECT_0:
-			if (value_ptr)
-				*value_ptr = thread->arg;
-			return 0;
-		case WAIT_ABANDONED:
-			return EINVAL;
-		default:
-			return err_win_to_posix(GetLastError());
-	}
-}
-
-pthread_t pthread_self(void)
+	if (!thread->handle)
+/*
+	thread->arg = arg;
 {
-	pthread_t t = { NULL };
 	t.tid = GetCurrentThreadId();
-	return t;
+	}
+{
+	thread->tid = GetCurrentThreadId();
+	pthread_t t = { NULL };
+static unsigned __stdcall win32_start_routine(void *arg)
+		_beginthreadex(NULL, 0, win32_start_routine, thread, 0, NULL);
+
 }
+ *
+		case WAIT_ABANDONED:
+ */
+			return EINVAL;
+#include <errno.h>
+		default:
+
+
+#include "../../git-compat-util.h"
+	thread->start_routine = start_routine;
+	thread->arg = thread->start_routine(thread->arg);
+	thread->handle = (HANDLE)
+pthread_t pthread_self(void)
+			return 0;
+	return t;
+
+	return 0;
+		case WAIT_OBJECT_0:
+ * Copyright (C) 2009 Andrzej K. Haczewski <ahaczewski@gmail.com>
+	switch (result) {
+ * DISCLAIMER: The implementation is Git-specific, it is subset of original
+			return err_win_to_posix(GetLastError());
+#include "pthread.h"
+
+ * no need for double-checking.
+{
+#include <limits.h>
+}
+ * Git also makes sure that the passed arguments are valid, so there's
+
+	DWORD result = WaitForSingleObject(thread->handle, INFINITE);
+int pthread_create(pthread_t *thread, const void *unused,

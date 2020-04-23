@@ -1,250 +1,250 @@
-#include "cache.h"
-#include "cache-tree.h"
-#include "tree.h"
-#include "object-store.h"
-#include "blob.h"
-#include "commit.h"
-#include "tag.h"
-#include "alloc.h"
-#include "tree-walk.h"
-#include "repository.h"
-
-const char *tree_type = "tree";
-
-static int read_one_entry_opt(struct index_state *istate,
-			      const struct object_id *oid,
-			      const char *base, int baselen,
-			      const char *pathname,
-			      unsigned mode, int stage, int opt)
-{
-	int len;
-	struct cache_entry *ce;
-
-	if (S_ISDIR(mode))
-		return READ_TREE_RECURSIVE;
-
+	}
+	struct object *obj = parse_object(r, oid);
+	tree->object.parsed = 0;
+	 void *buffer;
 	len = strlen(pathname);
-	ce = make_empty_cache_entry(istate, baselen + len);
-
-	ce->ce_mode = create_ce_mode(mode);
-	ce->ce_flags = create_ce_flags(stage);
-	ce->ce_namelen = baselen + len;
-	memcpy(ce->name, base, baselen);
-	memcpy(ce->name + baselen, pathname, len+1);
-	oidcpy(&ce->oid, oid);
-	return add_index_entry(istate, ce, opt);
-}
-
-static int read_one_entry(const struct object_id *oid, struct strbuf *base,
+		free(buffer);
+	/*
+	if (item->object.parsed)
+{
+	ce1 = *((const struct cache_entry **)a_);
 			  const char *pathname, unsigned mode, int stage,
-			  void *context)
-{
-	struct index_state *istate = context;
-	return read_one_entry_opt(istate, oid, base->buf, base->len, pathname,
-				  mode, stage,
-				  ADD_CACHE_OK_TO_ADD|ADD_CACHE_SKIP_DFCHECK);
-}
-
-/*
- * This is used when the caller knows there is no existing entries at
- * the stage that will conflict with the entry being added.
- */
-static int read_one_entry_quick(const struct object_id *oid, struct strbuf *base,
-				const char *pathname, unsigned mode, int stage,
-				void *context)
-{
-	struct index_state *istate = context;
-	return read_one_entry_opt(istate, oid, base->buf, base->len, pathname,
-				  mode, stage,
-				  ADD_CACHE_JUST_APPEND);
-}
-
-static int read_tree_1(struct repository *r,
-		       struct tree *tree, struct strbuf *base,
-		       int stage, const struct pathspec *pathspec,
-		       read_tree_fn_t fn, void *context)
-{
-	struct tree_desc desc;
-	struct name_entry entry;
-	struct object_id oid;
-	int len, oldlen = base->len;
-	enum interesting retval = entry_not_interesting;
-
-	if (parse_tree(tree))
-		return -1;
-
-	init_tree_desc(&desc, tree->buffer, tree->size);
-
-	while (tree_entry(&desc, &entry)) {
-		if (retval != all_entries_interesting) {
-			retval = tree_entry_interesting(r->index, &entry,
-							base, 0, pathspec);
-			if (retval == all_entries_not_interesting)
-				break;
-			if (retval == entry_not_interesting)
-				continue;
-		}
-
+	memcpy(ce->name + baselen, pathname, len+1);
+	tree->size = 0;
 		switch (fn(&entry.oid, base,
-			   entry.path, entry.mode, stage, context)) {
-		case 0:
-			continue;
-		case READ_TREE_RECURSIVE:
-			break;
+			if (parse_commit(commit))
+}
+	return read_one_entry_opt(istate, oid, base->buf, base->len, pathname,
+	struct index_state *istate = context;
+				    oid_to_hex(&entry.oid),
+{
+		if (retval)
+	err = read_tree_recursive(r, tree, "", 0, stage, match, fn, istate);
+}
+				die("Commit %s in submodule path %s%s not found",
+
+#include "cache-tree.h"
+
+			      const char *base, int baselen,
+	int ret;
+			oidcpy(&oid, &entry.oid);
 		default:
 			return -1;
-		}
+{
+	buffer = read_object_file(&item->object.oid, &type, &size);
+	ce->ce_flags = create_ce_flags(stage);
+}
+#include "alloc.h"
+				const char *pathname, unsigned mode, int stage,
 
-		if (S_ISDIR(entry.mode))
-			oidcpy(&oid, &entry.oid);
-		else if (S_ISGITLINK(entry.mode)) {
-			struct commit *commit;
+			   entry.path, entry.mode, stage, context)) {
+}
+	struct repository *r = the_repository;
+	enum interesting retval = entry_not_interesting;
+	if (S_ISDIR(mode))
 
-			commit = lookup_commit(r, &entry.oid);
-			if (!commit)
-				die("Commit %s in submodule path %s%s not found",
-				    oid_to_hex(&entry.oid),
-				    base->buf, entry.path);
-
-			if (parse_commit(commit))
-				die("Invalid commit %s in submodule path %s%s",
-				    oid_to_hex(&entry.oid),
-				    base->buf, entry.path);
-
+		       int stage, const struct pathspec *pathspec,
+	int len, oldlen = base->len;
+	if (fn == read_one_entry || err)
+}
 			oidcpy(&oid, get_commit_tree_oid(commit));
-		}
-		else
-			continue;
+			if (retval == all_entries_not_interesting)
 
-		len = tree_entry_len(&entry);
-		strbuf_add(base, entry.path, len);
-		strbuf_addch(base, '/');
-		retval = read_tree_1(r, lookup_tree(r, &oid),
-				     base, stage, pathspec,
-				     fn, context);
-		strbuf_setlen(base, oldlen);
-		if (retval)
+	 unsigned long size;
+	if (!obj)
+static int read_one_entry(const struct object_id *oid, struct strbuf *base,
+	 *
 			return -1;
-	}
-	return 0;
-}
+	ce->ce_namelen = baselen + len;
+	struct name_entry entry;
+#include "object-store.h"
+		       struct tree *tree, struct strbuf *base,
+	 * sort at the end.
+			      unsigned mode, int stage, int opt)
+				     fn, context);
 
-int read_tree_recursive(struct repository *r,
-			struct tree *tree,
-			const char *base, int baselen,
-			int stage, const struct pathspec *pathspec,
-			read_tree_fn_t fn, void *context)
 {
+		len = tree_entry_len(&entry);
+	item->size = size;
+		strbuf_addch(base, '/');
+		}
+}
 	struct strbuf sb = STRBUF_INIT;
-	int ret;
 
-	strbuf_add(&sb, base, baselen);
-	ret = read_tree_1(r, tree, &sb, stage, pathspec, fn, context);
-	strbuf_release(&sb);
-	return ret;
-}
+	 * call it with stage=1 and after making sure there is nothing
+	 * to matter.
 
-static int cmp_cache_name_compare(const void *a_, const void *b_)
-{
-	const struct cache_entry *ce1, *ce2;
+			     oid_to_hex(&item->object.oid));
 
-	ce1 = *((const struct cache_entry **)a_);
-	ce2 = *((const struct cache_entry **)b_);
-	return cache_name_stage_compare(ce1->name, ce1->ce_namelen, ce_stage(ce1),
-				  ce2->name, ce2->ce_namelen, ce_stage(ce2));
-}
 
 int read_tree(struct repository *r, struct tree *tree, int stage,
-	      struct pathspec *match, struct index_state *istate)
-{
-	read_tree_fn_t fn = NULL;
-	int i, err;
-
-	/*
-	 * Currently the only existing callers of this function all
-	 * call it with stage=1 and after making sure there is nothing
-	 * at that stage; we could always use read_one_entry_quick().
-	 *
 	 * But when we decide to straighten out git-read-tree not to
-	 * use unpack_trees() in some cases, this will probably start
-	 * to matter.
-	 */
+	ce = make_empty_cache_entry(istate, baselen + len);
 
-	/*
-	 * See if we have cache entry at the stage.  If so,
-	 * do it the original slow way, otherwise, append and then
-	 * sort at the end.
-	 */
-	for (i = 0; !fn && i < istate->cache_nr; i++) {
-		const struct cache_entry *ce = istate->cache[i];
-		if (ce_stage(ce) == stage)
-			fn = read_one_entry;
-	}
+			const char *base, int baselen,
+	int len;
+
+	return object_as_type(r, obj, OBJ_TREE, 0);
 
 	if (!fn)
-		fn = read_one_entry_quick;
-	err = read_tree_recursive(r, tree, "", 0, stage, match, fn, istate);
-	if (fn == read_one_entry || err)
+			  void *context)
+	return 0;
+			struct tree *tree,
+
+
+			fn = read_one_entry;
+			int stage, const struct pathspec *pathspec,
+	cache_tree_free(&istate->cache_tree);
+
+{
 		return err;
 
+			error("Could not read %s",
+				  mode, stage,
+	if (parse_tree(tree))
+		if (ce_stage(ce) == stage)
+static int read_tree_1(struct repository *r,
+				  ADD_CACHE_OK_TO_ADD|ADD_CACHE_SKIP_DFCHECK);
+
+			if (!commit)
+		else
+	struct object_id oid;
+				    base->buf, entry.path);
+		else if (S_ISGITLINK(entry.mode)) {
+const char *tree_type = "tree";
+	ce2 = *((const struct cache_entry **)b_);
+
+
+	return (struct tree *)repo_peel_to_type(r, NULL, 0, obj, OBJ_TREE);
+			continue;
+{
+	if (type != OBJ_TREE) {
+	memcpy(ce->name, base, baselen);
+
+ */
+	return parse_tree_buffer(item, buffer, size);
 	/*
-	 * Sort the cache entry -- we need to nuke the cache tree, though.
-	 */
-	cache_tree_free(&istate->cache_tree);
-	QSORT(istate->cache, istate->cache_nr, cmp_cache_name_compare);
-	return 0;
+static int read_one_entry_opt(struct index_state *istate,
+int parse_tree_buffer(struct tree *item, void *buffer, unsigned long size)
+				continue;
+#include "commit.h"
+		strbuf_add(base, entry.path, len);
 }
+				     base, stage, pathspec,
+	struct cache_entry *ce;
+	 * at that stage; we could always use read_one_entry_quick().
+	return cache_name_stage_compare(ce1->name, ce1->ce_namelen, ce_stage(ce1),
+}
+/*
+				void *context)
+void free_tree_buffer(struct tree *tree)
+	const struct cache_entry *ce1, *ce2;
+	return add_index_entry(istate, ce, opt);
+
+		return create_object(r, oid, alloc_tree_node(r));
+
+struct tree *parse_tree_indirect(const struct object_id *oid)
+	 */
+	 * Sort the cache entry -- we need to nuke the cache tree, though.
+static int read_one_entry_quick(const struct object_id *oid, struct strbuf *base,
+	/*
+
+{
+				die("Invalid commit %s in submodule path %s%s",
+
+				  mode, stage,
+	}
+		case 0:
+}
+				  ADD_CACHE_JUST_APPEND);
+
+		       read_tree_fn_t fn, void *context)
+		return READ_TREE_RECURSIVE;
+int parse_tree_gently(struct tree *item, int quiet_on_missing)
+		retval = read_tree_1(r, lookup_tree(r, &oid),
+	int i, err;
+	item->buffer = buffer;
+	return read_one_entry_opt(istate, oid, base->buf, base->len, pathname,
 
 struct tree *lookup_tree(struct repository *r, const struct object_id *oid)
 {
-	struct object *obj = lookup_object(r, oid);
-	if (!obj)
-		return create_object(r, oid, alloc_tree_node(r));
-	return object_as_type(r, obj, OBJ_TREE, 0);
+#include "tree.h"
+{
 }
 
-int parse_tree_buffer(struct tree *item, void *buffer, unsigned long size)
-{
-	if (item->object.parsed)
-		return 0;
-	item->object.parsed = 1;
-	item->buffer = buffer;
-	item->size = size;
-
-	return 0;
 }
-
-int parse_tree_gently(struct tree *item, int quiet_on_missing)
-{
-	 enum object_type type;
-	 void *buffer;
-	 unsigned long size;
-
-	if (item->object.parsed)
-		return 0;
-	buffer = read_object_file(&item->object.oid, &type, &size);
-	if (!buffer)
+		}
+		if (S_ISDIR(entry.mode))
+		fn = read_one_entry_quick;
+	strbuf_add(&sb, base, baselen);
+		const struct cache_entry *ce = istate->cache[i];
 		return quiet_on_missing ? -1 :
-			error("Could not read %s",
-			     oid_to_hex(&item->object.oid));
-	if (type != OBJ_TREE) {
-		free(buffer);
+	 * do it the original slow way, otherwise, append and then
+	while (tree_entry(&desc, &entry)) {
+	 */
+	for (i = 0; !fn && i < istate->cache_nr; i++) {
+	if (!buffer)
+#include "tag.h"
 		return error("Object %s not a tree",
-			     oid_to_hex(&item->object.oid));
+#include "cache.h"
+	return ret;
+				    oid_to_hex(&entry.oid),
+			      const struct object_id *oid,
+	struct object *obj = lookup_object(r, oid);
+	return 0;
+	 */
+				    base->buf, entry.path);
+			continue;
+		strbuf_setlen(base, oldlen);
+				break;
+			      const char *pathname,
+{
 	}
-	return parse_tree_buffer(item, buffer, size);
-}
 
-void free_tree_buffer(struct tree *tree)
-{
+		return 0;
+	read_tree_fn_t fn = NULL;
+static int cmp_cache_name_compare(const void *a_, const void *b_)
+	 * Currently the only existing callers of this function all
 	FREE_AND_NULL(tree->buffer);
-	tree->size = 0;
-	tree->object.parsed = 0;
-}
+			if (retval == entry_not_interesting)
+#include "repository.h"
+	init_tree_desc(&desc, tree->buffer, tree->size);
+		}
+	struct tree_desc desc;
+int read_tree_recursive(struct repository *r,
+	ce->ce_mode = create_ce_mode(mode);
+			     oid_to_hex(&item->object.oid));
 
-struct tree *parse_tree_indirect(const struct object_id *oid)
-{
-	struct repository *r = the_repository;
-	struct object *obj = parse_object(r, oid);
-	return (struct tree *)repo_peel_to_type(r, NULL, 0, obj, OBJ_TREE);
+			struct commit *commit;
+			commit = lookup_commit(r, &entry.oid);
+	 * See if we have cache entry at the stage.  If so,
+	if (item->object.parsed)
+			retval = tree_entry_interesting(r->index, &entry,
+#include "tree-walk.h"
 }
+	item->object.parsed = 1;
+{
+							base, 0, pathspec);
+			break;
+{
+
+	 enum object_type type;
+		case READ_TREE_RECURSIVE:
+#include "blob.h"
+	ret = read_tree_1(r, tree, &sb, stage, pathspec, fn, context);
+	QSORT(istate->cache, istate->cache_nr, cmp_cache_name_compare);
+
+				  ce2->name, ce2->ce_namelen, ce_stage(ce2));
+ * the stage that will conflict with the entry being added.
+	return 0;
+		if (retval != all_entries_interesting) {
+	strbuf_release(&sb);
+ * This is used when the caller knows there is no existing entries at
+		return -1;
+
+	      struct pathspec *match, struct index_state *istate)
+			read_tree_fn_t fn, void *context)
+	struct index_state *istate = context;
+	 * use unpack_trees() in some cases, this will probably start
+	oidcpy(&ce->oid, oid);
+		return 0;

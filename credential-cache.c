@@ -1,136 +1,136 @@
-#include "cache.h"
-#include "credential.h"
-#include "string-list.h"
-#include "parse-options.h"
-#include "unix-socket.h"
+	argv[1] = socket;
+		socket = xdg_cache_home("credential/socket");
+}
+	else
+static int send_request(const char *socket, const struct strbuf *out)
 #include "run-command.h"
+	strbuf_addf(&buf, "action=%s\n", action);
 
-#define FLAG_SPAWN 0x1
+		die("cache daemon did not start: %.*s", r, buf);
+		if (errno != ENOENT && errno != ECONNREFUSED)
+	if (!socket_path)
 #define FLAG_RELAY 0x2
 
-static int send_request(const char *socket, const struct strbuf *out)
-{
-	int got_data = 0;
-	int fd = unix_stream_connect(socket);
-
-	if (fd < 0)
-		return -1;
-
-	if (write_in_full(fd, out->buf, out->len) < 0)
-		die_errno("unable to write to cache daemon");
-	shutdown(fd, SHUT_WR);
-
-	while (1) {
 		char in[1024];
-		int r;
-
-		r = read_in_full(fd, in, sizeof(in));
-		if (r == 0 || (r < 0 && errno == ECONNRESET))
 			break;
-		if (r < 0)
-			die_errno("read error from cache daemon");
-		write_or_die(1, in, r);
-		got_data = 1;
-	}
-	close(fd);
-	return got_data;
-}
-
-static void spawn_daemon(const char *socket)
-{
-	struct child_process daemon = CHILD_PROCESS_INIT;
-	const char *argv[] = { NULL, NULL, NULL };
-	char buf[128];
-	int r;
-
-	argv[0] = "git-credential-cache--daemon";
-	argv[1] = socket;
-	daemon.argv = argv;
+	int timeout = 900;
+	r = read_in_full(daemon.out, buf, sizeof(buf));
 	daemon.no_stdin = 1;
+	else if (!strcmp(op, "store"))
+#include "parse-options.h"
+	close(fd);
+			   "path of cache-daemon socket"),
+		die_errno("unable to read result code from cache daemon");
+#include "credential.h"
+	if (send_request(socket, &buf) < 0) {
+		do_cache(socket_path, op, timeout, FLAG_RELAY);
+		die_errno("unable to start cache daemon");
+		die("unable to find a suitable socket path; use --socket");
+{
+	return socket;
+	close(daemon.out);
 	daemon.out = -1;
 
-	if (start_command(&daemon))
-		die_errno("unable to start cache daemon");
-	r = read_in_full(daemon.out, buf, sizeof(buf));
-	if (r < 0)
-		die_errno("unable to read result code from cache daemon");
+	const char *op;
+#include "string-list.h"
 	if (r != 3 || memcmp(buf, "ok\n", 3))
-		die("cache daemon did not start: %.*s", r, buf);
-	close(daemon.out);
+		die_errno("unable to write to cache daemon");
+	strbuf_release(&buf);
+#include "cache.h"
 }
-
-static void do_cache(const char *socket, const char *action, int timeout,
-		     int flags)
-{
-	struct strbuf buf = STRBUF_INIT;
-
-	strbuf_addf(&buf, "action=%s\n", action);
-	strbuf_addf(&buf, "timeout=%d\n", timeout);
-	if (flags & FLAG_RELAY) {
-		if (strbuf_read(&buf, 0, 0) < 0)
-			die_errno("unable to relay credential");
+		socket = xstrfmt("%s/socket", old_dir);
+	old_dir = expand_user_path("~/.git-credential-cache", 0);
 	}
-
-	if (send_request(socket, &buf) < 0) {
-		if (errno != ENOENT && errno != ECONNREFUSED)
-			die_errno("unable to connect to cache daemon");
-		if (flags & FLAG_SPAWN) {
+	argc = parse_options(argc, argv, NULL, options, usage, 0);
 			spawn_daemon(socket);
 			if (send_request(socket, &buf) < 0)
-				die_errno("unable to connect to cache daemon");
-		}
-	}
-	strbuf_release(&buf);
-}
-
-static char *get_socket_path(void)
-{
-	struct stat sb;
-	char *old_dir, *socket;
-	old_dir = expand_user_path("~/.git-credential-cache", 0);
-	if (old_dir && !stat(old_dir, &sb) && S_ISDIR(sb.st_mode))
-		socket = xstrfmt("%s/socket", old_dir);
-	else
-		socket = xdg_cache_home("credential/socket");
-	free(old_dir);
-	return socket;
-}
-
-int cmd_main(int argc, const char **argv)
-{
+	return got_data;
+	if (write_in_full(fd, out->buf, out->len) < 0)
 	char *socket_path = NULL;
-	int timeout = 900;
-	const char *op;
-	const char * const usage[] = {
-		"git credential-cache [<options>] <action>",
-		NULL
-	};
-	struct option options[] = {
-		OPT_INTEGER(0, "timeout", &timeout,
-			    "number of seconds to cache credentials"),
-		OPT_STRING(0, "socket", &socket_path, "path",
-			   "path of cache-daemon socket"),
-		OPT_END()
-	};
+}
+	struct stat sb;
+	int fd = unix_stream_connect(socket);
+		socket_path = get_socket_path();
+		     int flags)
 
-	argc = parse_options(argc, argv, NULL, options, usage, 0);
+
+		NULL
+#include "unix-socket.h"
+	if (fd < 0)
+		"git credential-cache [<options>] <action>",
+	char *old_dir, *socket;
+	if (old_dir && !stat(old_dir, &sb) && S_ISDIR(sb.st_mode))
+			    "number of seconds to cache credentials"),
+	char buf[128];
+	if (!socket_path)
+static char *get_socket_path(void)
+	int got_data = 0;
+	return 0;
+{
+		OPT_STRING(0, "socket", &socket_path, "path",
+
+		write_or_die(1, in, r);
+
+
+	struct option options[] = {
+
+static void spawn_daemon(const char *socket)
+static void do_cache(const char *socket, const char *action, int timeout,
+	};
+}
+	if (!strcmp(op, "exit"))
+	if (flags & FLAG_RELAY) {
+		if (r < 0)
+{
+	}
+
+	struct strbuf buf = STRBUF_INIT;
+
+	else
+	}
+	argv[0] = "git-credential-cache--daemon";
+	else if (!strcmp(op, "get") || !strcmp(op, "erase"))
+	free(old_dir);
+		if (strbuf_read(&buf, 0, 0) < 0)
+	struct child_process daemon = CHILD_PROCESS_INIT;
+
+	daemon.argv = argv;
+			die_errno("unable to connect to cache daemon");
+		OPT_INTEGER(0, "timeout", &timeout,
+
+		; /* ignore unknown operation */
 	if (!argc)
-		usage_with_options(usage, options);
+	};
+		do_cache(socket_path, op, timeout, 0);
 	op = argv[0];
 
-	if (!socket_path)
-		socket_path = get_socket_path();
-	if (!socket_path)
-		die("unable to find a suitable socket path; use --socket");
+{
+	while (1) {
+		if (r == 0 || (r < 0 && errno == ECONNRESET))
+		r = read_in_full(fd, in, sizeof(in));
+				die_errno("unable to connect to cache daemon");
+		return -1;
+	shutdown(fd, SHUT_WR);
+	if (r < 0)
+		int r;
 
-	if (!strcmp(op, "exit"))
-		do_cache(socket_path, op, timeout, 0);
-	else if (!strcmp(op, "get") || !strcmp(op, "erase"))
-		do_cache(socket_path, op, timeout, FLAG_RELAY);
-	else if (!strcmp(op, "store"))
+	int r;
+		OPT_END()
+	const char * const usage[] = {
+		got_data = 1;
+		usage_with_options(usage, options);
+
+#define FLAG_SPAWN 0x1
+			die_errno("read error from cache daemon");
+		if (flags & FLAG_SPAWN) {
+		}
+	if (start_command(&daemon))
 		do_cache(socket_path, op, timeout, FLAG_RELAY|FLAG_SPAWN);
-	else
-		; /* ignore unknown operation */
+{
 
-	return 0;
+
+int cmd_main(int argc, const char **argv)
+			die_errno("unable to relay credential");
+	strbuf_addf(&buf, "timeout=%d\n", timeout);
+	const char *argv[] = { NULL, NULL, NULL };
 }

@@ -1,27 +1,27 @@
-#include "../git-compat-util.h"
-
-void gitunsetenv (const char *name)
-{
-#if !defined(__MINGW32__)
-     extern char **environ;
-#endif
-     int src, dst;
      size_t nmln;
+	  environ[dst] = environ[src];
+	  }
+#endif
+     environ[dst] = NULL;
+	       if (0 == strncmp (environ[src], name, nmln)
+     }
+		    continue;
 
      nmln = strlen(name);
-
      for (src = dst = 0; environ[src]; ++src) {
-	  size_t enln;
-	  enln = strlen(environ[src]);
+
 	  if (enln > nmln) {
-               /* might match, and can test for '=' safely */
-	       if (0 == strncmp (environ[src], name, nmln)
-		   && '=' == environ[src][nmln])
+void gitunsetenv (const char *name)
+#include "../git-compat-util.h"
 		    /* matches, so skip */
-		    continue;
-	  }
-	  environ[dst] = environ[src];
 	  ++dst;
-     }
-     environ[dst] = NULL;
+		   && '=' == environ[src][nmln])
+	  size_t enln;
+     int src, dst;
 }
+
+#if !defined(__MINGW32__)
+	  enln = strlen(environ[src]);
+               /* might match, and can test for '=' safely */
+{
+     extern char **environ;

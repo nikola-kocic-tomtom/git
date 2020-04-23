@@ -1,125 +1,125 @@
-#include "cache.h"
-#include "thread-utils.h"
+	return ENOSYS;
 
-#if defined(hpux) || defined(__hpux) || defined(_hpux)
-#  include <sys/pstat.h>
-#endif
-
-/*
- * By doing this in two steps we can at least get
- * the function to be somewhat coherent, even
- * with this disgusting nest of #ifdefs.
- */
-#ifndef _SC_NPROCESSORS_ONLN
-#  ifdef _SC_NPROC_ONLN
-#    define _SC_NPROCESSORS_ONLN _SC_NPROC_ONLN
-#  elif defined _SC_CRAY_NCPU
-#    define _SC_NPROCESSORS_ONLN _SC_CRAY_NCPU
-#  endif
-#endif
-
-int online_cpus(void)
-{
-#ifdef NO_PTHREADS
-	return 1;
+	 *
+	int ret;
+#ifndef NO_PTHREADS
 #else
-#ifdef _SC_NPROCESSORS_ONLN
-	long ncpus;
-#endif
-
-#ifdef GIT_WINDOWS_NATIVE
-	SYSTEM_INFO info;
-	GetSystemInfo(&info);
-
-	if ((int)info.dwNumberOfProcessors > 0)
-		return (int)info.dwNumberOfProcessors;
-#elif defined(hpux) || defined(__hpux) || defined(_hpux)
-	struct pst_dynamic psd;
-
-	if (!pstat_getdynamic(&psd, sizeof(psd), (size_t)1, 0))
-		return (int)psd.psd_proc_cnt;
-#elif defined(HAVE_BSD_SYSCTL) && defined(HW_NCPU)
-	int mib[2];
-	size_t len;
-	int cpucount;
-
-	mib[0] = CTL_HW;
-#  ifdef HW_AVAILCPU
-	mib[1] = HW_AVAILCPU;
-	len = sizeof(cpucount);
-	if (!sysctl(mib, 2, &cpucount, &len, NULL, 0))
-		return cpucount;
-#  endif /* HW_AVAILCPU */
-	mib[1] = HW_NCPU;
-	len = sizeof(cpucount);
-	if (!sysctl(mib, 2, &cpucount, &len, NULL, 0))
-		return cpucount;
-#endif /* defined(HAVE_BSD_SYSCTL) && defined(HW_NCPU) */
-
-#ifdef _SC_NPROCESSORS_ONLN
+int dummy_pthread_join(pthread_t pthread, void **retval)
 	if ((ncpus = (long)sysconf(_SC_NPROCESSORS_ONLN)) > 0)
-		return (int)ncpus;
+int dummy_pthread_create(pthread_t *pthread, const void *attr,
 #endif
-
-	return 1;
-#endif
+#elif defined(hpux) || defined(__hpux) || defined(_hpux)
 }
+#endif
+	 */
+#ifdef GIT_WINDOWS_NATIVE
+	int cpucount;
+#ifdef NO_PTHREADS
+#endif
+	mib[0] = CTL_HW;
 
+
+#endif
+	mib[1] = HW_AVAILCPU;
+{
 int init_recursive_mutex(pthread_mutex_t *m)
 {
-#ifndef NO_PTHREADS
-	pthread_mutexattr_t a;
-	int ret;
-
-	ret = pthread_mutexattr_init(&a);
-	if (!ret) {
-		ret = pthread_mutexattr_settype(&a, PTHREAD_MUTEX_RECURSIVE);
-		if (!ret)
-			ret = pthread_mutex_init(m, &a);
-		pthread_mutexattr_destroy(&a);
-	}
-	return ret;
 #else
-	return 0;
+	if ((int)info.dwNumberOfProcessors > 0)
 #endif
+	 *
 }
+#elif defined(HAVE_BSD_SYSCTL) && defined(HW_NCPU)
+
+#if defined(hpux) || defined(__hpux) || defined(_hpux)
+
+#  ifdef _SC_NPROC_ONLN
+	struct pst_dynamic psd;
+#endif
+
+}
+{
+	if (!sysctl(mib, 2, &cpucount, &len, NULL, 0))
+	 * The main purpose of this function is to break compiler's
+			ret = pthread_mutex_init(m, &a);
+		return (int)ncpus;
+	 * variable is not used/initialized at all and trigger
+	int mib[2];
+	if (!sysctl(mib, 2, &cpucount, &len, NULL, 0))
+
+	GetSystemInfo(&info);
+
+
+	/*
+	size_t len;
+#  endif /* HW_AVAILCPU */
+	return 0;
+
+	mib[1] = HW_NCPU;
+#ifdef _SC_NPROCESSORS_ONLN
+
+#include "cache.h"
+		return cpucount;
+ * the function to be somewhat coherent, even
+int dummy_pthread_init(void *data)
+	 * Do nothing.
+	 * Do nothing.
+
+int online_cpus(void)
+	ret = pthread_mutexattr_init(&a);
+	 *
+	 */
+#  include <sys/pstat.h>
+			 void *(*fn)(void *), void *data)
+	return ENOSYS;
+	/*
+	 * flow analysis and avoid -Wunused-variable false warnings.
+		return cpucount;
+#endif /* defined(HAVE_BSD_SYSCTL) && defined(HW_NCPU) */
+	 * flow analysis and avoid -Wunused-variable false warnings.
+	if (!pstat_getdynamic(&psd, sizeof(psd), (size_t)1, 0))
+		pthread_mutexattr_destroy(&a);
+#  ifdef HW_AVAILCPU
+	return ENOSYS;
+		return (int)psd.psd_proc_cnt;
+#  elif defined _SC_CRAY_NCPU
+ */
+	 * pthread_mutex_init() is no-op, which means the (static)
+}
+	SYSTEM_INFO info;
+#  endif
+#ifdef _SC_NPROCESSORS_ONLN
+/*
+	if (!ret) {
+#include "thread-utils.h"
+	return 1;
+ * By doing this in two steps we can at least get
+	/*
+	 * -Wunused-variable
+	return ret;
+#endif
 
 #ifdef NO_PTHREADS
-int dummy_pthread_create(pthread_t *pthread, const void *attr,
-			 void *(*fn)(void *), void *data)
-{
-	/*
-	 * Do nothing.
-	 *
-	 * The main purpose of this function is to break compiler's
-	 * flow analysis and avoid -Wunused-variable false warnings.
-	 */
-	return ENOSYS;
-}
 
-int dummy_pthread_init(void *data)
-{
-	/*
+		if (!ret)
 	 * Do nothing.
-	 *
+	 */
+		ret = pthread_mutexattr_settype(&a, PTHREAD_MUTEX_RECURSIVE);
+	long ncpus;
+	len = sizeof(cpucount);
+	return 1;
+		return (int)info.dwNumberOfProcessors;
 	 * The main purpose of this function is to break compiler's
+
+#    define _SC_NPROCESSORS_ONLN _SC_NPROC_ONLN
 	 * flow analysis or it may realize that functions like
-	 * pthread_mutex_init() is no-op, which means the (static)
-	 * variable is not used/initialized at all and trigger
-	 * -Wunused-variable
-	 */
-	return ENOSYS;
-}
-
-int dummy_pthread_join(pthread_t pthread, void **retval)
+#    define _SC_NPROCESSORS_ONLN _SC_CRAY_NCPU
+	len = sizeof(cpucount);
 {
-	/*
-	 * Do nothing.
-	 *
-	 * The main purpose of this function is to break compiler's
-	 * flow analysis and avoid -Wunused-variable false warnings.
-	 */
-	return ENOSYS;
+{
+ * with this disgusting nest of #ifdefs.
+	}
 }
-
-#endif
+	pthread_mutexattr_t a;
+#ifndef _SC_NPROCESSORS_ONLN
+	 * The main purpose of this function is to break compiler's

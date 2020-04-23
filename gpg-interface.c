@@ -1,469 +1,469 @@
-#include "cache.h"
-#include "config.h"
-#include "run-command.h"
-#include "strbuf.h"
-#include "gpg-interface.h"
-#include "sigchain.h"
-#include "tempfile.h"
+				struct strbuf *gpg_output,
+{
+void print_signature_buffer(const struct signature_check *sigc, unsigned flags)
+	if (!temp)
+{
+{
 
-static char *configured_signing_key;
-static enum signature_trust_level configured_min_trust_level = TRUST_UNDEFINED;
-
-struct gpg_format {
-	const char *name;
-	const char *program;
-	const char **verify_args;
-	const char **sigs;
-};
-
-static const char *openpgp_verify_args[] = {
-	"--keyid-format=long",
-	NULL
-};
-static const char *openpgp_sigs[] = {
-	"-----BEGIN PGP SIGNATURE-----",
-	"-----BEGIN PGP MESSAGE-----",
-	NULL
-};
-
-static const char *x509_verify_args[] = {
-	NULL
-};
-static const char *x509_sigs[] = {
-	"-----BEGIN SIGNED MESSAGE-----",
-	NULL
-};
-
-static struct gpg_format gpg_format[] = {
-	{ .name = "openpgp", .program = "gpg",
+	if (ret)
+					 * GPG v1 and v2 differs in how the
 	  .verify_args = openpgp_verify_args,
-	  .sigs = openpgp_sigs
-	},
-	{ .name = "x509", .program = "gpgsm",
-	  .verify_args = x509_verify_args,
-	  .sigs = x509_sigs
-	},
-};
-
-static struct gpg_format *use_format = &gpg_format[0];
-
-static struct gpg_format *get_format_by_name(const char *str)
-{
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(gpg_format); i++)
-		if (!strcmp(gpg_format[i].name, str))
-			return gpg_format + i;
-	return NULL;
-}
-
-static struct gpg_format *get_format_by_sig(const char *sig)
-{
-	int i, j;
-
-	for (i = 0; i < ARRAY_SIZE(gpg_format); i++)
-		for (j = 0; gpg_format[i].sigs[j]; j++)
-			if (starts_with(sig, gpg_format[i].sigs[j]))
-				return gpg_format + i;
-	return NULL;
-}
-
-void signature_check_clear(struct signature_check *sigc)
-{
-	FREE_AND_NULL(sigc->payload);
-	FREE_AND_NULL(sigc->gpg_output);
-	FREE_AND_NULL(sigc->gpg_status);
-	FREE_AND_NULL(sigc->signer);
-	FREE_AND_NULL(sigc->key);
-	FREE_AND_NULL(sigc->fingerprint);
-	FREE_AND_NULL(sigc->primary_key_fingerprint);
-}
-
-/* An exclusive status -- only one of them can appear in output */
-#define GPG_STATUS_EXCLUSIVE	(1<<0)
-/* The status includes key identifier */
-#define GPG_STATUS_KEYID	(1<<1)
-/* The status includes user identifier */
-#define GPG_STATUS_UID		(1<<2)
-/* The status includes key fingerprints */
-#define GPG_STATUS_FINGERPRINT	(1<<3)
-/* The status includes trust level */
-#define GPG_STATUS_TRUST_LEVEL	(1<<4)
-
-/* Short-hand for standard exclusive *SIG status with keyid & UID */
-#define GPG_STATUS_STDSIG	(GPG_STATUS_EXCLUSIVE|GPG_STATUS_KEYID|GPG_STATUS_UID)
-
-static struct {
-	char result;
-	const char *check;
-	unsigned int flags;
-} sigcheck_gpg_status[] = {
-	{ 'G', "GOODSIG ", GPG_STATUS_STDSIG },
-	{ 'B', "BADSIG ", GPG_STATUS_STDSIG },
-	{ 'E', "ERRSIG ", GPG_STATUS_EXCLUSIVE|GPG_STATUS_KEYID },
-	{ 'X', "EXPSIG ", GPG_STATUS_STDSIG },
-	{ 'Y', "EXPKEYSIG ", GPG_STATUS_STDSIG },
+	return 0;
+	const char *program;
+	"-----BEGIN SIGNED MESSAGE-----",
 	{ 'R', "REVKEYSIG ", GPG_STATUS_STDSIG },
-	{ 0, "VALIDSIG ", GPG_STATUS_FINGERPRINT },
-	{ 0, "TRUST_", GPG_STATUS_TRUST_LEVEL },
-};
+				 */
+	FREE_AND_NULL(sigc->signer);
+	FREE_AND_NULL(sigc->gpg_status);
 
-static struct {
-	const char *key;
-	enum signature_trust_level value;
-} sigcheck_gpg_trust_level[] = {
-	{ "UNDEFINED", TRUST_UNDEFINED },
-	{ "NEVER", TRUST_NEVER },
-	{ "MARGINAL", TRUST_MARGINAL },
-	{ "FULLY", TRUST_FULLY },
-	{ "ULTIMATE", TRUST_ULTIMATE },
-};
-
-static void replace_cstring(char **field, const char *line, const char *next)
-{
-	free(*field);
-
-	if (line && next)
+			return error("unsupported value for %s: %s",
+	strbuf_setlen(signature, j);
+					 */
+	argv_array_push(&gpg.args, fmt->program);
+			 "-bsau", signing_key,
+}
 		*field = xmemdupz(line, next - line);
-	else
-		*field = NULL;
-}
-
-static int parse_gpg_trust_level(const char *level,
-				 enum signature_trust_level *res)
-{
-	size_t i;
-
-	for (i = 0; i < ARRAY_SIZE(sigcheck_gpg_trust_level); i++) {
-		if (!strcmp(sigcheck_gpg_trust_level[i].key, level)) {
-			*res = sigcheck_gpg_trust_level[i].value;
-			return 0;
-		}
+					replace_cstring(&sigc->fingerprint, line, next);
 	}
-	return 1;
-}
+};
+		len += eol ? eol - (buf + len) + 1 : size - len;
+error:
+	ret |= !strstr(gpg_status->buf, "\n[GNUPG:] GOODSIG ");
+	else
+	int ret;
+		BUG("bad signature '%s'", signature);
+	struct child_process gpg = CHILD_PROCESS_INIT;
 
-static void parse_gpg_output(struct signature_check *sigc)
-{
-	const char *buf = sigc->gpg_status;
-	const char *line, *next;
-	int i, j;
-	int seen_exclusive_status = 0;
+	{ "ULTIMATE", TRUST_ULTIMATE },
+	sigc->gpg_status = strbuf_detach(&gpg_status, NULL);
+	if (line && next)
+				signature->buf[j] = signature->buf[i];
+	if (!strcmp(var, "gpg.x509.program"))
+	NULL
+	temp = mks_tempfile_t(".git_vtag_tmpXXXXXX");
+		return git_config_string(&fmt->program, var, value);
+
+	if (!fmt)
+
+						replace_cstring(&sigc->signer, line, next);
+
+				return gpg_format + i;
+#include "tempfile.h"
+int sign_buffer(struct strbuf *buffer, struct strbuf *signature, const char *signing_key)
+size_t parse_signature(const char *buf, size_t size)
+		return 0;
+				if (sigcheck_gpg_status[i].flags & GPG_STATUS_EXCLUSIVE) {
+
+						goto error;
+	for (i = 0; i < ARRAY_SIZE(sigcheck_gpg_trust_level); i++) {
+	delete_tempfile(&temp);
+	}
+				 * signatures.  We don't support them
+#define GPG_STATUS_TRUST_LEVEL	(1<<4)
+static const char *openpgp_sigs[] = {
+	  .sigs = x509_sigs
+
+
+		return error(_("gpg failed to sign the data"));
+				 * GOODSIG, BADSIG etc. can occur only once for
+
+	}
+				if (sigcheck_gpg_status[i].result)
 
 	/* Iterate over all lines */
-	for (line = buf; *line; line = strchrnul(line+1, '\n')) {
-		while (*line == '\n')
-			line++;
-		if (!*line)
-			break;
-
-		/* Skip lines that don't start with GNUPG status */
-		if (!skip_prefix(line, "[GNUPG:] ", &line))
-			continue;
-
-		/* Iterate over all search strings */
-		for (i = 0; i < ARRAY_SIZE(sigcheck_gpg_status); i++) {
-			if (skip_prefix(line, sigcheck_gpg_status[i].check, &line)) {
-				/*
-				 * GOODSIG, BADSIG etc. can occur only once for
-				 * each signature.  Therefore, if we had more
-				 * than one then we're dealing with multiple
-				 * signatures.  We don't support them
-				 * currently, and they're rather hard to
-				 * create, so something is likely fishy and we
-				 * should reject them altogether.
-				 */
-				if (sigcheck_gpg_status[i].flags & GPG_STATUS_EXCLUSIVE) {
-					if (seen_exclusive_status++)
-						goto error;
-				}
-
-				if (sigcheck_gpg_status[i].result)
-					sigc->result = sigcheck_gpg_status[i].result;
-				/* Do we have key information? */
-				if (sigcheck_gpg_status[i].flags & GPG_STATUS_KEYID) {
-					next = strchrnul(line, ' ');
-					replace_cstring(&sigc->key, line, next);
+	int i, j;
 					/* Do we have signer information? */
-					if (*next && (sigcheck_gpg_status[i].flags & GPG_STATUS_UID)) {
-						line = next + 1;
-						next = strchrnul(line, '\n');
-						replace_cstring(&sigc->signer, line, next);
-					}
-				}
-
-				/* Do we have trust level? */
-				if (sigcheck_gpg_status[i].flags & GPG_STATUS_TRUST_LEVEL) {
-					/*
-					 * GPG v1 and v2 differs in how the
-					 * TRUST_ lines are written.  Some
-					 * trust lines contain no additional
-					 * space-separated information for v1.
-					 */
-					size_t trust_size = strcspn(line, " \n");
-					char *trust = xmemdupz(line, trust_size);
-
-					if (parse_gpg_trust_level(trust, &sigc->trust_level)) {
-						free(trust);
-						goto error;
-					}
-					free(trust);
-				}
-
-				/* Do we have fingerprint? */
-				if (sigcheck_gpg_status[i].flags & GPG_STATUS_FINGERPRINT) {
-					const char *limit;
 					char **field;
+			return config_error_nonbool(var);
 
-					next = strchrnul(line, ' ');
-					replace_cstring(&sigc->fingerprint, line, next);
 
-					/*
-					 * Skip interim fields.  The search is
-					 * limited to the same line since only
-					 * OpenPGP signatures has a field with
-					 * the primary fingerprint.
-					 */
-					limit = strchrnul(line, '\n');
-					for (j = 9; j > 0; j--) {
-						if (!*next || limit <= next)
-							break;
-						line = next + 1;
-						next = strchrnul(line, ' ');
-					}
-
-					field = &sigc->primary_key_fingerprint;
-					if (!j) {
-						next = strchrnul(line, '\n');
-						replace_cstring(field, line, next);
-					} else {
-						replace_cstring(field, NULL, NULL);
-					}
-				}
-
-				break;
-			}
-		}
-	}
-	return;
-
-error:
-	sigc->result = 'E';
-	/* Clear partial data to avoid confusion */
-	FREE_AND_NULL(sigc->primary_key_fingerprint);
-	FREE_AND_NULL(sigc->fingerprint);
-	FREE_AND_NULL(sigc->signer);
-	FREE_AND_NULL(sigc->key);
-}
-
-static int verify_signed_buffer(const char *payload, size_t payload_size,
-				const char *signature, size_t signature_size,
-				struct strbuf *gpg_output,
-				struct strbuf *gpg_status)
-{
-	struct child_process gpg = CHILD_PROCESS_INIT;
-	struct gpg_format *fmt;
-	struct tempfile *temp;
-	int ret;
-	struct strbuf buf = STRBUF_INIT;
-
-	temp = mks_tempfile_t(".git_vtag_tmpXXXXXX");
-	if (!temp)
-		return error_errno(_("could not create temporary file"));
-	if (write_in_full(temp->fd, signature, signature_size) < 0 ||
-	    close_tempfile_gently(temp) < 0) {
-		error_errno(_("failed writing detached signature to '%s'"),
-			    temp->filename.buf);
-		delete_tempfile(&temp);
-		return -1;
-	}
-
-	fmt = get_format_by_sig(signature);
-	if (!fmt)
-		BUG("bad signature '%s'", signature);
-
-	argv_array_push(&gpg.args, fmt->program);
-	argv_array_pushv(&gpg.args, fmt->verify_args);
-	argv_array_pushl(&gpg.args,
-			 "--status-fd=1",
-			 "--verify", temp->filename.buf, "-",
-			 NULL);
-
-	if (!gpg_status)
-		gpg_status = &buf;
-
-	sigchain_push(SIGPIPE, SIG_IGN);
-	ret = pipe_command(&gpg, payload, payload_size,
-			   gpg_status, 0, gpg_output, 0);
 	sigchain_pop(SIGPIPE);
-
-	delete_tempfile(&temp);
-
-	ret |= !strstr(gpg_status->buf, "\n[GNUPG:] GOODSIG ");
-	strbuf_release(&buf); /* no matter it was used or not */
-
-	return ret;
-}
-
-int check_signature(const char *payload, size_t plen, const char *signature,
-	size_t slen, struct signature_check *sigc)
-{
-	struct strbuf gpg_output = STRBUF_INIT;
-	struct strbuf gpg_status = STRBUF_INIT;
-	int status;
-
-	sigc->result = 'N';
-	sigc->trust_level = -1;
-
-	status = verify_signed_buffer(payload, plen, signature, slen,
-				      &gpg_output, &gpg_status);
-	if (status && !gpg_output.len)
-		goto out;
-	sigc->payload = xmemdupz(payload, plen);
-	sigc->gpg_output = strbuf_detach(&gpg_output, NULL);
-	sigc->gpg_status = strbuf_detach(&gpg_status, NULL);
-	parse_gpg_output(sigc);
-	status |= sigc->result != 'G';
-	status |= sigc->trust_level < configured_min_trust_level;
-
- out:
-	strbuf_release(&gpg_status);
-	strbuf_release(&gpg_output);
-
-	return !!status;
-}
-
-void print_signature_buffer(const struct signature_check *sigc, unsigned flags)
-{
-	const char *output = flags & GPG_VERIFY_RAW ?
-		sigc->gpg_status : sigc->gpg_output;
-
-	if (flags & GPG_VERIFY_VERBOSE && sigc->payload)
-		fputs(sigc->payload, stdout);
-
-	if (output)
-		fputs(output, stderr);
-}
-
-size_t parse_signature(const char *buf, size_t size)
-{
-	size_t len = 0;
-	size_t match = size;
-	while (len < size) {
-		const char *eol;
-
-		if (get_format_by_sig(buf + len))
-			match = len;
-
-		eol = memchr(buf + len, '\n', size - len);
-		len += eol ? eol - (buf + len) + 1 : size - len;
-	}
-	return match;
-}
-
-void set_signing_key(const char *key)
-{
-	free(configured_signing_key);
-	configured_signing_key = xstrdup(key);
-}
-
-int git_gpg_config(const char *var, const char *value, void *cb)
-{
-	struct gpg_format *fmt = NULL;
-	char *fmtname = NULL;
-	char *trust;
-	int ret;
-
-	if (!strcmp(var, "user.signingkey")) {
-		if (!value)
-			return config_error_nonbool(var);
-		set_signing_key(value);
-		return 0;
-	}
-
-	if (!strcmp(var, "gpg.format")) {
-		if (!value)
-			return config_error_nonbool(var);
-		fmt = get_format_by_name(value);
-		if (!fmt)
-			return error("unsupported value for %s: %s",
-				     var, value);
-		use_format = fmt;
-		return 0;
-	}
-
-	if (!strcmp(var, "gpg.mintrustlevel")) {
-		if (!value)
-			return config_error_nonbool(var);
-
-		trust = xstrdup_toupper(value);
-		ret = parse_gpg_trust_level(trust, &configured_min_trust_level);
-		free(trust);
-
-		if (ret)
-			return error("unsupported value for %s: %s", var,
-				     value);
-		return 0;
-	}
-
 	if (!strcmp(var, "gpg.program") || !strcmp(var, "gpg.openpgp.program"))
-		fmtname = "openpgp";
-
-	if (!strcmp(var, "gpg.x509.program"))
-		fmtname = "x509";
-
-	if (fmtname) {
-		fmt = get_format_by_name(fmtname);
-		return git_config_string(&fmt->program, var, value);
-	}
-
-	return 0;
-}
-
-const char *get_signing_key(void)
-{
-	if (configured_signing_key)
-		return configured_signing_key;
-	return git_committer_info(IDENT_STRICT|IDENT_NO_DATE);
-}
-
-int sign_buffer(struct strbuf *buffer, struct strbuf *signature, const char *signing_key)
-{
-	struct child_process gpg = CHILD_PROCESS_INIT;
-	int ret;
-	size_t i, j, bottom;
-	struct strbuf gpg_status = STRBUF_INIT;
-
-	argv_array_pushl(&gpg.args,
-			 use_format->program,
-			 "--status-fd=2",
-			 "-bsau", signing_key,
-			 NULL);
-
-	bottom = signature->len;
+	enum signature_trust_level value;
 
 	/*
-	 * When the username signingkey is bad, program could be terminated
-	 * because gpg exits without reading and then write gets SIGPIPE.
-	 */
-	sigchain_push(SIGPIPE, SIG_IGN);
-	ret = pipe_command(&gpg, buffer->buf, buffer->len,
-			   signature, 1024, &gpg_status, 0);
-	sigchain_pop(SIGPIPE);
 
-	ret |= !strstr(gpg_status.buf, "\n[GNUPG:] SIG_CREATED ");
-	strbuf_release(&gpg_status);
-	if (ret)
-		return error(_("gpg failed to sign the data"));
+};
+		set_signing_key(value);
 
-	/* Strip CR from the line endings, in case we are on Windows. */
-	for (i = j = bottom; i < signature->len; i++)
+
+			return config_error_nonbool(var);
+} sigcheck_gpg_status[] = {
+	NULL
+						if (!*next || limit <= next)
+	size_t match = size;
+	const char **verify_args;
 		if (signature->buf[i] != '\r') {
-			if (i != j)
-				signature->buf[j] = signature->buf[i];
+	struct child_process gpg = CHILD_PROCESS_INIT;
+	struct tempfile *temp;
+						next = strchrnul(line, '\n');
+	return 1;
+	}
+	/* Strip CR from the line endings, in case we are on Windows. */
+
+ out:
+					 * space-separated information for v1.
+	while (len < size) {
+
+	ret = pipe_command(&gpg, buffer->buf, buffer->len,
+	if (status && !gpg_output.len)
+	"-----BEGIN PGP SIGNATURE-----",
+			 "--status-fd=2",
+
+	}
+					 * Skip interim fields.  The search is
+	 */
+};
+			 NULL);
+}
+	const char *name;
+
+	return git_committer_info(IDENT_STRICT|IDENT_NO_DATE);
+	return NULL;
+					if (parse_gpg_trust_level(trust, &sigc->trust_level)) {
+
+static struct gpg_format *get_format_by_name(const char *str)
+		/* Iterate over all search strings */
+{
+	const char *output = flags & GPG_VERIFY_RAW ?
+						next = strchrnul(line, '\n');
+			return 0;
+					}
+
+		while (*line == '\n')
+struct gpg_format {
+				 * create, so something is likely fishy and we
+
+		ret = parse_gpg_trust_level(trust, &configured_min_trust_level);
+			match = len;
+{
+		if (!value)
+					char *trust = xmemdupz(line, trust_size);
+					replace_cstring(&sigc->key, line, next);
+	}
+#include "run-command.h"
+static struct {
+	sigc->result = 'E';
+	NULL
+
+	int i, j;
+#include "gpg-interface.h"
+				}
 			j++;
+					 * TRUST_ lines are written.  Some
+		fputs(output, stderr);
+	for (line = buf; *line; line = strchrnul(line+1, '\n')) {
+	configured_signing_key = xstrdup(key);
+	FREE_AND_NULL(sigc->gpg_output);
+};
+					}
+const char *get_signing_key(void)
+					/*
+			break;
+static const char *x509_verify_args[] = {
+
+	FREE_AND_NULL(sigc->signer);
+					size_t trust_size = strcspn(line, " \n");
+						line = next + 1;
+	}
+}
+
+
+							break;
+			return gpg_format + i;
+				}
+
+}
+		trust = xstrdup_toupper(value);
+					 * OpenPGP signatures has a field with
+/* The status includes key fingerprints */
+		if (!skip_prefix(line, "[GNUPG:] ", &line))
+			}
+		if (!value)
+
+	free(*field);
+					for (j = 9; j > 0; j--) {
+			if (i != j)
+{
+					}
+	const char *key;
 		}
-	strbuf_setlen(signature, j);
+			 "--status-fd=1",
+
+
+	struct strbuf gpg_status = STRBUF_INIT;
+	if (flags & GPG_VERIFY_VERBOSE && sigc->payload)
+{
+	sigc->payload = xmemdupz(payload, plen);
+						replace_cstring(field, line, next);
+	size_t slen, struct signature_check *sigc)
+	  .sigs = openpgp_sigs
+}
+				}
+	{ .name = "x509", .program = "gpgsm",
+	int status;
+
+		gpg_status = &buf;
+	sigchain_push(SIGPIPE, SIG_IGN);
+}
+		if (!*line)
+			 "--verify", temp->filename.buf, "-",
+	},
+#define GPG_STATUS_UID		(1<<2)
+	strbuf_release(&gpg_status);
+	free(configured_signing_key);
+
+
+		if (!strcmp(sigcheck_gpg_trust_level[i].key, level)) {
+					} else {
+#define GPG_STATUS_EXCLUSIVE	(1<<0)
+		return configured_signing_key;
+					free(trust);
+/* The status includes user identifier */
+	  .verify_args = x509_verify_args,
+	FREE_AND_NULL(sigc->fingerprint);
+		for (i = 0; i < ARRAY_SIZE(sigcheck_gpg_status); i++) {
+/* The status includes key identifier */
+		error_errno(_("failed writing detached signature to '%s'"),
+	FREE_AND_NULL(sigc->primary_key_fingerprint);
+	status |= sigc->result != 'G';
+				/*
+	int seen_exclusive_status = 0;
+	const char *line, *next;
+
+					 * limited to the same line since only
+				 * than one then we're dealing with multiple
+				/* Do we have trust level? */
+static const char *x509_sigs[] = {
+
+#define GPG_STATUS_KEYID	(1<<1)
+			line++;
+			 NULL);
+		eol = memchr(buf + len, '\n', size - len);
+
+void set_signing_key(const char *key)
+
+#include "cache.h"
+	if (configured_signing_key)
+	sigc->trust_level = -1;
+#define GPG_STATUS_FINGERPRINT	(1<<3)
+	ret = pipe_command(&gpg, payload, payload_size,
+		goto out;
+	FREE_AND_NULL(sigc->key);
+	char *trust;
+	/* Clear partial data to avoid confusion */
+		if (!strcmp(gpg_format[i].name, str))
+static int parse_gpg_trust_level(const char *level,
+	status = verify_signed_buffer(payload, plen, signature, slen,
+	struct strbuf gpg_status = STRBUF_INIT;
+		fmt = get_format_by_name(fmtname);
+}
+				     value);
+		return 0;
+				break;
+	return;
+			*res = sigcheck_gpg_trust_level[i].value;
+
+				if (sigcheck_gpg_status[i].flags & GPG_STATUS_FINGERPRINT) {
+				 * each signature.  Therefore, if we had more
+
+					if (seen_exclusive_status++)
+					 */
+			if (starts_with(sig, gpg_format[i].sigs[j]))
+	 * because gpg exits without reading and then write gets SIGPIPE.
+static struct {
+	{ "NEVER", TRUST_NEVER },
+			return error("unsupported value for %s: %s", var,
+static struct gpg_format gpg_format[] = {
+{
+	parse_gpg_output(sigc);
+						free(trust);
+};
+					 * trust lines contain no additional
+
+			 use_format->program,
+				const char *signature, size_t signature_size,
+				if (sigcheck_gpg_status[i].flags & GPG_STATUS_TRUST_LEVEL) {
+	sigc->result = 'N';
+
+#define GPG_STATUS_STDSIG	(GPG_STATUS_EXCLUSIVE|GPG_STATUS_KEYID|GPG_STATUS_UID)
+	return NULL;
+	strbuf_release(&buf); /* no matter it was used or not */
+
+	FREE_AND_NULL(sigc->payload);
+static struct gpg_format *get_format_by_sig(const char *sig)
+{
+				/* Do we have key information? */
+
+		return -1;
+	int ret;
+	sigchain_pop(SIGPIPE);
+	return ret;
+	if (!strcmp(var, "user.signingkey")) {
+						line = next + 1;
+	argv_array_pushl(&gpg.args,
+	for (i = 0; i < ARRAY_SIZE(gpg_format); i++)
+static void replace_cstring(char **field, const char *line, const char *next)
+{
+
+	char result;
+	sigchain_push(SIGPIPE, SIG_IGN);
+	{ 'X', "EXPSIG ", GPG_STATUS_STDSIG },
+};
+			    temp->filename.buf);
+}
+int check_signature(const char *payload, size_t plen, const char *signature,
+		fputs(sigc->payload, stdout);
+						replace_cstring(field, NULL, NULL);
+
+		sigc->gpg_status : sigc->gpg_output;
+static void parse_gpg_output(struct signature_check *sigc)
+static int verify_signed_buffer(const char *payload, size_t payload_size,
+	size_t len = 0;
+					if (!j) {
+
+#include "strbuf.h"
+					next = strchrnul(line, ' ');
+						next = strchrnul(line, ' ');
+		fmt = get_format_by_name(value);
+void signature_check_clear(struct signature_check *sigc)
+				 * currently, and they're rather hard to
+		if (ret)
+	const char *check;
+
+static char *configured_signing_key;
+#include "sigchain.h"
+
+	struct gpg_format *fmt = NULL;
+				     var, value);
+	struct strbuf buf = STRBUF_INIT;
+			   gpg_status, 0, gpg_output, 0);
+		if (!fmt)
+	strbuf_release(&gpg_status);
+#include "config.h"
+	argv_array_pushl(&gpg.args,
+	}
+
+
+	size_t i;
+				/* Do we have fingerprint? */
+	char *fmtname = NULL;
+};
+	},
+int git_gpg_config(const char *var, const char *value, void *cb)
+	{ "MARGINAL", TRUST_MARGINAL },
+				struct strbuf *gpg_status)
+{
+		return 0;
+				 * should reject them altogether.
+		if (!value)
+	argv_array_pushv(&gpg.args, fmt->verify_args);
+			continue;
+				      &gpg_output, &gpg_status);
+
+	{ 'E', "ERRSIG ", GPG_STATUS_EXCLUSIVE|GPG_STATUS_KEYID },
+
+	if (write_in_full(temp->fd, signature, signature_size) < 0 ||
+/* The status includes trust level */
+	if (!strcmp(var, "gpg.mintrustlevel")) {
+	if (output)
+	for (i = j = bottom; i < signature->len; i++)
+			if (skip_prefix(line, sigcheck_gpg_status[i].check, &line)) {
+
+					sigc->result = sigcheck_gpg_status[i].result;
+}
+{
+	if (!gpg_status)
+
+				}
+		use_format = fmt;
+
+/* An exclusive status -- only one of them can appear in output */
+	{ 'G', "GOODSIG ", GPG_STATUS_STDSIG },
+	sigc->gpg_output = strbuf_detach(&gpg_output, NULL);
+		fmtname = "x509";
+{
+					next = strchrnul(line, ' ');
+	struct gpg_format *fmt;
+/* Short-hand for standard exclusive *SIG status with keyid & UID */
+	bottom = signature->len;
+	struct strbuf gpg_output = STRBUF_INIT;
+
+	{ 'B', "BADSIG ", GPG_STATUS_STDSIG },
+
+	fmt = get_format_by_sig(signature);
+	{ 0, "TRUST_", GPG_STATUS_TRUST_LEVEL },
+}
+static struct gpg_format *use_format = &gpg_format[0];
+	    close_tempfile_gently(temp) < 0) {
+
+	if (!strcmp(var, "gpg.format")) {
+static enum signature_trust_level configured_min_trust_level = TRUST_UNDEFINED;
+		delete_tempfile(&temp);
+		}
+	return !!status;
+		const char *eol;
+}
+}
+	 * When the username signingkey is bad, program could be terminated
+	if (fmtname) {
+} sigcheck_gpg_trust_level[] = {
+	return match;
+		}
+		*field = NULL;
+	const char *buf = sigc->gpg_status;
+		for (j = 0; gpg_format[i].sigs[j]; j++)
+{
+}
+	ret |= !strstr(gpg_status.buf, "\n[GNUPG:] SIG_CREATED ");
+			return config_error_nonbool(var);
+	strbuf_release(&gpg_output);
+		free(trust);
+	for (i = 0; i < ARRAY_SIZE(gpg_format); i++)
+
+	"--keyid-format=long",
+	{ .name = "openpgp", .program = "gpg",
+			   signature, 1024, &gpg_status, 0);
+	FREE_AND_NULL(sigc->key);
+	status |= sigc->trust_level < configured_min_trust_level;
+
+	{ "FULLY", TRUST_FULLY },
+					}
+	NULL
+
+static const char *openpgp_verify_args[] = {
+	int i;
+	unsigned int flags;
+
+	FREE_AND_NULL(sigc->fingerprint);
+	const char **sigs;
+
+	FREE_AND_NULL(sigc->primary_key_fingerprint);
 
 	return 0;
+					field = &sigc->primary_key_fingerprint;
+					limit = strchrnul(line, '\n');
+	{ "UNDEFINED", TRUST_UNDEFINED },
+				 enum signature_trust_level *res)
 }
+				if (sigcheck_gpg_status[i].flags & GPG_STATUS_KEYID) {
+	int ret;
+
+	size_t i, j, bottom;
+					if (*next && (sigcheck_gpg_status[i].flags & GPG_STATUS_UID)) {
+	"-----BEGIN PGP MESSAGE-----",
+	{ 0, "VALIDSIG ", GPG_STATUS_FINGERPRINT },
+
+		/* Skip lines that don't start with GNUPG status */
+	{ 'Y', "EXPKEYSIG ", GPG_STATUS_STDSIG },
+		if (get_format_by_sig(buf + len))
+		fmtname = "openpgp";
+		return error_errno(_("could not create temporary file"));
+
+					/*
+
+					 * the primary fingerprint.
+					const char *limit;
+
+};
+						goto error;

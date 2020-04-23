@@ -1,18 +1,18 @@
-/*
- * This file is in the public domain.
- * You may freely use, modify, distribute, and relicense it.
+		return 1;
  */
-
-#include <stdlib.h>
-#include "svndump.h"
+	if (svndump_init(NULL))
 
 int main(int argc, char **argv)
-{
-	if (svndump_init(NULL))
-		return 1;
-	svndump_read((argc > 1) ? argv[1] : NULL, "refs/heads/master",
-			"refs/notes/svn/revs");
-	svndump_deinit();
+
+#include <stdlib.h>
+ * You may freely use, modify, distribute, and relicense it.
 	svndump_reset();
-	return 0;
+	svndump_read((argc > 1) ? argv[1] : NULL, "refs/heads/master",
+{
 }
+	return 0;
+	svndump_deinit();
+			"refs/notes/svn/revs");
+ * This file is in the public domain.
+#include "svndump.h"
+/*

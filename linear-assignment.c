@@ -1,207 +1,207 @@
-/*
- * Based on: Jonker, R., & Volgenant, A. (1987). <i>A shortest augmenting path
- * algorithm for dense and sparse linear assignment problems</i>. Computing,
- * 38(4), 325-340.
- */
-#include "cache.h"
-#include "linear-assignment.h"
-
-#define COST(column, row) cost[(column) + column_count * (row)]
-
-/*
- * The parameter `cost` is the cost matrix: the cost to assign column j to row
- * i is `cost[j + column_count * i].
- */
-void compute_assignment(int column_count, int row_count, int *cost,
-			int *column2row, int *row2column)
-{
-	int *v, *d;
-	int *free_row, free_count = 0, saved_free_count, *pred, *col;
-	int i, j, phase;
-
-	if (column_count < 2) {
-		memset(column2row, 0, sizeof(int) * column_count);
-		memset(row2column, 0, sizeof(int) * row_count);
-		return;
-	}
-
-	memset(column2row, -1, sizeof(int) * column_count);
-	memset(row2column, -1, sizeof(int) * row_count);
-	ALLOC_ARRAY(v, column_count);
-
-	/* column reduction */
-	for (j = column_count - 1; j >= 0; j--) {
-		int i1 = 0;
-
-		for (i = 1; i < row_count; i++)
-			if (COST(j, i1) > COST(j, i))
-				i1 = i;
-		v[j] = COST(j, i1);
-		if (row2column[i1] == -1) {
-			/* row i1 unassigned */
-			row2column[i1] = j;
-			column2row[j] = i1;
-		} else {
-			if (row2column[i1] >= 0)
-				row2column[i1] = -2 - row2column[i1];
-			column2row[j] = -1;
-		}
-	}
-
-	/* reduction transfer */
-	ALLOC_ARRAY(free_row, row_count);
-	for (i = 0; i < row_count; i++) {
-		int j1 = row2column[i];
-		if (j1 == -1)
-			free_row[free_count++] = i;
-		else if (j1 < -1)
-			row2column[i] = -2 - j1;
-		else {
-			int min = COST(!j1, i) - v[!j1];
-			for (j = 1; j < column_count; j++)
-				if (j != j1 && min > COST(j, i) - v[j])
-					min = COST(j, i) - v[j];
-			v[j1] -= min;
-		}
-	}
-
-	if (free_count ==
-	    (column_count < row_count ? row_count - column_count : 0)) {
-		free(v);
-		free(free_row);
-		return;
-	}
-
-	/* augmenting row reduction */
-	for (phase = 0; phase < 2; phase++) {
-		int k = 0;
-
-		saved_free_count = free_count;
-		free_count = 0;
-		while (k < saved_free_count) {
-			int u1, u2;
-			int j1 = 0, j2, i0;
-
-			i = free_row[k++];
-			u1 = COST(j1, i) - v[j1];
-			j2 = -1;
-			u2 = INT_MAX;
-			for (j = 1; j < column_count; j++) {
-				int c = COST(j, i) - v[j];
+		int i1 = free_row[free_count], low = 0, up = 0, last, k;
 				if (u2 > c) {
-					if (u1 < c) {
-						u2 = c;
-						j2 = j;
-					} else {
-						u2 = u1;
-						u1 = c;
-						j2 = j1;
-						j1 = j;
-					}
-				}
-			}
-			if (j2 < 0) {
-				j2 = j1;
-				u2 = u1;
-			}
+						min = c;
+					j = col[k];
+					if (c < min) {
 
 			i0 = column2row[j1];
-			if (u1 < u2)
-				v[j1] -= u2 - u1;
-			else if (i0 >= 0) {
-				j1 = j2;
-				i0 = column2row[j1];
-			}
-
-			if (i0 >= 0) {
-				if (u1 < u2)
-					free_row[--k] = i0;
-				else
-					free_row[free_count++] = i0;
-			}
-			row2column[i] = j1;
-			column2row[j1] = i;
-		}
-	}
-
-	/* augmentation */
-	saved_free_count = free_count;
-	ALLOC_ARRAY(d, column_count);
-	ALLOC_ARRAY(pred, column_count);
-	ALLOC_ARRAY(col, column_count);
-	for (free_count = 0; free_count < saved_free_count; free_count++) {
-		int i1 = free_row[free_count], low = 0, up = 0, last, k;
-		int min, c, u1;
-
-		for (j = 0; j < column_count; j++) {
-			d[j] = COST(j, i1) - v[j];
-			pred[j] = i1;
-			col[j] = j;
-		}
-
-		j = -1;
-		do {
-			last = low;
-			min = d[col[up++]];
-			for (k = up; k < column_count; k++) {
-				j = col[k];
-				c = d[j];
-				if (c <= min) {
-					if (c < min) {
-						up = low;
-						min = c;
-					}
-					col[k] = col[up];
-					col[up++] = j;
-				}
-			}
-			for (k = low; k < up; k++)
-				if (column2row[col[k]] == -1)
-					goto update;
-
-			/* scan a row */
-			do {
-				int j1 = col[low++];
-
-				i = column2row[j1];
-				u1 = COST(j1, i) - v[j1] - min;
-				for (k = up; k < column_count; k++) {
-					j = col[k];
-					c = COST(j, i) - v[j] - u1;
-					if (c < d[j]) {
+	free(v);
 						d[j] = c;
-						pred[j] = i;
-						if (c == min) {
-							if (column2row[j] == -1)
-								goto update;
-							col[k] = col[up];
-							col[up++] = j;
-						}
-					}
-				}
-			} while (low != up);
-		} while (low == up);
-
-update:
-		/* updating of the column pieces */
-		for (k = 0; k < last; k++) {
-			int j1 = col[k];
-			v[j1] += d[j1] - min;
-		}
-
-		/* augmentation */
-		do {
-			if (j < 0)
-				BUG("negative j: %d", j);
-			i = pred[j];
-			column2row[j] = i;
-			SWAP(j, row2column[i]);
-		} while (i1 != i);
-	}
 
 	free(col);
-	free(pred);
+
+				int j1 = col[low++];
+					}
+	}
+			column2row[j1] = i;
+
+			int min = COST(!j1, i) - v[!j1];
+			if (j < 0)
+		do {
+
+		int j1 = row2column[i];
+			column2row[j] = i;
+				row2column[i1] = -2 - row2column[i1];
+				}
+				if (column2row[col[k]] == -1)
+			row2column[i] = -2 - j1;
+		int min, c, u1;
+		free_count = 0;
+				else
+			if (j2 < 0) {
+			}
+			if (COST(j, i1) > COST(j, i))
+			i = pred[j];
+ * Based on: Jonker, R., & Volgenant, A. (1987). <i>A shortest augmenting path
+			}
+						j2 = j;
+			if (u1 < u2)
+					c = COST(j, i) - v[j] - u1;
 	free(d);
-	free(v);
+		j = -1;
+ * 38(4), 325-340.
+				j2 = j1;
+ * The parameter `cost` is the cost matrix: the cost to assign column j to row
+						u2 = u1;
+
+					}
+	for (j = column_count - 1; j >= 0; j--) {
+	if (free_count ==
+		for (k = 0; k < last; k++) {
+		return;
+			SWAP(j, row2column[i]);
+	/* column reduction */
+					goto update;
+
+ * i is `cost[j + column_count * i].
+							if (column2row[j] == -1)
+		else if (j1 < -1)
+						j2 = j1;
+			}
+				int c = COST(j, i) - v[j];
+			column2row[j] = -1;
+		v[j] = COST(j, i1);
+								goto update;
+	if (column_count < 2) {
+		if (j1 == -1)
+			i = free_row[k++];
+			last = low;
+			if (i0 >= 0) {
+	memset(column2row, -1, sizeof(int) * column_count);
+		return;
+				v[j1] -= u2 - u1;
+		free(v);
+			for (k = up; k < column_count; k++) {
+				i1 = i;
+			if (row2column[i1] >= 0)
+				if (j != j1 && min > COST(j, i) - v[j])
+			int j1 = 0, j2, i0;
+			u1 = COST(j1, i) - v[j1];
+						}
+
+	}
+			v[j1] += d[j1] - min;
+/*
+	}
+				}
+	for (free_count = 0; free_count < saved_free_count; free_count++) {
+			j2 = -1;
+void compute_assignment(int column_count, int row_count, int *cost,
+	/* augmentation */
+			u2 = INT_MAX;
+#include "cache.h"
+				j = col[k];
+		memset(row2column, 0, sizeof(int) * row_count);
+
+
 	free(free_row);
+				}
+							col[k] = col[up];
+		}
+			v[j1] -= min;
+			do {
+			else if (i0 >= 0) {
+	int *v, *d;
+	ALLOC_ARRAY(pred, column_count);
+							col[up++] = j;
+			row2column[i1] = j;
+			d[j] = COST(j, i1) - v[j];
+					}
+				if (c <= min) {
+			int u1, u2;
+#define COST(column, row) cost[(column) + column_count * (row)]
+ */
+	int i, j, phase;
+		} while (low == up);
+			int *column2row, int *row2column)
+		} while (i1 != i);
+update:
+		int i1 = 0;
+		else {
+			for (k = low; k < up; k++)
+					} else {
+	ALLOC_ARRAY(col, column_count);
+		}
+	/* augmenting row reduction */
+					if (c < d[j]) {
+	for (phase = 0; phase < 2; phase++) {
+
+		/* updating of the column pieces */
+		}
+	ALLOC_ARRAY(v, column_count);
+			}
+
+		for (i = 1; i < row_count; i++)
+		} else {
+	}
+			/* row i1 unassigned */
+			col[j] = j;
+ * algorithm for dense and sparse linear assignment problems</i>. Computing,
+	    (column_count < row_count ? row_count - column_count : 0)) {
+					free_row[free_count++] = i0;
+			pred[j] = i1;
+				BUG("negative j: %d", j);
+		while (k < saved_free_count) {
+					min = COST(j, i) - v[j];
+		memset(column2row, 0, sizeof(int) * column_count);
+	ALLOC_ARRAY(free_row, row_count);
+				u1 = COST(j1, i) - v[j1] - min;
+
+			int j1 = col[k];
+ */
+				u2 = u1;
+						u2 = c;
+#include "linear-assignment.h"
+					free_row[--k] = i0;
+			row2column[i] = j1;
+				i = column2row[j1];
+	memset(row2column, -1, sizeof(int) * row_count);
+
+
+
+			} while (low != up);
+	ALLOC_ARRAY(d, column_count);
+		saved_free_count = free_count;
+		int k = 0;
+			for (j = 1; j < column_count; j++) {
+			/* scan a row */
+
+				c = d[j];
 }
+		do {
+						pred[j] = i;
+
+	}
+				i0 = column2row[j1];
+
+	saved_free_count = free_count;
+		if (row2column[i1] == -1) {
+	}
+				if (u1 < u2)
+				j1 = j2;
+					col[up++] = j;
+		free(free_row);
+		}
+		/* augmentation */
+			}
+
+			for (j = 1; j < column_count; j++)
+						up = low;
+		for (j = 0; j < column_count; j++) {
+/*
+	int *free_row, free_count = 0, saved_free_count, *pred, *col;
+	free(pred);
+	/* reduction transfer */
+
+			min = d[col[up++]];
+					col[k] = col[up];
+			column2row[j] = i1;
+						j1 = j;
+				for (k = up; k < column_count; k++) {
+			free_row[free_count++] = i;
+					if (u1 < c) {
+	for (i = 0; i < row_count; i++) {
+		}
+{
+						u1 = c;
+						if (c == min) {

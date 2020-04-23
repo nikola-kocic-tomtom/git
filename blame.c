@@ -1,2811 +1,2811 @@
-#include "cache.h"
-#include "refs.h"
-#include "object-store.h"
-#include "cache-tree.h"
-#include "mergesort.h"
-#include "diff.h"
-#include "diffcore.h"
-#include "tag.h"
-#include "blame.h"
-#include "alloc.h"
-#include "commit-slab.h"
-
-define_commit_slab(blame_suspects, struct blame_origin *);
-static struct blame_suspects blame_suspects;
-
-struct blame_origin *get_blame_suspects(struct commit *commit)
-{
-	struct blame_origin **result;
-
-	result = blame_suspects_peek(&blame_suspects, commit);
-
-	return result ? *result : NULL;
-}
-
-static void set_blame_suspects(struct commit *commit, struct blame_origin *origin)
-{
-	*blame_suspects_at(&blame_suspects, commit) = origin;
-}
-
-void blame_origin_decref(struct blame_origin *o)
-{
-	if (o && --o->refcnt <= 0) {
-		struct blame_origin *p, *l = NULL;
-		if (o->previous)
-			blame_origin_decref(o->previous);
-		free(o->file.ptr);
-		/* Should be present exactly once in commit chain */
-		for (p = get_blame_suspects(o->commit); p; l = p, p = p->next) {
-			if (p == o) {
-				if (l)
-					l->next = p->next;
-				else
-					set_blame_suspects(o->commit, p->next);
-				free(o);
-				return;
 			}
+	int i, *result, *second_best_result,
+		     !(revs->max_age != -1 && commit->date < revs->max_age)))
+
+			ADD_CACHE_OK_TO_ADD | ADD_CACHE_OK_TO_REPLACE);
+	 * diff will occur, the currently blamed parts are all that we
+				ent->suspect->refcnt);
+	return commit_list_count(l);
+	if (sb->reverse && sb->revs->first_parent_only) {
+	/* Do we have HEAD? */
+	commit->date = now;
+		found_entry = hashmap_get_entry(&result->map, entry,
+			line_blames[i].s_lno = target_idx;
+	diff_setup_done(&diff_opts);
 		}
-		die("internal error in blame_origin_decref");
+	return similarities + line_a - closest_line_a +
+			map_line_number_in_b_to_a);
+{
+
+			p = diff_queued_diff.queue[i];
+ * To keep the length of each row the same, it is padded out with values of -1
+		 */
 	}
-}
-
-/*
- * Given a commit and a path in it, create a new origin structure.
- * The callers that add blame to the scoreboard should use
- * get_origin() to obtain shared, refcounted copy instead of calling
- * this function directly.
- */
-static struct blame_origin *make_origin(struct commit *commit, const char *path)
-{
-	struct blame_origin *o;
-	FLEX_ALLOC_STR(o, path, path);
-	o->commit = commit;
-	o->refcnt = 1;
-	o->next = get_blame_suspects(commit);
-	set_blame_suspects(commit, o);
-	return o;
-}
-
-/*
- * Locate an existing origin or create a new one.
- * This moves the origin to front position in the commit util list.
- */
-static struct blame_origin *get_origin(struct commit *commit, const char *path)
-{
-	struct blame_origin *o, *l;
-
-	for (o = get_blame_suspects(commit), l = NULL; o; l = o, o = o->next) {
-		if (!strcmp(o->path, path)) {
-			/* bump to front */
-			if (l) {
-				l->next = o->next;
-				o->next = get_blame_suspects(commit);
-				set_blame_suspects(commit, o);
-			}
-			return blame_origin_incref(o);
+		struct blame_entry *next = head->next;
 		}
+			for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
+		 */
 	}
-	return make_origin(commit, path);
+			best_idx = fuzzy_matches[i];
+	if (!reverse) {
 }
-
-
-
 static void verify_working_tree_path(struct repository *r,
-				     struct commit *work_tree, const char *path)
-{
-	struct commit_list *parents;
-	int pos;
+	 * The actual relation is pretty unimportant as long as it
 
-	for (parents = work_tree->parents; parents; parents = parents->next) {
-		const struct object_id *commit_oid = &parents->item->object.oid;
-		struct object_id blob_oid;
-		unsigned short mode;
+		/* Calculate the certainty with which this line matches.
 
+	*source = NULL;
+ * more complicated to allow performing it with integer operations.
+			}
+			max_search_distance_a) {
+			if (!porigin)
+		if (sb->debug) /* sanity */
+ * 			 corresponds to the line at start_b.
+			second_best_result + offset_b, result + offset_b,
+void blame_sort_final(struct blame_scoreboard *sb)
+ * \param line_end the end of the string
+			e->s_lno = line_blames[i - entry_len + 1].s_lno;
+	struct blame_line_tracker *line_blames = NULL;
+	diff_opts.output_format = DIFF_FORMAT_NO_OUTPUT;
+	 */
+		    ent->ignored == next->ignored &&
+
+	if (max_search_distance_a >= length_a)
+	 * file_p partially may match that image.
+ * the target line range. This is accomplished by matching fingerprints in each
+		 * That list must be sorted before we queue_blames().  We defer
+		default:
+		if (fill_blob_sha1_and_mode(sb->repo, o))
+
+		e = next;
 		if (!get_tree_entry(r, commit_oid, path, &blob_oid, &mode) &&
-		    oid_object_info(r, &blob_oid, NULL) == OBJ_BLOB)
-			return;
+		origin->suspects = toosmall;
+			n->next = diffp;
+ * in the parent we already tried.
+				 - 1) / length_a;
+	if (merge_head < 0) {
+	const char *final_commit_name = NULL;
+{
+		else if (sb->copy_score < sb->move_score) {
+	pos = index_name_pos(r->index, path, strlen(path));
+	queue_blames(sb, porigin, suspects);
+	 * fingerprint in A. This means that other lines in B can't also match
+	if (is_null_oid(&sb->final->object.oid)) {
+	d.dstq = &newdest; d.srcq = &target->suspects;
+
+		 * after most-certain-line-B but are matched with a line in A
+
+	return nl ? nl + 1 : end;
+		     i < num_sg && sg;
+	/*
+			source = &p->next;
+		 * We are often adjacent to the next line - only split the blame
+		final_commit = find_single_final(sb->revs, NULL);
+						  const void *b,
+				return;
+				return list1;
+}
+ * The main loop -- while we have blobs with lines whose true origin
+		return; /* nothing remains for this target */
+		/* ... and the middle part -- parent */
+static void dup_entry(struct blame_entry ***queue,
+		     sg = sg->next, i++) {
+ *
 	}
 
-	pos = index_name_pos(r->index, path, strlen(path));
-	if (pos >= 0)
-		; /* path is in the index */
-	else if (-1 - pos < r->index->cache_nr &&
-		 !strcmp(r->index->cache[-1 - pos]->name, path))
-		; /* path is in the index, unmerged */
-	else
-		die("no such path '%s' in HEAD", path);
+	int i;
+static void handle_split(struct blame_scoreboard *sb,
+			if (p == o) {
+			} else {
+			find_copy_in_blob(sb, e, parent, split, &file_p);
+		     d->split);
+ */
+		split[0].s_lno = e->s_lno;
+		sb->on_sanity_fail(sb, baa);
+ *  bp, cp, dp, ep, -1,
+	diff_opts.output_format = DIFF_FORMAT_NO_OUTPUT;
+{
+		 */
+	 * certain line.
+static void guess_line_blames(struct blame_origin *parent,
+		return p1;
+	int num = 0;
+				       start_b,
+	int pos;
+	blame_origin_incref(src->suspect);
+			most_certain_line_a + 1 - start_a,
+			 * Preemptively drop porigin so we can refresh the
+
+ * \param certainties array of values indicating how strongly a line in B is
+}
+}
+	for (;;) {
+		      const char *path,
+	 */
+	return ((struct blame_entry *)p1)->lno > ((struct blame_entry *)p2)->lno
+		if (obj->type != OBJ_COMMIT)
+		do_diff_cache(get_commit_tree_oid(parent), &diff_opts);
+	if (!name)
+	} else {
+/*
+
+			continue;
+	 * that are no greater than max_search_distance_a lines away from the
+			oidcpy(&porigin->blob_oid, &p->one->oid);
+	o->commit = commit;
+		add_blame_entry(unblamed, &split[2]);
+ * of the strings that they represent.
+	int chunk_end_lno;
+		 * before most-certain-line-B but are matched with a line in A
+			name = p->one->path ? p->one->path : p->two->path;
+ * ordinary C program, and it is not worth to say it was copied from
+	}
+				struct blame_entry **toosmall,
+	if (o->fingerprints) {
+}
+ * parent and return an origin structure to represent it.
+	parent_tail = append_parent(r, parent_tail, &head_oid);
+ * must use detach).
+/* A byte pair in a fingerprint. Stores the number of times the byte pair
+
+					continue;
+		goto error_out;
+			e->ignored = 1;
+		if ((p->status == 'R' || p->status == 'C') &&
+ * for an origin is also used to pass the blame for the entire file to
+	 */
+{
+	struct blame_entry *ent;
+			return;
+			decref_split(split);
+
+	origin->file.ptr = buf.buf;
+		prio_queue_put(&sb->commits, porigin->commit);
+		if (ignore_diffs) {
+	int intersection = 0;
+ * similar lines. The "certainty" is calculated based on those two
+			fingerprints_a + second_half_start_a - start_a,
+	struct fingerprint *fingerprints_b,
+		for (i = 0; i < diff_queued_diff.nr; i++) {
+ * e | q
+
+
+		*srcq = &diffp->next;
+static int prepare_lines(struct blame_scoreboard *sb)
+	sb->num_lines = find_line_starts(&sb->lineno, sb->final_buf,
+ * a row are the similarities between the line in B and the nearby lines in A.
+	int sim, p_idx;
+
+		free_fingerprint(&fingerprints[i]);
+/* Distribute collected unsorted blames to the respected sorted lists
+	 */
+ * Example: if the chunk is 2 lines long in A and 10 lines long in B then the
+}
+		sb->final_buf = xmemdupz(o->file.ptr, o->file.size);
+		porigin->file = origin->file;
+		tail = append_parent(r, tail, &oid);
+		if (sim < best_sim_val)
+		     sg = sg->next, i++) {
+	similarity_count = length_b * (max_search_distance_a * 2 + 1);
+			     fingerprints_b + most_certain_local_line_b);
+ *
+ */
+		die("No commit to dig up from?");
+					  fingerprints_a + start_a,
+				struct blame_entry **toosmall,
+			      "", &diff_opts);
+	/*
+ * a | m
+		 * lower case. This won't work for multibyte characters but at
+	convert_to_git(r->index, path, buf.buf, buf.len, &buf, 0);
+			      "", &diff_opts);
+		    textconv_object(opt->repo, o->path, o->mode,
+		copy_split_if_better(sb, split, potential);
+		}
+ *			 closest to local_line_b. This must be in the same
+ */
+		 * Since origin->path is a pathspec, if the parent
+	for (pass = 0; pass < 2 - sb->no_whole_file_rename; pass++) {
+
+			struct blame_origin *norigin;
+			 */
+
+		return;
+
+}
+						  parent_len);
+
+			continue;
+	repo_read_index(r);
+ * sort according to the suspect line numbers as opposed to the final
+	return;
+	if (name_p)
+		 * a line that matches very well with two lines over matching a
+			suspect->guilty = 1;
+							 &sb->final_buf_size);
+					struct blame_origin *o)
+			blame_origin_decref(e->suspect);
+
+				 struct blame_entry *potential)
+{
+		if (*similarity > best_similarity) {
+		    abs(best_sim_idx - t_idx) < abs(p_idx - t_idx))
+	xpparam_t xpp = {0};
+	if ((opt & PICKAXE_BLAME_COPY_HARDEST)
+	cp = blame_nth_line(sb, e->lno);
+		*dstq = &samep->next;
+static struct blame_origin *find_origin(struct repository *r,
+{
+ * merge them together.
+ * _current_ element.
+	handle_split(d->sb, d->ent, d->tlno, d->plno, start_b, d->parent,
+			die(_("--reverse --first-parent together require range along first-parent chain"));
+{
+};
+			 */
+		}
+				blame_origin_decref(porigin);
+	o->next = get_blame_suspects(commit);
+	/*
+			mode = S_IFREG | 0644;
+		 * Note ignoredp is not sorted yet, and thus neither is dstq.
+ * \param max_search_distance_a maximum distance in lines from the closest line
+			break;
+		/*
+}
+	const char *ident;
+			if ((p1 = *tail) == NULL) {
+		 * worst will match some unrelated characters.
+	/* As we know the maximum number of entries in advance, it's
+{
+static int num_scapegoats(struct rev_info *revs, struct commit *commit, int reverse)
+	       local_line_b * (max_search_distance_a * 2 + 1);
+					  certainties,
+			     struct blame_origin *o, mmfile_t *file,
+	for (i = 0; i < revs->pending.nr; i++) {
+ *
+	/* We use the terminology "A" for the left hand side of the diff AKA
+ * \param closest_line_a the index of the line in A that is deemed to be
+	fill_origin_blob(&sb->revs->diffopt, parent, &file_p,
+				BUG("not unique item in first-parent chain");
+
+				sg_origin[i] = porigin;
+ * diff chunk.  If that fails for a line, the second pass tries to match that
+}
+ * broken into two chunks by 'context.'
+	memset(split, 0, sizeof(struct blame_entry [3]));
+			   int closest_line_a, int max_search_distance_a)
+	 * Now retain records on the target while parts are different
+
+			 &sb->num_read_blob, ignore_diffs);
+ * array contains the similarities for a line in B. The similarities stored in
+
+
+
+	return make_origin(commit, path);
+			blamed->next = suspects;
+static int *fuzzy_find_matching_lines(struct blame_origin *parent,
+	struct fingerprint *fingerprints_a,
+	else if (split[0].suspect) {
+		/* The last part -- me */
+		porigin->suspects = blame_merge(porigin->suspects, sorted);
+			length_a + start_a - second_half_start_a;
+	}
+ * image line numbers.  The function body is somewhat longish because
+	 * max_search_distance_b is an upper bound on the greatest possible
+				if (!origin->suspects)
+			if (are_lines_adjacent(&line_blames[i],
+			p = *source;
+			     struct blame_origin *origin, struct blame_origin *porigin)
+			small = &p->next;
+				mark_parents_uninteresting(commit);
+	for (i = 0; i < diff_queued_diff.nr; i++) {
+
+				continue;
+ * is still unknown, pick one blob, and allow its lines to pass blames
+
+ */
+		return p2;
+	const char *end = buf + len;
+		}
+	blame_origin_incref(e->suspect);
+ * fingerprint:
+		setup_work_tree();
+			certainties, second_best_result, result,
+				   struct blame_origin *origin)
+		return e->score;
+
+ *	closest_line_a.
+	const struct fingerprint_entry *entry_a, *entry_b;
+			second_best_similarity = *similarity;
+			die("Non commit %s?", revs->pending.objects[i].name);
+ * The similarity between two fingerprints is the size of the intersection of
+ * start and at the end of the difference region.  Since use of -M and
+
 }
 
-static struct commit_list **append_parent(struct repository *r,
-					  struct commit_list **tail,
-					  const struct object_id *oid)
-{
-	struct commit *parent;
+					  compare_blame_suspect);
 
-	parent = lookup_commit_reference(r, oid);
-	if (!parent)
-		die("no such commit %s", oid_to_hex(oid));
-	return &commit_list_insert(parent, tail)->next;
+		file->size = file_size;
+	paths[1] = NULL;
+	/* The hashmap entry - the hash represents the byte pair in its
+		    "author %s\n"
+	blame_chunk(&d.dstq, &d.srcq, INT_MAX, d.offset, INT_MAX, 0,
+		    oid_to_hex(&parent->commit->object.oid),
+		for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
+	if (invalidate_max > length_b)
+					       const char *contents_from)
+		}
+
+		/*
 }
+	struct object_id head_oid;
+					 struct blame_entry *tail)
+			;
+	for (i = 0; i < num_sg; i++) {
+		 * examine the second part separately.
+		newdest = llist_mergesort(newdest, get_next_blame,
+			norigin = get_origin(parent, p->one->path);
+	e = reverse_blame(diffp, e);
+			       struct blame_origin *parent,
+static struct commit *dwim_reverse_initial(struct rev_info *revs,
+	int num_ents, i;
+				fingerprints_b + local_line_b,
+			 * that otherwise are equally similar.
+}
+		*get_similarity(similarities, most_certain_line_a - start_a,
+			second_half_start_a, second_half_start_b,
+ * look like this:
+			porigin = get_origin(parent, p->one->path);
+				fingerprints_a + i) *
+	distribute_blame(sb, blames);
+					  &map_line_number_in_b_to_a);
+		struct blame_entry *next = NULL;
+ * The lines in blame_entry after splitting blames many times can become
+				hashmap_remove(&a->map, &entry_b->entry, NULL);
+ * For debugging -- origin is refcounted, and this asserts that
+static void distribute_blame(struct blame_scoreboard *sb, struct blame_entry *blamed)
+	if (diffp)
+		? 1 : -1;
 
-static void append_merge_parents(struct repository *r,
-				 struct commit_list **tail)
 {
-	int merge_head;
+
+		    ent->s_lno + ent->num_lines == next->s_lno &&
+	o->fingerprints = xcalloc(sizeof(struct fingerprint), o->num_lines);
+	if (search_start < 0)
+			     i < num_sg && sg;
+		split[2].s_lno = e->s_lno + (same - e->s_lno);
+				  const char *content, const int *line_starts,
+ * Append a new blame entry to a given output queue.
+	struct fingerprint *fingerprints_a,
+
+ *                              both be compared with the same line in A
+}
+{
+static struct blame_origin *find_rename(struct repository *r,
+		}
+				       result,
+static void fill_origin_fingerprints(struct blame_origin *o)
+				  parent_len, line_blames);
+	const struct line_number_mapping *map_line_number_in_b_to_a)
+			second_best_similarity_index = i;
+	dst->next = **queue;
+			diffp = n;
+
+#include "blame.h"
+ * Returns a pointer to the link pointing to the old head of the small list.
+	new_head->next = head;
+	**queue = dst;
+		else {
+			die("unknown line in '%s': %s",
+		    start_b + count_b, count_a, d->parent, d->target,
+ * actual decision was made in a separate heuristic function, and those answers
+		for (i = 0; i < diff_queued_diff.nr; i++) {
+					int reverse)
+		if (e->s_lno + e->num_lines > tlno) {
+			decref_split(split);
+		head = next;
+	int count;
+
+ */
+ * \param length_b number of lines in B for which matching should be done.
+		enum object_type type;
+			die("More than one commit to dig up from, %s and %s?",
+		if (contents_from) {
+/* Calculates the similarity between two fingerprints as the size of the
+			    unsigned long len)
+
+	 * We carve new entries off the front of e.  Each entry comes from a
+ */
+}
+	struct commit_list **parent_tail, *parent;
+	 * origin->blob_sha1 without mucking with its mode or type
+	}
+	return result ? *result : NULL;
+			goto finish;
+{
+		 * it reaches into it, we need to split it up and
+
+			die("internal error in blame::find_origin (%c)",
+	 * parent, and "B" for the right hand side of the diff AKA target. */
+static void pass_blame_to_parent(struct blame_scoreboard *sb,
+		/* there is a post-chunk part not blamed on parent */
+			i + start_b, map_line_number_in_b_to_a) - start_a;
+				goto finish;
 	struct strbuf line = STRBUF_INIT;
 
 	merge_head = open(git_path_merge_head(r), O_RDONLY);
-	if (merge_head < 0) {
-		if (errno == ENOENT)
-			return;
-		die("cannot open '%s' for reading",
-		    git_path_merge_head(r));
-	}
-
-	while (!strbuf_getwholeline_fd(&line, merge_head, '\n')) {
-		struct object_id oid;
-		if (get_oid_hex(line.buf, &oid))
-			die("unknown line in '%s': %s",
-			    git_path_merge_head(r), line.buf);
-		tail = append_parent(r, tail, &oid);
-	}
-	close(merge_head);
-	strbuf_release(&line);
-}
-
-/*
- * This isn't as simple as passing sb->buf and sb->len, because we
- * want to transfer ownership of the buffer to the commit (so we
- * must use detach).
- */
-static void set_commit_buffer_from_strbuf(struct repository *r,
-					  struct commit *c,
-					  struct strbuf *sb)
-{
-	size_t len;
-	void *buf = strbuf_detach(sb, &len);
-	set_commit_buffer(r, c, buf, len);
-}
-
-/*
- * Prepare a dummy commit that represents the work tree (or staged) item.
- * Note that annotating work tree item never works in the reverse.
- */
-static struct commit *fake_working_tree_commit(struct repository *r,
-					       struct diff_options *opt,
-					       const char *path,
-					       const char *contents_from)
-{
-	struct commit *commit;
-	struct blame_origin *origin;
-	struct commit_list **parent_tail, *parent;
-	struct object_id head_oid;
-	struct strbuf buf = STRBUF_INIT;
-	const char *ident;
-	time_t now;
-	int len;
-	struct cache_entry *ce;
-	unsigned mode;
-	struct strbuf msg = STRBUF_INIT;
-
-	repo_read_index(r);
-	time(&now);
-	commit = alloc_commit_node(r);
-	commit->object.parsed = 1;
-	commit->date = now;
-	parent_tail = &commit->parents;
-
-	if (!resolve_ref_unsafe("HEAD", RESOLVE_REF_READING, &head_oid, NULL))
-		die("no such ref: HEAD");
-
-	parent_tail = append_parent(r, parent_tail, &head_oid);
-	append_merge_parents(r, parent_tail);
-	verify_working_tree_path(r, commit, path);
-
-	origin = make_origin(commit, path);
-
-	ident = fmt_ident("Not Committed Yet", "not.committed.yet",
-			WANT_BLANK_IDENT, NULL, 0);
-	strbuf_addstr(&msg, "tree 0000000000000000000000000000000000000000\n");
-	for (parent = commit->parents; parent; parent = parent->next)
-		strbuf_addf(&msg, "parent %s\n",
-			    oid_to_hex(&parent->item->object.oid));
-	strbuf_addf(&msg,
-		    "author %s\n"
-		    "committer %s\n\n"
-		    "Version of %s from %s\n",
-		    ident, ident, path,
-		    (!contents_from ? path :
-		     (!strcmp(contents_from, "-") ? "standard input" : contents_from)));
-	set_commit_buffer_from_strbuf(r, commit, &msg);
-
-	if (!contents_from || strcmp("-", contents_from)) {
-		struct stat st;
-		const char *read_from;
-		char *buf_ptr;
-		unsigned long buf_len;
-
-		if (contents_from) {
-			if (stat(contents_from, &st) < 0)
-				die_errno("Cannot stat '%s'", contents_from);
-			read_from = contents_from;
-		}
-		else {
-			if (lstat(path, &st) < 0)
-				die_errno("Cannot lstat '%s'", path);
-			read_from = path;
-		}
-		mode = canon_mode(st.st_mode);
-
-		switch (st.st_mode & S_IFMT) {
-		case S_IFREG:
-			if (opt->flags.allow_textconv &&
-			    textconv_object(r, read_from, mode, &null_oid, 0, &buf_ptr, &buf_len))
-				strbuf_attach(&buf, buf_ptr, buf_len, buf_len + 1);
-			else if (strbuf_read_file(&buf, read_from, st.st_size) != st.st_size)
-				die_errno("cannot open or read '%s'", read_from);
-			break;
-		case S_IFLNK:
-			if (strbuf_readlink(&buf, read_from, st.st_size) < 0)
-				die_errno("cannot readlink '%s'", read_from);
-			break;
-		default:
-			die("unsupported file type %s", read_from);
-		}
-	}
-	else {
-		/* Reading from stdin */
-		mode = 0;
-		if (strbuf_read(&buf, 0, 0) < 0)
-			die_errno("failed to read from stdin");
-	}
-	convert_to_git(r->index, path, buf.buf, buf.len, &buf, 0);
-	origin->file.ptr = buf.buf;
-	origin->file.size = buf.len;
-	pretend_object_file(buf.buf, buf.len, OBJ_BLOB, &origin->blob_oid);
-
-	/*
-	 * Read the current index, replace the path entry with
-	 * origin->blob_sha1 without mucking with its mode or type
-	 * bits; we are not going to write this index out -- we just
-	 * want to run "diff-index --cached".
-	 */
-	discard_index(r->index);
-	repo_read_index(r);
-
-	len = strlen(path);
-	if (!mode) {
-		int pos = index_name_pos(r->index, path, len);
-		if (0 <= pos)
-			mode = r->index->cache[pos]->ce_mode;
-		else
-			/* Let's not bother reading from HEAD tree */
-			mode = S_IFREG | 0644;
-	}
-	ce = make_empty_cache_entry(r->index, len);
-	oidcpy(&ce->oid, &origin->blob_oid);
-	memcpy(ce->name, path, len);
-	ce->ce_flags = create_ce_flags(0);
-	ce->ce_namelen = len;
-	ce->ce_mode = create_ce_mode(mode);
-	add_index_entry(r->index, ce,
-			ADD_CACHE_OK_TO_ADD | ADD_CACHE_OK_TO_REPLACE);
-
-	cache_tree_invalidate_path(r->index, path);
-
-	return commit;
-}
-
-
-
-static int diff_hunks(mmfile_t *file_a, mmfile_t *file_b,
-		      xdl_emit_hunk_consume_func_t hunk_func, void *cb_data, int xdl_opts)
-{
-	xpparam_t xpp = {0};
-	xdemitconf_t xecfg = {0};
-	xdemitcb_t ecb = {NULL};
-
-	xpp.flags = xdl_opts;
-	xecfg.hunk_func = hunk_func;
-	ecb.priv = cb_data;
-	return xdi_diff(file_a, file_b, &xpp, &xecfg, &ecb);
-}
-
-static const char *get_next_line(const char *start, const char *end)
-{
-	const char *nl = memchr(start, '\n', end - start);
-
-	return nl ? nl + 1 : end;
-}
-
-static int find_line_starts(int **line_starts, const char *buf,
-			    unsigned long len)
-{
-	const char *end = buf + len;
-	const char *p;
-	int *lineno;
-	int num = 0;
-
-	for (p = buf; p < end; p = get_next_line(p, end))
-		num++;
-
-	ALLOC_ARRAY(*line_starts, num + 1);
-	lineno = *line_starts;
-
-	for (p = buf; p < end; p = get_next_line(p, end))
-		*lineno++ = p - buf;
-
-	*lineno = len;
-
-	return num;
-}
-
-struct fingerprint_entry;
-
-/* A fingerprint is intended to loosely represent a string, such that two
- * fingerprints can be quickly compared to give an indication of the similarity
- * of the strings that they represent.
- *
- * A fingerprint is represented as a multiset of the lower-cased byte pairs in
- * the string that it represents. Whitespace is added at each end of the
- * string. Whitespace pairs are ignored. Whitespace is converted to '\0'.
- * For example, the string "Darth   Radar" will be converted to the following
- * fingerprint:
- * {"\0d", "da", "da", "ar", "ar", "rt", "th", "h\0", "\0r", "ra", "ad", "r\0"}
- *
- * The similarity between two fingerprints is the size of the intersection of
- * their multisets, including repeated elements. See fingerprint_similarity for
- * examples.
- *
- * For ease of implementation, the fingerprint is implemented as a map
- * of byte pairs to the count of that byte pair in the string, instead of
- * allowing repeated elements in a set.
- */
-struct fingerprint {
-	struct hashmap map;
-	/* As we know the maximum number of entries in advance, it's
-	 * convenient to store the entries in a single array instead of having
-	 * the hashmap manage the memory.
-	 */
-	struct fingerprint_entry *entries;
-};
-
-/* A byte pair in a fingerprint. Stores the number of times the byte pair
- * occurs in the string that the fingerprint represents.
- */
-struct fingerprint_entry {
-	/* The hashmap entry - the hash represents the byte pair in its
-	 * entirety so we don't need to store the byte pair separately.
-	 */
-	struct hashmap_entry entry;
-	/* The number of times the byte pair occurs in the string that the
-	 * fingerprint represents.
-	 */
-	int count;
-};
-
-/* See `struct fingerprint` for an explanation of what a fingerprint is.
- * \param result the fingerprint of the string is stored here. This must be
- * 		 freed later using free_fingerprint.
- * \param line_begin the start of the string
- * \param line_end the end of the string
- */
-static void get_fingerprint(struct fingerprint *result,
-			    const char *line_begin,
-			    const char *line_end)
-{
-	unsigned int hash, c0 = 0, c1;
-	const char *p;
-	int max_map_entry_count = 1 + line_end - line_begin;
-	struct fingerprint_entry *entry = xcalloc(max_map_entry_count,
-		sizeof(struct fingerprint_entry));
-	struct fingerprint_entry *found_entry;
-
-	hashmap_init(&result->map, NULL, NULL, max_map_entry_count);
-	result->entries = entry;
-	for (p = line_begin; p <= line_end; ++p, c0 = c1) {
-		/* Always terminate the string with whitespace.
-		 * Normalise whitespace to 0, and normalise letters to
-		 * lower case. This won't work for multibyte characters but at
-		 * worst will match some unrelated characters.
-		 */
-		if ((p == line_end) || isspace(*p))
-			c1 = 0;
-		else
-			c1 = tolower(*p);
-		hash = c0 | (c1 << 8);
-		/* Ignore whitespace pairs */
-		if (hash == 0)
-			continue;
-		hashmap_entry_init(&entry->entry, hash);
-
-		found_entry = hashmap_get_entry(&result->map, entry,
-						/* member name */ entry, NULL);
-		if (found_entry) {
-			found_entry->count += 1;
-		} else {
-			entry->count = 1;
-			hashmap_add(&result->map, &entry->entry);
-			++entry;
-		}
-	}
-}
-
-static void free_fingerprint(struct fingerprint *f)
-{
-	hashmap_free(&f->map);
-	free(f->entries);
-}
-
-/* Calculates the similarity between two fingerprints as the size of the
- * intersection of their multisets, including repeated elements. See
- * `struct fingerprint` for an explanation of the fingerprint representation.
- * The similarity between "cat mat" and "father rather" is 2 because "at" is
- * present twice in both strings while the similarity between "tim" and "mit"
- * is 0.
- */
-static int fingerprint_similarity(struct fingerprint *a, struct fingerprint *b)
-{
-	int intersection = 0;
-	struct hashmap_iter iter;
-	const struct fingerprint_entry *entry_a, *entry_b;
-
-	hashmap_for_each_entry(&b->map, &iter, entry_b,
-				entry /* member name */) {
-		entry_a = hashmap_get_entry(&a->map, entry_b, entry, NULL);
-		if (entry_a) {
-			intersection += entry_a->count < entry_b->count ?
-					entry_a->count : entry_b->count;
-		}
-	}
-	return intersection;
-}
-
-/* Subtracts byte-pair elements in B from A, modifying A in place.
- */
-static void fingerprint_subtract(struct fingerprint *a, struct fingerprint *b)
-{
-	struct hashmap_iter iter;
-	struct fingerprint_entry *entry_a;
-	const struct fingerprint_entry *entry_b;
-
-	hashmap_iter_init(&b->map, &iter);
-
-	hashmap_for_each_entry(&b->map, &iter, entry_b,
-				entry /* member name */) {
-		entry_a = hashmap_get_entry(&a->map, entry_b, entry, NULL);
-		if (entry_a) {
-			if (entry_a->count <= entry_b->count)
-				hashmap_remove(&a->map, &entry_b->entry, NULL);
-			else
-				entry_a->count -= entry_b->count;
-		}
-	}
-}
-
-/* Calculate fingerprints for a series of lines.
- * Puts the fingerprints in the fingerprints array, which must have been
- * preallocated to allow storing line_count elements.
- */
-static void get_line_fingerprints(struct fingerprint *fingerprints,
-				  const char *content, const int *line_starts,
-				  long first_line, long line_count)
-{
-	int i;
-	const char *linestart, *lineend;
-
-	line_starts += first_line;
-	for (i = 0; i < line_count; ++i) {
-		linestart = content + line_starts[i];
-		lineend = content + line_starts[i + 1];
-		get_fingerprint(fingerprints + i, linestart, lineend);
-	}
-}
-
-static void free_line_fingerprints(struct fingerprint *fingerprints,
-				   int nr_fingerprints)
-{
-	int i;
-
-	for (i = 0; i < nr_fingerprints; i++)
-		free_fingerprint(&fingerprints[i]);
-}
-
-/* This contains the data necessary to linearly map a line number in one half
- * of a diff chunk to the line in the other half of the diff chunk that is
- * closest in terms of its position as a fraction of the length of the chunk.
- */
-struct line_number_mapping {
-	int destination_start, destination_length,
-		source_start, source_length;
-};
-
-/* Given a line number in one range, offset and scale it to map it onto the
- * other range.
- * Essentially this mapping is a simple linear equation but the calculation is
- * more complicated to allow performing it with integer operations.
- * Another complication is that if a line could map onto many lines in the
- * destination range then we want to choose the line at the center of those
- * possibilities.
- * Example: if the chunk is 2 lines long in A and 10 lines long in B then the
- * first 5 lines in B will map onto the first line in the A chunk, while the
- * last 5 lines will all map onto the second line in the A chunk.
- * Example: if the chunk is 10 lines long in A and 2 lines long in B then line
- * 0 in B will map onto line 2 in A, and line 1 in B will map onto line 7 in A.
- */
-static int map_line_number(int line_number,
-	const struct line_number_mapping *mapping)
-{
-	return ((line_number - mapping->source_start) * 2 + 1) *
-	       mapping->destination_length /
-	       (mapping->source_length * 2) +
-	       mapping->destination_start;
-}
-
-/* Get a pointer to the element storing the similarity between a line in A
- * and a line in B.
- *
- * The similarities are stored in a 2-dimensional array. Each "row" in the
- * array contains the similarities for a line in B. The similarities stored in
- * a row are the similarities between the line in B and the nearby lines in A.
- * To keep the length of each row the same, it is padded out with values of -1
- * where the search range extends beyond the lines in A.
- * For example, if max_search_distance_a is 2 and the two sides of a diff chunk
- * look like this:
- * a | m
- * b | n
- * c | o
- * d | p
- * e | q
- * Then the similarity array will contain:
- * [-1, -1, am, bm, cm,
- *  -1, an, bn, cn, dn,
- *  ao, bo, co, do, eo,
- *  bp, cp, dp, ep, -1,
- *  cq, dq, eq, -1, -1]
- * Where similarities are denoted either by -1 for invalid, or the
- * concatenation of the two lines in the diff being compared.
- *
- * \param similarities array of similarities between lines in A and B
- * \param line_a the index of the line in A, in the same frame of reference as
- *	closest_line_a.
- * \param local_line_b the index of the line in B, relative to the first line
- *		       in B that similarities represents.
- * \param closest_line_a the index of the line in A that is deemed to be
- *			 closest to local_line_b. This must be in the same
- *			 frame of reference as line_a. This value defines
- *			 where similarities is centered for the line in B.
- * \param max_search_distance_a maximum distance in lines from the closest line
- * 				in A for other lines in A for which
- * 				similarities may be calculated.
- */
-static int *get_similarity(int *similarities,
-			   int line_a, int local_line_b,
-			   int closest_line_a, int max_search_distance_a)
-{
-	assert(abs(line_a - closest_line_a) <=
-	       max_search_distance_a);
-	return similarities + line_a - closest_line_a +
-	       max_search_distance_a +
-	       local_line_b * (max_search_distance_a * 2 + 1);
-}
-
-#define CERTAIN_NOTHING_MATCHES -2
-#define CERTAINTY_NOT_CALCULATED -1
-
-/* Given a line in B, first calculate its similarities with nearby lines in A
- * if not already calculated, then identify the most similar and second most
- * similar lines. The "certainty" is calculated based on those two
- * similarities.
- *
- * \param start_a the index of the first line of the chunk in A
- * \param length_a the length in lines of the chunk in A
- * \param local_line_b the index of the line in B, relative to the first line
- * 		       in the chunk.
- * \param fingerprints_a array of fingerprints for the chunk in A
- * \param fingerprints_b array of fingerprints for the chunk in B
- * \param similarities 2-dimensional array of similarities between lines in A
- * 		       and B. See get_similarity() for more details.
- * \param certainties array of values indicating how strongly a line in B is
- * 		      matched with some line in A.
- * \param second_best_result array of absolute indices in A for the second
- * 			     closest match of a line in B.
- * \param result array of absolute indices in A for the closest match of a line
- * 		 in B.
- * \param max_search_distance_a maximum distance in lines from the closest line
- * 				in A for other lines in A for which
- * 				similarities may be calculated.
- * \param map_line_number_in_b_to_a parameter to map_line_number().
- */
-static void find_best_line_matches(
-	int start_a,
-	int length_a,
-	int start_b,
-	int local_line_b,
-	struct fingerprint *fingerprints_a,
-	struct fingerprint *fingerprints_b,
-	int *similarities,
-	int *certainties,
-	int *second_best_result,
-	int *result,
-	const int max_search_distance_a,
-	const struct line_number_mapping *map_line_number_in_b_to_a)
-{
-
-	int i, search_start, search_end, closest_local_line_a, *similarity,
-		best_similarity = 0, second_best_similarity = 0,
-		best_similarity_index = 0, second_best_similarity_index = 0;
-
-	/* certainty has already been calculated so no need to redo the work */
-	if (certainties[local_line_b] != CERTAINTY_NOT_CALCULATED)
-		return;
-
-	closest_local_line_a = map_line_number(
-		local_line_b + start_b, map_line_number_in_b_to_a) - start_a;
-
-	search_start = closest_local_line_a - max_search_distance_a;
-	if (search_start < 0)
-		search_start = 0;
-
-	search_end = closest_local_line_a + max_search_distance_a + 1;
-	if (search_end > length_a)
-		search_end = length_a;
-
-	for (i = search_start; i < search_end; ++i) {
-		similarity = get_similarity(similarities,
-					    i, local_line_b,
-					    closest_local_line_a,
-					    max_search_distance_a);
-		if (*similarity == -1) {
-			/* This value will never exceed 10 but assert just in
-			 * case
-			 */
-			assert(abs(i - closest_local_line_a) < 1000);
-			/* scale the similarity by (1000 - distance from
-			 * closest line) to act as a tie break between lines
-			 * that otherwise are equally similar.
-			 */
-			*similarity = fingerprint_similarity(
-				fingerprints_b + local_line_b,
-				fingerprints_a + i) *
-				(1000 - abs(i - closest_local_line_a));
-		}
-		if (*similarity > best_similarity) {
-			second_best_similarity = best_similarity;
-			second_best_similarity_index = best_similarity_index;
-			best_similarity = *similarity;
-			best_similarity_index = i;
-		} else if (*similarity > second_best_similarity) {
-			second_best_similarity = *similarity;
-			second_best_similarity_index = i;
-		}
-	}
-
-	if (best_similarity == 0) {
-		/* this line definitely doesn't match with anything. Mark it
-		 * with this special value so it doesn't get invalidated and
-		 * won't be recalculated.
-		 */
-		certainties[local_line_b] = CERTAIN_NOTHING_MATCHES;
-		result[local_line_b] = -1;
-	} else {
-		/* Calculate the certainty with which this line matches.
-		 * If the line matches well with two lines then that reduces
-		 * the certainty. However we still want to prioritise matching
-		 * a line that matches very well with two lines over matching a
-		 * line that matches poorly with one line, hence doubling
-		 * best_similarity.
-		 * This means that if we have
-		 * line X that matches only one line with a score of 3,
-		 * line Y that matches two lines equally with a score of 5,
-		 * and line Z that matches only one line with a score or 2,
-		 * then the lines in order of certainty are X, Y, Z.
-		 */
-		certainties[local_line_b] = best_similarity * 2 -
-			second_best_similarity;
-
-		/* We keep both the best and second best results to allow us to
-		 * check at a later stage of the matching process whether the
-		 * result needs to be invalidated.
-		 */
-		result[local_line_b] = start_a + best_similarity_index;
-		second_best_result[local_line_b] =
-			start_a + second_best_similarity_index;
-	}
-}
-
-/*
- * This finds the line that we can match with the most confidence, and
- * uses it as a partition. It then calls itself on the lines on either side of
- * that partition. In this way we avoid lines appearing out of order, and
- * retain a sensible line ordering.
- * \param start_a index of the first line in A with which lines in B may be
- * 		  compared.
- * \param start_b index of the first line in B for which matching should be
- * 		  done.
- * \param length_a number of lines in A with which lines in B may be compared.
- * \param length_b number of lines in B for which matching should be done.
- * \param fingerprints_a mutable array of fingerprints in A. The first element
- * 			 corresponds to the line at start_a.
- * \param fingerprints_b array of fingerprints in B. The first element
- * 			 corresponds to the line at start_b.
- * \param similarities 2-dimensional array of similarities between lines in A
- * 		       and B. See get_similarity() for more details.
- * \param certainties array of values indicating how strongly a line in B is
- * 		      matched with some line in A.
- * \param second_best_result array of absolute indices in A for the second
- * 			     closest match of a line in B.
- * \param result array of absolute indices in A for the closest match of a line
- * 		 in B.
- * \param max_search_distance_a maximum distance in lines from the closest line
- * 			      in A for other lines in A for which
- * 			      similarities may be calculated.
- * \param max_search_distance_b an upper bound on the greatest possible
- * 			      distance between lines in B such that they will
- *                              both be compared with the same line in A
- * 			      according to max_search_distance_a.
- * \param map_line_number_in_b_to_a parameter to map_line_number().
- */
-static void fuzzy_find_matching_lines_recurse(
-	int start_a, int start_b,
-	int length_a, int length_b,
-	struct fingerprint *fingerprints_a,
-	struct fingerprint *fingerprints_b,
-	int *similarities,
-	int *certainties,
-	int *second_best_result,
-	int *result,
-	int max_search_distance_a,
-	int max_search_distance_b,
-	const struct line_number_mapping *map_line_number_in_b_to_a)
-{
-	int i, invalidate_min, invalidate_max, offset_b,
-		second_half_start_a, second_half_start_b,
-		second_half_length_a, second_half_length_b,
-		most_certain_line_a, most_certain_local_line_b = -1,
-		most_certain_line_certainty = -1,
-		closest_local_line_a;
-
-	for (i = 0; i < length_b; ++i) {
-		find_best_line_matches(start_a,
-				       length_a,
-				       start_b,
-				       i,
-				       fingerprints_a,
-				       fingerprints_b,
-				       similarities,
-				       certainties,
-				       second_best_result,
-				       result,
-				       max_search_distance_a,
-				       map_line_number_in_b_to_a);
-
-		if (certainties[i] > most_certain_line_certainty) {
-			most_certain_line_certainty = certainties[i];
-			most_certain_local_line_b = i;
-		}
-	}
-
-	/* No matches. */
-	if (most_certain_local_line_b == -1)
-		return;
-
-	most_certain_line_a = result[most_certain_local_line_b];
-
-	/*
-	 * Subtract the most certain line's fingerprint in B from the matched
-	 * fingerprint in A. This means that other lines in B can't also match
-	 * the same parts of the line in A.
-	 */
-	fingerprint_subtract(fingerprints_a + most_certain_line_a - start_a,
-			     fingerprints_b + most_certain_local_line_b);
-
-	/* Invalidate results that may be affected by the choice of most
-	 * certain line.
-	 */
-	invalidate_min = most_certain_local_line_b - max_search_distance_b;
-	invalidate_max = most_certain_local_line_b + max_search_distance_b + 1;
-	if (invalidate_min < 0)
-		invalidate_min = 0;
-	if (invalidate_max > length_b)
-		invalidate_max = length_b;
-
-	/* As the fingerprint in A has changed, discard previously calculated
-	 * similarity values with that fingerprint.
-	 */
-	for (i = invalidate_min; i < invalidate_max; ++i) {
-		closest_local_line_a = map_line_number(
-			i + start_b, map_line_number_in_b_to_a) - start_a;
-
-		/* Check that the lines in A and B are close enough that there
-		 * is a similarity value for them.
-		 */
-		if (abs(most_certain_line_a - start_a - closest_local_line_a) >
-			max_search_distance_a) {
-			continue;
-		}
-
-		*get_similarity(similarities, most_certain_line_a - start_a,
-				i, closest_local_line_a,
-				max_search_distance_a) = -1;
-	}
-
-	/* More invalidating of results that may be affected by the choice of
-	 * most certain line.
-	 * Discard the matches for lines in B that are currently matched with a
-	 * line in A such that their ordering contradicts the ordering imposed
-	 * by the choice of most certain line.
-	 */
-	for (i = most_certain_local_line_b - 1; i >= invalidate_min; --i) {
-		/* In this loop we discard results for lines in B that are
-		 * before most-certain-line-B but are matched with a line in A
-		 * that is after most-certain-line-A.
-		 */
-		if (certainties[i] >= 0 &&
-		    (result[i] >= most_certain_line_a ||
-		     second_best_result[i] >= most_certain_line_a)) {
-			certainties[i] = CERTAINTY_NOT_CALCULATED;
-		}
-	}
-	for (i = most_certain_local_line_b + 1; i < invalidate_max; ++i) {
-		/* In this loop we discard results for lines in B that are
-		 * after most-certain-line-B but are matched with a line in A
-		 * that is before most-certain-line-A.
-		 */
-		if (certainties[i] >= 0 &&
-		    (result[i] <= most_certain_line_a ||
-		     second_best_result[i] <= most_certain_line_a)) {
-			certainties[i] = CERTAINTY_NOT_CALCULATED;
-		}
-	}
-
-	/* Repeat the matching process for lines before the most certain line.
-	 */
-	if (most_certain_local_line_b > 0) {
-		fuzzy_find_matching_lines_recurse(
-			start_a, start_b,
-			most_certain_line_a + 1 - start_a,
-			most_certain_local_line_b,
-			fingerprints_a, fingerprints_b, similarities,
-			certainties, second_best_result, result,
-			max_search_distance_a,
-			max_search_distance_b,
-			map_line_number_in_b_to_a);
-	}
-	/* Repeat the matching process for lines after the most certain line.
-	 */
-	if (most_certain_local_line_b + 1 < length_b) {
-		second_half_start_a = most_certain_line_a;
-		offset_b = most_certain_local_line_b + 1;
-		second_half_start_b = start_b + offset_b;
-		second_half_length_a =
-			length_a + start_a - second_half_start_a;
-		second_half_length_b =
-			length_b + start_b - second_half_start_b;
-		fuzzy_find_matching_lines_recurse(
-			second_half_start_a, second_half_start_b,
-			second_half_length_a, second_half_length_b,
-			fingerprints_a + second_half_start_a - start_a,
-			fingerprints_b + offset_b,
-			similarities +
-				offset_b * (max_search_distance_a * 2 + 1),
-			certainties + offset_b,
-			second_best_result + offset_b, result + offset_b,
-			max_search_distance_a,
-			max_search_distance_b,
-			map_line_number_in_b_to_a);
-	}
-}
-
-/* Find the lines in the parent line range that most closely match the lines in
- * the target line range. This is accomplished by matching fingerprints in each
- * blame_origin, and choosing the best matches that preserve the line ordering.
- * See struct fingerprint for details of fingerprint matching, and
- * fuzzy_find_matching_lines_recurse for details of preserving line ordering.
- *
- * The performance is believed to be O(n log n) in the typical case and O(n^2)
- * in a pathological case, where n is the number of lines in the target range.
- */
-static int *fuzzy_find_matching_lines(struct blame_origin *parent,
-				      struct blame_origin *target,
-				      int tlno, int parent_slno, int same,
-				      int parent_len)
-{
-	/* We use the terminology "A" for the left hand side of the diff AKA
-	 * parent, and "B" for the right hand side of the diff AKA target. */
-	int start_a = parent_slno;
-	int length_a = parent_len;
-	int start_b = tlno;
-	int length_b = same - tlno;
-
-	struct line_number_mapping map_line_number_in_b_to_a = {
-		start_a, length_a, start_b, length_b
-	};
-
-	struct fingerprint *fingerprints_a = parent->fingerprints;
-	struct fingerprint *fingerprints_b = target->fingerprints;
-
-	int i, *result, *second_best_result,
-		*certainties, *similarities, similarity_count;
-
-	/*
-	 * max_search_distance_a means that given a line in B, compare it to
-	 * the line in A that is closest to its position, and the lines in A
-	 * that are no greater than max_search_distance_a lines away from the
-	 * closest line in A.
-	 *
-	 * max_search_distance_b is an upper bound on the greatest possible
-	 * distance between lines in B such that they will both be compared
-	 * with the same line in A according to max_search_distance_a.
-	 */
-	int max_search_distance_a = 10, max_search_distance_b;
-
-	if (length_a <= 0)
-		return NULL;
-
-	if (max_search_distance_a >= length_a)
-		max_search_distance_a = length_a ? length_a - 1 : 0;
-
-	max_search_distance_b = ((2 * max_search_distance_a + 1) * length_b
-				 - 1) / length_a;
-
-	result = xcalloc(sizeof(int), length_b);
-	second_best_result = xcalloc(sizeof(int), length_b);
-	certainties = xcalloc(sizeof(int), length_b);
-
-	/* See get_similarity() for details of similarities. */
-	similarity_count = length_b * (max_search_distance_a * 2 + 1);
-	similarities = xcalloc(sizeof(int), similarity_count);
-
-	for (i = 0; i < length_b; ++i) {
-		result[i] = -1;
-		second_best_result[i] = -1;
-		certainties[i] = CERTAINTY_NOT_CALCULATED;
-	}
-
-	for (i = 0; i < similarity_count; ++i)
-		similarities[i] = -1;
-
-	fuzzy_find_matching_lines_recurse(start_a, start_b,
-					  length_a, length_b,
-					  fingerprints_a + start_a,
-					  fingerprints_b + start_b,
-					  similarities,
-					  certainties,
-					  second_best_result,
-					  result,
-					  max_search_distance_a,
-					  max_search_distance_b,
-					  &map_line_number_in_b_to_a);
-
-	free(similarities);
-	free(certainties);
-	free(second_best_result);
-
-	return result;
-}
-
-static void fill_origin_fingerprints(struct blame_origin *o)
-{
-	int *line_starts;
-
-	if (o->fingerprints)
-		return;
-	o->num_lines = find_line_starts(&line_starts, o->file.ptr,
-					o->file.size);
-	o->fingerprints = xcalloc(sizeof(struct fingerprint), o->num_lines);
-	get_line_fingerprints(o->fingerprints, o->file.ptr, line_starts,
-			      0, o->num_lines);
-	free(line_starts);
-}
-
-static void drop_origin_fingerprints(struct blame_origin *o)
-{
-	if (o->fingerprints) {
-		free_line_fingerprints(o->fingerprints, o->num_lines);
-		o->num_lines = 0;
-		FREE_AND_NULL(o->fingerprints);
-	}
-}
-
-/*
- * Given an origin, prepare mmfile_t structure to be used by the
- * diff machinery
- */
-static void fill_origin_blob(struct diff_options *opt,
-			     struct blame_origin *o, mmfile_t *file,
-			     int *num_read_blob, int fill_fingerprints)
-{
-	if (!o->file.ptr) {
-		enum object_type type;
-		unsigned long file_size;
-
-		(*num_read_blob)++;
-		if (opt->flags.allow_textconv &&
-		    textconv_object(opt->repo, o->path, o->mode,
-				    &o->blob_oid, 1, &file->ptr, &file_size))
-			;
-		else
-			file->ptr = read_object_file(&o->blob_oid, &type,
+	sb->copy_score = BLAME_DEFAULT_COPY_SCORE;
+	/* Try "find copies harder" on new path if requested;
+	for (i = 0; i < same - tlno; i++) {
+			 &sb->num_read_blob, 0);
 						     &file_size);
-		file->size = file_size;
+	 * the line in A that is closest to its position, and the lines in A
+		target_idx = tlno + i;
+		 * changes made by the ignored commit.
+/* Find the lines in the parent line range that most closely match the lines in
+ *		       in B that similarities represents.
+			if (porigin && !strcmp(p->one->path, porigin->path))
 
-		if (!file->ptr)
-			die("Cannot read blob %s for path %s",
-			    oid_to_hex(&o->blob_oid),
-			    o->path);
-		o->file = *file;
+				      struct blame_origin *target,
+			if (l) {
+		dup_entry(unblamed, e, &split[0]);
 	}
-	else
-		*file = o->file;
-	if (fill_fingerprints)
-		fill_origin_fingerprints(o);
-}
-
-static void drop_origin_blob(struct blame_origin *o)
-{
-	FREE_AND_NULL(o->file.ptr);
-	drop_origin_fingerprints(o);
-}
-
-/*
- * Any merge of blames happens on lists of blames that arrived via
- * different parents in a single suspect.  In this case, we want to
- * sort according to the suspect line numbers as opposed to the final
- * image line numbers.  The function body is somewhat longish because
- * it avoids unnecessary writes.
- */
-
-static struct blame_entry *blame_merge(struct blame_entry *list1,
-				       struct blame_entry *list2)
-{
-	struct blame_entry *p1 = list1, *p2 = list2,
-		**tail = &list1;
-
-	if (!p1)
-		return p2;
-	if (!p2)
-		return p1;
-
-	if (p1->s_lno <= p2->s_lno) {
-		do {
-			tail = &p1->next;
-			if ((p1 = *tail) == NULL) {
-				*tail = p2;
-				return list1;
-			}
-		} while (p1->s_lno <= p2->s_lno);
-	}
-	for (;;) {
-		*tail = p2;
-		do {
-			tail = &p2->next;
-			if ((p2 = *tail) == NULL)  {
-				*tail = p1;
-				return list1;
-			}
-		} while (p1->s_lno > p2->s_lno);
-		*tail = p1;
-		do {
-			tail = &p1->next;
-			if ((p1 = *tail) == NULL) {
-				*tail = p2;
-				return list1;
-			}
-		} while (p1->s_lno <= p2->s_lno);
-	}
-}
-
-static void *get_next_blame(const void *p)
-{
-	return ((struct blame_entry *)p)->next;
-}
-
-static void set_next_blame(void *p1, void *p2)
-{
-	((struct blame_entry *)p1)->next = p2;
-}
-
-/*
  * Final image line numbers are all different, so we don't need a
- * three-way comparison here.
- */
-
-static int compare_blame_final(const void *p1, const void *p2)
-{
-	return ((struct blame_entry *)p1)->lno > ((struct blame_entry *)p2)->lno
-		? 1 : -1;
-}
-
-static int compare_blame_suspect(const void *p1, const void *p2)
-{
-	const struct blame_entry *s1 = p1, *s2 = p2;
-	/*
-	 * to allow for collating suspects, we sort according to the
-	 * respective pointer value as the primary sorting criterion.
-	 * The actual relation is pretty unimportant as long as it
-	 * establishes a total order.  Comparing as integers gives us
-	 * that.
+ * The blobs of origin and porigin exactly match, so everything
 	 */
-	if (s1->suspect != s2->suspect)
-		return (intptr_t)s1->suspect > (intptr_t)s2->suspect ? 1 : -1;
-	if (s1->s_lno == s2->s_lno)
-		return 0;
-	return s1->s_lno > s2->s_lno ? 1 : -1;
-}
+			line_blames[i].s_lno = best_idx;
+		return NULL;
+	repo_diff_setup(r, &diff_opts);
+	origin->suspects = NULL;
+		 */
+	 * Pass remaining suspects for ignored commits to their parents.
+struct blame_list {
+	if (ignoredp) {
+				       max_search_distance_a,
+			next = ent; /* again */
+		hash = c0 | (c1 << 8);
+ * origin of dst loses a refcnt.
+		 */
+ * across file boundary from the parent commit.  porigin is the path
+};
+		blame_list = xcalloc(num_ents, sizeof(struct blame_list));
+		}
+ * far, by comparing potential and best_so_far and copying potential into
+ * intersection of their multisets, including repeated elements. See
+			/* e->s_lno is already in the target's address space. */
+	if (o->fingerprints)
+ *                   <------------>
+ * The similarities are stored in a 2-dimensional array. Each "row" in the
+	obj = revs->pending.objects[0].item;
+	struct hashmap_entry entry;
+				find_move_in_parent(sb, &blametail, &toosmall, origin, porigin);
+	return porigin;
+	}
+ * putting it on a list.
+		 * Normalise whitespace to 0, and normalise letters to
 
-void blame_sort_final(struct blame_scoreboard *sb)
-{
-	sb->ent = llist_mergesort(sb->ent, get_next_blame, set_next_blame,
-				  compare_blame_final);
-}
-
-static int compare_commits_by_reverse_commit_date(const void *a,
-						  const void *b,
-						  void *c)
-{
-	return -compare_commits_by_commit_date(a, b, c);
-}
-
-/*
- * For debugging -- origin is refcounted, and this asserts that
- * we do not underflow.
+	/*
+			baa = 1;
+#include "diff.h"
+	long offset;
  */
-static void sanity_check_refcnt(struct blame_scoreboard *sb)
+		    (!(commit->object.flags & UNINTERESTING) &&
+ * string. Whitespace pairs are ignored. Whitespace is converted to '\0'.
+		best_sim_val = sim;
+ *  cq, dq, eq, -1, -1]
+/*
+				/* find_move already dealt with this path */
+		/*
+/*
+{
+ * offset: add to tlno to get the chunk starting point in the parent
+		for (o = get_blame_suspects(porigin->commit); o; o = o->next) {
+
+	int i;
+{
+ * in split.  Any assigned blame is moved to queue to
+{
+
+	n->ignored = e->ignored;
 {
 	int baa = 0;
-	struct blame_entry *ent;
-
-	for (ent = sb->ent; ent; ent = ent->next) {
-		/* Nobody should have zero or negative refcnt */
-		if (ent->suspect->refcnt <= 0) {
-			fprintf(stderr, "%s in %s has negative refcnt %d\n",
-				ent->suspect->path,
-				oid_to_hex(&ent->suspect->commit->object.oid),
-				ent->suspect->refcnt);
-			baa = 1;
-		}
-	}
-	if (baa)
-		sb->on_sanity_fail(sb, baa);
+		if (!final_commit)
 }
-
-/*
- * If two blame entries that are next to each other came from
- * contiguous lines in the same origin (i.e. <commit, path> pair),
- * merge them together.
- */
-void blame_coalesce(struct blame_scoreboard *sb)
-{
-	struct blame_entry *ent, *next;
-
-	for (ent = sb->ent; ent && (next = ent->next); ent = next) {
-		if (ent->suspect == next->suspect &&
-		    ent->s_lno + ent->num_lines == next->s_lno &&
-		    ent->ignored == next->ignored &&
-		    ent->unblamable == next->unblamable) {
-			ent->num_lines += next->num_lines;
-			ent->next = next->next;
-			blame_origin_decref(next->suspect);
-			free(next);
-			ent->score = 0;
-			next = ent; /* again */
-		}
-	}
-
-	if (sb->debug) /* sanity */
-		sanity_check_refcnt(sb);
-}
-
-/*
- * Merge the given sorted list of blames into a preexisting origin.
- * If there were no previous blames to that commit, it is entered into
- * the commit priority queue of the score board.
- */
-
-static void queue_blames(struct blame_scoreboard *sb, struct blame_origin *porigin,
-			 struct blame_entry *sorted)
-{
-	if (porigin->suspects)
-		porigin->suspects = blame_merge(porigin->suspects, sorted);
-	else {
-		struct blame_origin *o;
-		for (o = get_blame_suspects(porigin->commit); o; o = o->next) {
-			if (o->suspects) {
-				porigin->suspects = sorted;
-				return;
-			}
-		}
-		porigin->suspects = sorted;
-		prio_queue_put(&sb->commits, porigin->commit);
-	}
-}
-
-/*
- * Fill the blob_sha1 field of an origin if it hasn't, so that later
- * call to fill_origin_blob() can use it to locate the data.  blob_sha1
- * for an origin is also used to pass the blame for the entire file to
- * the parent to detect the case where a child's blob is identical to
- * that of its parent's.
- *
- * This also fills origin->mode for corresponding tree path.
- */
-static int fill_blob_sha1_and_mode(struct repository *r,
-				   struct blame_origin *origin)
-{
-	if (!is_null_oid(&origin->blob_oid))
-		return 0;
-	if (get_tree_entry(r, &origin->commit->object.oid, origin->path, &origin->blob_oid, &origin->mode))
-		goto error_out;
-	if (oid_object_info(r, &origin->blob_oid, NULL) != OBJ_BLOB)
-		goto error_out;
-	return 0;
- error_out:
-	oidclr(&origin->blob_oid);
-	origin->mode = S_IFINVALID;
-	return -1;
-}
-
-/*
- * We have an origin -- check if the same path exists in the
- * parent and return an origin structure to represent it.
- */
-static struct blame_origin *find_origin(struct repository *r,
-					struct commit *parent,
-					struct blame_origin *origin)
-{
-	struct blame_origin *porigin;
-	struct diff_options diff_opts;
-	const char *paths[2];
-
-	/* First check any existing origins */
-	for (porigin = get_blame_suspects(parent); porigin; porigin = porigin->next)
-		if (!strcmp(porigin->path, origin->path)) {
-			/*
-			 * The same path between origin and its parent
-			 * without renaming -- the most common case.
-			 */
-			return blame_origin_incref (porigin);
-		}
-
-	/* See if the origin->path is different between parent
-	 * and origin first.  Most of the time they are the
-	 * same and diff-tree is fairly efficient about this.
-	 */
-	repo_diff_setup(r, &diff_opts);
-	diff_opts.flags.recursive = 1;
-	diff_opts.detect_rename = 0;
-	diff_opts.output_format = DIFF_FORMAT_NO_OUTPUT;
-	paths[0] = origin->path;
-	paths[1] = NULL;
-
-	parse_pathspec(&diff_opts.pathspec,
-		       PATHSPEC_ALL_MAGIC & ~PATHSPEC_LITERAL,
-		       PATHSPEC_LITERAL_PATH, "", paths);
-	diff_setup_done(&diff_opts);
-
-	if (is_null_oid(&origin->commit->object.oid))
-		do_diff_cache(get_commit_tree_oid(parent), &diff_opts);
-	else
-		diff_tree_oid(get_commit_tree_oid(parent),
-			      get_commit_tree_oid(origin->commit),
-			      "", &diff_opts);
-	diffcore_std(&diff_opts);
-
-	if (!diff_queued_diff.nr) {
-		/* The path is the same as parent */
-		porigin = get_origin(parent, origin->path);
-		oidcpy(&porigin->blob_oid, &origin->blob_oid);
-		porigin->mode = origin->mode;
-	} else {
-		/*
-		 * Since origin->path is a pathspec, if the parent
-		 * commit had it as a directory, we will see a whole
-		 * bunch of deletion of files in the directory that we
-		 * do not care about.
-		 */
-		int i;
-		struct diff_filepair *p = NULL;
-		for (i = 0; i < diff_queued_diff.nr; i++) {
-			const char *name;
-			p = diff_queued_diff.queue[i];
-			name = p->one->path ? p->one->path : p->two->path;
-			if (!strcmp(name, origin->path))
-				break;
-		}
-		if (!p)
-			die("internal error in blame::find_origin");
-		switch (p->status) {
-		default:
-			die("internal error in blame::find_origin (%c)",
-			    p->status);
-		case 'M':
-			porigin = get_origin(parent, origin->path);
-			oidcpy(&porigin->blob_oid, &p->one->oid);
-			porigin->mode = p->one->mode;
-			break;
-		case 'A':
-		case 'T':
-			/* Did not exist in parent, or type changed */
-			break;
-		}
-	}
-	diff_flush(&diff_opts);
-	clear_pathspec(&diff_opts.pathspec);
-	return porigin;
-}
-
-/*
- * We have an origin -- find the path that corresponds to it in its
- * parent and return an origin structure to represent it.
- */
-static struct blame_origin *find_rename(struct repository *r,
-					struct commit *parent,
-					struct blame_origin *origin)
-{
-	struct blame_origin *porigin = NULL;
-	struct diff_options diff_opts;
-	int i;
-
-	repo_diff_setup(r, &diff_opts);
-	diff_opts.flags.recursive = 1;
-	diff_opts.detect_rename = DIFF_DETECT_RENAME;
-	diff_opts.output_format = DIFF_FORMAT_NO_OUTPUT;
-	diff_opts.single_follow = origin->path;
-	diff_setup_done(&diff_opts);
-
-	if (is_null_oid(&origin->commit->object.oid))
-		do_diff_cache(get_commit_tree_oid(parent), &diff_opts);
-	else
-		diff_tree_oid(get_commit_tree_oid(parent),
-			      get_commit_tree_oid(origin->commit),
-			      "", &diff_opts);
-	diffcore_std(&diff_opts);
-
-	for (i = 0; i < diff_queued_diff.nr; i++) {
-		struct diff_filepair *p = diff_queued_diff.queue[i];
-		if ((p->status == 'R' || p->status == 'C') &&
-		    !strcmp(p->two->path, origin->path)) {
-			porigin = get_origin(parent, p->one->path);
-			oidcpy(&porigin->blob_oid, &p->one->oid);
-			porigin->mode = p->one->mode;
-			break;
-		}
-	}
-	diff_flush(&diff_opts);
-	clear_pathspec(&diff_opts.pathspec);
-	return porigin;
-}
-
-/*
- * Append a new blame entry to a given output queue.
- */
-static void add_blame_entry(struct blame_entry ***queue,
-			    const struct blame_entry *src)
-{
-	struct blame_entry *e = xmalloc(sizeof(*e));
-	memcpy(e, src, sizeof(*e));
-	blame_origin_incref(e->suspect);
-
-	e->next = **queue;
-	**queue = e;
-	*queue = &e->next;
-}
-
-/*
- * src typically is on-stack; we want to copy the information in it to
- * a malloced blame_entry that gets added to the given queue.  The
- * origin of dst loses a refcnt.
- */
-static void dup_entry(struct blame_entry ***queue,
-		      struct blame_entry *dst, struct blame_entry *src)
-{
-	blame_origin_incref(src->suspect);
-	blame_origin_decref(dst->suspect);
-	memcpy(dst, src, sizeof(*src));
-	dst->next = **queue;
-	**queue = dst;
-	*queue = &dst->next;
-}
-
-const char *blame_nth_line(struct blame_scoreboard *sb, long lno)
-{
-	return sb->final_buf + sb->lineno[lno];
-}
-
-/*
- * It is known that lines between tlno to same came from parent, and e
- * has an overlap with that range.  it also is known that parent's
- * line plno corresponds to e's line tlno.
- *
- *                <---- e ----->
- *                   <------>
- *                   <------------>
- *             <------------>
- *             <------------------>
- *
- * Split e into potentially three parts; before this chunk, the chunk
- * to be blamed for the parent, and after that portion.
- */
-static void split_overlap(struct blame_entry *split,
-			  struct blame_entry *e,
-			  int tlno, int plno, int same,
-			  struct blame_origin *parent)
-{
-	int chunk_end_lno;
-	int i;
-	memset(split, 0, sizeof(struct blame_entry [3]));
-
-	for (i = 0; i < 3; i++) {
-		split[i].ignored = e->ignored;
-		split[i].unblamable = e->unblamable;
-	}
-
-	if (e->s_lno < tlno) {
-		/* there is a pre-chunk part not blamed on parent */
-		split[0].suspect = blame_origin_incref(e->suspect);
-		split[0].lno = e->lno;
-		split[0].s_lno = e->s_lno;
-		split[0].num_lines = tlno - e->s_lno;
-		split[1].lno = e->lno + tlno - e->s_lno;
-		split[1].s_lno = plno;
-	}
-	else {
-		split[1].lno = e->lno;
-		split[1].s_lno = plno + (e->s_lno - tlno);
-	}
-
-	if (same < e->s_lno + e->num_lines) {
-		/* there is a post-chunk part not blamed on parent */
-		split[2].suspect = blame_origin_incref(e->suspect);
-		split[2].lno = e->lno + (same - e->s_lno);
-		split[2].s_lno = e->s_lno + (same - e->s_lno);
-		split[2].num_lines = e->s_lno + e->num_lines - same;
-		chunk_end_lno = split[2].lno;
-	}
-	else
-		chunk_end_lno = e->lno + e->num_lines;
-	split[1].num_lines = chunk_end_lno - split[1].lno;
-
-	/*
-	 * if it turns out there is nothing to blame the parent for,
-	 * forget about the splitting.  !split[1].suspect signals this.
-	 */
-	if (split[1].num_lines < 1)
-		return;
-	split[1].suspect = blame_origin_incref(parent);
-}
-
-/*
- * split_overlap() divided an existing blame e into up to three parts
- * in split.  Any assigned blame is moved to queue to
- * reflect the split.
- */
-static void split_blame(struct blame_entry ***blamed,
-			struct blame_entry ***unblamed,
-			struct blame_entry *split,
-			struct blame_entry *e)
-{
-	if (split[0].suspect && split[2].suspect) {
-		/* The first part (reuse storage for the existing entry e) */
-		dup_entry(unblamed, e, &split[0]);
-
-		/* The last part -- me */
-		add_blame_entry(unblamed, &split[2]);
-
-		/* ... and the middle part -- parent */
-		add_blame_entry(blamed, &split[1]);
-	}
-	else if (!split[0].suspect && !split[2].suspect)
-		/*
-		 * The parent covers the entire area; reuse storage for
-		 * e and replace it with the parent.
-		 */
-		dup_entry(blamed, e, &split[1]);
-	else if (split[0].suspect) {
-		/* me and then parent */
-		dup_entry(unblamed, e, &split[0]);
-		add_blame_entry(blamed, &split[1]);
-	}
-	else {
-		/* parent and then me */
-		dup_entry(blamed, e, &split[1]);
-		add_blame_entry(unblamed, &split[2]);
-	}
-}
-
-/*
- * After splitting the blame, the origins used by the
- * on-stack blame_entry should lose one refcnt each.
- */
-static void decref_split(struct blame_entry *split)
-{
-	int i;
-
-	for (i = 0; i < 3; i++)
-		blame_origin_decref(split[i].suspect);
-}
-
-/*
- * reverse_blame reverses the list given in head, appending tail.
- * That allows us to build lists in reverse order, then reverse them
- * afterwards.  This can be faster than building the list in proper
- * order right away.  The reason is that building in proper order
- * requires writing a link in the _previous_ element, while building
- * in reverse order just requires placing the list head into the
- * _current_ element.
- */
-
-static struct blame_entry *reverse_blame(struct blame_entry *head,
-					 struct blame_entry *tail)
-{
-	while (head) {
-		struct blame_entry *next = head->next;
-		head->next = tail;
-		tail = head;
-		head = next;
-	}
-	return tail;
-}
-
-/*
- * Splits a blame entry into two entries at 'len' lines.  The original 'e'
- * consists of len lines, i.e. [e->lno, e->lno + len), and the second part,
- * which is returned, consists of the remainder: [e->lno + len, e->lno +
- * e->num_lines).  The caller needs to sort out the reference counting for the
- * new entry's suspect.
- */
-static struct blame_entry *split_blame_at(struct blame_entry *e, int len,
-					  struct blame_origin *new_suspect)
-{
-	struct blame_entry *n = xcalloc(1, sizeof(struct blame_entry));
-
-	n->suspect = new_suspect;
-	n->ignored = e->ignored;
-	n->unblamable = e->unblamable;
-	n->lno = e->lno + len;
-	n->s_lno = e->s_lno + len;
-	n->num_lines = e->num_lines - len;
-	e->num_lines = len;
-	e->score = 0;
-	return n;
-}
-
-struct blame_line_tracker {
-	int is_parent;
-	int s_lno;
-};
-
-static int are_lines_adjacent(struct blame_line_tracker *first,
-			      struct blame_line_tracker *second)
-{
-	return first->is_parent == second->is_parent &&
-	       first->s_lno + 1 == second->s_lno;
-}
-
-static int scan_parent_range(struct fingerprint *p_fps,
-			     struct fingerprint *t_fps, int t_idx,
-			     int from, int nr_lines)
-{
-	int sim, p_idx;
-	#define FINGERPRINT_FILE_THRESHOLD	10
-	int best_sim_val = FINGERPRINT_FILE_THRESHOLD;
-	int best_sim_idx = -1;
-
-	for (p_idx = from; p_idx < from + nr_lines; p_idx++) {
-		sim = fingerprint_similarity(&t_fps[t_idx], &p_fps[p_idx]);
-		if (sim < best_sim_val)
-			continue;
-		/* Break ties with the closest-to-target line number */
-		if (sim == best_sim_val && best_sim_idx != -1 &&
-		    abs(best_sim_idx - t_idx) < abs(p_idx - t_idx))
-			continue;
-		best_sim_val = sim;
-		best_sim_idx = p_idx;
-	}
-	return best_sim_idx;
-}
-
-/*
- * The first pass checks the blame entry (from the target) against the parent's
- * diff chunk.  If that fails for a line, the second pass tries to match that
- * line to any part of parent file.  That catches cases where a change was
- * broken into two chunks by 'context.'
- */
-static void guess_line_blames(struct blame_origin *parent,
-			      struct blame_origin *target,
-			      int tlno, int offset, int same, int parent_len,
-			      struct blame_line_tracker *line_blames)
-{
-	int i, best_idx, target_idx;
-	int parent_slno = tlno + offset;
-	int *fuzzy_matches;
-
-	fuzzy_matches = fuzzy_find_matching_lines(parent, target,
-						  tlno, parent_slno, same,
-						  parent_len);
-	for (i = 0; i < same - tlno; i++) {
-		target_idx = tlno + i;
-		if (fuzzy_matches && fuzzy_matches[i] >= 0) {
-			best_idx = fuzzy_matches[i];
-		} else {
-			best_idx = scan_parent_range(parent->fingerprints,
-						     target->fingerprints,
-						     target_idx, 0,
-						     parent->num_lines);
-		}
-		if (best_idx >= 0) {
-			line_blames[i].is_parent = 1;
-			line_blames[i].s_lno = best_idx;
-		} else {
-			line_blames[i].is_parent = 0;
-			line_blames[i].s_lno = target_idx;
-		}
-	}
-	free(fuzzy_matches);
-}
-
-/*
- * This decides which parts of a blame entry go to the parent (added to the
- * ignoredp list) and which stay with the target (added to the diffp list).  The
- * actual decision was made in a separate heuristic function, and those answers
- * for the lines in 'e' are in line_blames.  This consumes e, essentially
- * putting it on a list.
- *
- * Note that the blame entries on the ignoredp list are not necessarily sorted
- * with respect to the parent's line numbers yet.
- */
-static void ignore_blame_entry(struct blame_entry *e,
-			       struct blame_origin *parent,
-			       struct blame_entry **diffp,
-			       struct blame_entry **ignoredp,
-			       struct blame_line_tracker *line_blames)
-{
-	int entry_len, nr_lines, i;
-
-	/*
-	 * We carve new entries off the front of e.  Each entry comes from a
-	 * contiguous chunk of lines: adjacent lines from the same origin
-	 * (either the parent or the target).
-	 */
-	entry_len = 1;
-	nr_lines = e->num_lines;	/* e changes in the loop */
-	for (i = 0; i < nr_lines; i++) {
-		struct blame_entry *next = NULL;
-
-		/*
-		 * We are often adjacent to the next line - only split the blame
-		 * entry when we have to.
-		 */
-		if (i + 1 < nr_lines) {
-			if (are_lines_adjacent(&line_blames[i],
-					       &line_blames[i + 1])) {
-				entry_len++;
-				continue;
-			}
-			next = split_blame_at(e, entry_len,
-					      blame_origin_incref(e->suspect));
-		}
-		if (line_blames[i].is_parent) {
-			e->ignored = 1;
-			blame_origin_decref(e->suspect);
-			e->suspect = blame_origin_incref(parent);
-			e->s_lno = line_blames[i - entry_len + 1].s_lno;
-			e->next = *ignoredp;
-			*ignoredp = e;
-		} else {
-			e->unblamable = 1;
-			/* e->s_lno is already in the target's address space. */
-			e->next = *diffp;
-			*diffp = e;
-		}
-		assert(e->num_lines == entry_len);
-		e = next;
-		entry_len = 1;
-	}
-	assert(!e);
-}
-
-/*
- * Process one hunk from the patch between the current suspect for
- * blame_entry e and its parent.  This first blames any unfinished
- * entries before the chunk (which is where target and parent start
- * differing) on the parent, and then splits blame entries at the
- * start and at the end of the difference region.  Since use of -M and
- * -C options may lead to overlapping/duplicate source line number
- * ranges, all we can rely on from sorting/merging is the order of the
- * first suspect line number.
- *
- * tlno: line number in the target where this chunk begins
- * same: line number in the target where this chunk ends
- * offset: add to tlno to get the chunk starting point in the parent
- * parent_len: number of lines in the parent chunk
- */
-static void blame_chunk(struct blame_entry ***dstq, struct blame_entry ***srcq,
-			int tlno, int offset, int same, int parent_len,
-			struct blame_origin *parent,
-			struct blame_origin *target, int ignore_diffs)
-{
-	struct blame_entry *e = **srcq;
-	struct blame_entry *samep = NULL, *diffp = NULL, *ignoredp = NULL;
-	struct blame_line_tracker *line_blames = NULL;
-
-	while (e && e->s_lno < tlno) {
-		struct blame_entry *next = e->next;
-		/*
-		 * current record starts before differing portion.  If
-		 * it reaches into it, we need to split it up and
-		 * examine the second part separately.
-		 */
-		if (e->s_lno + e->num_lines > tlno) {
-			/* Move second half to a new record */
-			struct blame_entry *n;
-
-			n = split_blame_at(e, tlno - e->s_lno, e->suspect);
-			/* Push new record to diffp */
-			n->next = diffp;
-			diffp = n;
-		} else
-			blame_origin_decref(e->suspect);
-		/* Pass blame for everything before the differing
-		 * chunk to the parent */
-		e->suspect = blame_origin_incref(parent);
-		e->s_lno += offset;
-		e->next = samep;
-		samep = e;
-		e = next;
-	}
-	/*
-	 * As we don't know how much of a common stretch after this
-	 * diff will occur, the currently blamed parts are all that we
-	 * can assign to the parent for now.
-	 */
-
-	if (samep) {
-		**dstq = reverse_blame(samep, **dstq);
-		*dstq = &samep->next;
-	}
-	/*
-	 * Prepend the split off portions: everything after e starts
-	 * after the blameable portion.
-	 */
-	e = reverse_blame(diffp, e);
-
-	/*
-	 * Now retain records on the target while parts are different
-	 * from the parent.
-	 */
-	samep = NULL;
-	diffp = NULL;
-
-	if (ignore_diffs && same - tlno > 0) {
-		line_blames = xcalloc(sizeof(struct blame_line_tracker),
-				      same - tlno);
-		guess_line_blames(parent, target, tlno, offset, same,
-				  parent_len, line_blames);
-	}
-
-	while (e && e->s_lno < same) {
-		struct blame_entry *next = e->next;
-
-		/*
-		 * If current record extends into sameness, need to split.
-		 */
-		if (e->s_lno + e->num_lines > same) {
-			/*
-			 * Move second half to a new record to be
-			 * processed by later chunks
-			 */
-			struct blame_entry *n;
-
-			n = split_blame_at(e, same - e->s_lno,
-					   blame_origin_incref(e->suspect));
-			/* Push new record to samep */
-			n->next = samep;
-			samep = n;
-		}
-		if (ignore_diffs) {
-			ignore_blame_entry(e, parent, &diffp, &ignoredp,
-					   line_blames + e->s_lno - tlno);
-		} else {
-			e->next = diffp;
-			diffp = e;
-		}
-		e = next;
-	}
-	free(line_blames);
-	if (ignoredp) {
-		/*
-		 * Note ignoredp is not sorted yet, and thus neither is dstq.
-		 * That list must be sorted before we queue_blames().  We defer
-		 * sorting until after all diff hunks are processed, so that
-		 * guess_line_blames() can pick *any* line in the parent.  The
-		 * slight drawback is that we end up sorting all blame entries
-		 * passed to the parent, including those that are unrelated to
-		 * changes made by the ignored commit.
-		 */
-		**dstq = reverse_blame(ignoredp, **dstq);
-		*dstq = &ignoredp->next;
-	}
-	**srcq = reverse_blame(diffp, reverse_blame(samep, e));
-	/* Move across elements that are in the unblamable portion */
-	if (diffp)
-		*srcq = &diffp->next;
-}
-
-struct blame_chunk_cb_data {
-	struct blame_origin *parent;
-	struct blame_origin *target;
-	long offset;
-	int ignore_diffs;
-	struct blame_entry **dstq;
-	struct blame_entry **srcq;
-};
-
-/* diff chunks are from parent to target */
-static int blame_chunk_cb(long start_a, long count_a,
-			  long start_b, long count_b, void *data)
-{
-	struct blame_chunk_cb_data *d = data;
-	if (start_a - start_b != d->offset)
-		die("internal error in blame::blame_chunk_cb");
-	blame_chunk(&d->dstq, &d->srcq, start_b, start_a - start_b,
-		    start_b + count_b, count_a, d->parent, d->target,
-		    d->ignore_diffs);
-	d->offset = start_a + count_a - (start_b + count_b);
-	return 0;
-}
-
-/*
- * We are looking at the origin 'target' and aiming to pass blame
- * for the lines it is suspected to its parent.  Run diff to find
- * which lines came from parent and pass blame for them.
- */
-static void pass_blame_to_parent(struct blame_scoreboard *sb,
-				 struct blame_origin *target,
-				 struct blame_origin *parent, int ignore_diffs)
-{
-	mmfile_t file_p, file_o;
-	struct blame_chunk_cb_data d;
-	struct blame_entry *newdest = NULL;
-
-	if (!target->suspects)
-		return; /* nothing remains for this target */
-
-	d.parent = parent;
-	d.target = target;
-	d.offset = 0;
-	d.ignore_diffs = ignore_diffs;
-	d.dstq = &newdest; d.srcq = &target->suspects;
-
-	fill_origin_blob(&sb->revs->diffopt, parent, &file_p,
-			 &sb->num_read_blob, ignore_diffs);
-	fill_origin_blob(&sb->revs->diffopt, target, &file_o,
-			 &sb->num_read_blob, ignore_diffs);
-	sb->num_get_patch++;
-
-	if (diff_hunks(&file_p, &file_o, blame_chunk_cb, &d, sb->xdl_opts))
-		die("unable to generate diff (%s -> %s)",
-		    oid_to_hex(&parent->commit->object.oid),
-		    oid_to_hex(&target->commit->object.oid));
-	/* The rest are the same as the parent */
-	blame_chunk(&d.dstq, &d.srcq, INT_MAX, d.offset, INT_MAX, 0,
-		    parent, target, 0);
-	*d.dstq = NULL;
-	if (ignore_diffs)
-		newdest = llist_mergesort(newdest, get_next_blame,
-					  set_next_blame,
-					  compare_blame_suspect);
-	queue_blames(sb, parent, newdest);
-
-	return;
-}
-
-/*
- * The lines in blame_entry after splitting blames many times can become
- * very small and trivial, and at some point it becomes pointless to
- * blame the parents.  E.g. "\t\t}\n\t}\n\n" appears everywhere in any
- * ordinary C program, and it is not worth to say it was copied from
- * totally unrelated file in the parent.
- *
- * Compute how trivial the lines in the blame_entry are.
- */
-unsigned blame_entry_score(struct blame_scoreboard *sb, struct blame_entry *e)
-{
-	unsigned score;
-	const char *cp, *ep;
-
-	if (e->score)
-		return e->score;
-
-	score = 1;
-	cp = blame_nth_line(sb, e->lno);
-	ep = blame_nth_line(sb, e->lno + e->num_lines);
-	while (cp < ep) {
-		unsigned ch = *((unsigned char *)cp);
-		if (isalnum(ch))
-			score++;
-		cp++;
-	}
-	e->score = score;
-	return score;
-}
-
-/*
- * best_so_far[] and potential[] are both a split of an existing blame_entry
- * that passes blame to the parent.  Maintain best_so_far the best split so
- * far, by comparing potential and best_so_far and copying potential into
- * bst_so_far as needed.
- */
-static void copy_split_if_better(struct blame_scoreboard *sb,
-				 struct blame_entry *best_so_far,
-				 struct blame_entry *potential)
-{
-	int i;
-
-	if (!potential[1].suspect)
-		return;
-	if (best_so_far[1].suspect) {
-		if (blame_entry_score(sb, &potential[1]) <
-		    blame_entry_score(sb, &best_so_far[1]))
-			return;
-	}
-
-	for (i = 0; i < 3; i++)
-		blame_origin_incref(potential[i].suspect);
-	decref_split(best_so_far);
-	memcpy(best_so_far, potential, sizeof(struct blame_entry[3]));
-}
-
-/*
- * We are looking at a part of the final image represented by
- * ent (tlno and same are offset by ent->s_lno).
- * tlno is where we are looking at in the final image.
- * up to (but not including) same match preimage.
- * plno is where we are looking at in the preimage.
- *
- * <-------------- final image ---------------------->
- *       <------ent------>
- *         ^tlno ^same
- *    <---------preimage----->
- *         ^plno
- *
- * All line numbers are 0-based.
- */
-static void handle_split(struct blame_scoreboard *sb,
-			 struct blame_entry *ent,
 			 int tlno, int plno, int same,
-			 struct blame_origin *parent,
-			 struct blame_entry *split)
+				die_errno("cannot open or read '%s'", read_from);
 {
-	if (ent->num_lines <= tlno)
-		return;
-	if (tlno < same) {
-		struct blame_entry potential[3];
-		tlno += ent->s_lno;
-		same += ent->s_lno;
-		split_overlap(potential, ent, tlno, plno, same, parent);
-		copy_split_if_better(sb, split, potential);
-		decref_split(potential);
-	}
-}
+	oidclr(&origin->blob_oid);
 
-struct handle_split_cb_data {
-	struct blame_scoreboard *sb;
-	struct blame_entry *ent;
-	struct blame_origin *parent;
-	struct blame_entry *split;
-	long plno;
-	long tlno;
-};
-
+		}
+				oid_to_hex(&ent->suspect->commit->object.oid),
 static int handle_split_cb(long start_a, long count_a,
-			   long start_b, long count_b, void *data)
+		 * then the lines in order of certainty are X, Y, Z.
+}
+	       mapping->destination_start;
+		diffcore_std(&diff_opts);
+	diff_opts.output_format = DIFF_FORMAT_NO_OUTPUT;
+				continue;
+		}
+			struct blame_entry potential[3];
+	 * and this code needs to be after diff_setup_done(), which
+	*blame_suspects_at(&blame_suspects, commit) = origin;
+
+	 */
+ *             <------------------>
+}
+	int max_search_distance_b,
+ */
+};
+					l->next = p->next;
+
+}
+			}
+			else if (strbuf_read_file(&buf, read_from, st.st_size) != st.st_size)
+			}
+ */
+		split[i].ignored = e->ignored;
+	 * entries that have not yet been tested for blame.  leftover
+	}
+	struct blame_origin *porigin, **sg_origin = sg_buf;
+
+};
+				       similarities,
+		if (!origin->suspects)
+/*
+	struct commit *head_commit;
+ * We pass blame from the current commit to its parents.  We keep saying
+/*
+	else
+		result[local_line_b] = start_a + best_similarity_index;
+	if (!p1)
+		/* Check that the lines in A and B are close enough that there
+		split[0].num_lines = tlno - e->s_lno;
+static int diff_hunks(mmfile_t *file_a, mmfile_t *file_b,
+				pass_whole_blame(sb, origin, porigin);
+/*
+
+			int tlno, int offset, int same, int parent_len,
+			*source = p;
+		 * result needs to be invalidated.
+ * 			      similarities may be calculated.
+			 * The same path between origin and its parent
+				return list1;
+
+			filter_small(sb, &toosmall, &origin->suspects, sb->copy_score);
+		sb->final_buf_size = o->file.size;
+					same = 1;
+ *  -1, an, bn, cn, dn,
+		if (ent->suspect->refcnt <= 0) {
+ * 				in A for other lines in A for which
+			struct blame_entry *split,
+	int destination_start, destination_length,
+			if (S_ISGITLINK(p->one->mode))
+		 * line Y that matches two lines equally with a score of 5,
+
+
+ * \param fingerprints_b array of fingerprints for the chunk in B
+		 */
+		if (origin->suspects) {
+ *
+		get_fingerprint(fingerprints + i, linestart, lineend);
+	 * "git blame --reverse ONE..HEAD -- PATH" but only do so
+ * similarities.
+/*
+
+			}
+	for (i = most_certain_local_line_b - 1; i >= invalidate_min; --i) {
+		 * slight drawback is that we end up sorting all blame entries
+	result = xcalloc(sizeof(int), length_b);
+
+	if (!num_sg)
+		       !oideq(&c->object.oid, &sb->final->object.oid)) {
+	void *buf = strbuf_detach(sb, &len);
+ * \param length_a the length in lines of the chunk in A
+		}
+	int s_lno;
+	int *second_best_result,
+	const struct line_number_mapping *mapping)
+	int local_line_b,
+	int i;
+					    i, local_line_b,
+		 * is a similarity value for them.
+ * -C options may lead to overlapping/duplicate source line number
+	if (samep) {
+	 * similarity values with that fingerprint.
+					break;
+{
+	if (ignore_diffs)
+
+}
+			}
+			suspect = suspect->next;
+	}
+
+static int compare_blame_final(const void *p1, const void *p2)
+		}
+static int compare_blame_suspect(const void *p1, const void *p2)
+				       fingerprints_a,
+	if (diff_hunks(&file_p, &file_o, blame_chunk_cb, &d, sb->xdl_opts))
+		char *buf_ptr;
+ * 				similarities may be calculated.
 {
 	struct handle_split_cb_data *d = data;
-	handle_split(d->sb, d->ent, d->tlno, d->plno, start_b, d->parent,
-		     d->split);
-	d->plno = start_a + count_a;
-	d->tlno = start_b + count_b;
-	return 0;
-}
+	fill_origin_blob(&sb->revs->diffopt, target, &file_o,
+ * in the various origins.
+		closest_local_line_a;
+	const char *cp, *ep;
+		} while (p1->s_lno <= p2->s_lno);
 
-/*
- * Find the lines from parent that are the same as ent so that
- * we can pass blames to it.  file_p has the blob contents for
- * the parent.
- */
-static void find_copy_in_blob(struct blame_scoreboard *sb,
-			      struct blame_entry *ent,
-			      struct blame_origin *parent,
-			      struct blame_entry *split,
-			      mmfile_t *file_p)
-{
-	const char *cp;
-	mmfile_t file_o;
-	struct handle_split_cb_data d;
+	int merge_head;
+			/* bump to front */
 
-	memset(&d, 0, sizeof(d));
-	d.sb = sb; d.ent = ent; d.parent = parent; d.split = split;
-	/*
-	 * Prepare mmfile that contains only the lines in ent.
-	 */
-	cp = blame_nth_line(sb, ent->lno);
-	file_o.ptr = (char *) cp;
-	file_o.size = blame_nth_line(sb, ent->lno + ent->num_lines) - cp;
-
-	/*
-	 * file_o is a part of final image we are annotating.
-	 * file_p partially may match that image.
-	 */
-	memset(split, 0, sizeof(struct blame_entry [3]));
-	if (diff_hunks(file_p, &file_o, handle_split_cb, &d, sb->xdl_opts))
-		die("unable to generate diff (%s)",
-		    oid_to_hex(&parent->commit->object.oid));
-	/* remainder, if any, all match the preimage */
-	handle_split(sb, ent, d.tlno, d.plno, ent->num_lines, parent, split);
-}
-
-/* Move all blame entries from list *source that have a score smaller
- * than score_min to the front of list *small.
- * Returns a pointer to the link pointing to the old head of the small list.
- */
-
-static struct blame_entry **filter_small(struct blame_scoreboard *sb,
-					 struct blame_entry **small,
-					 struct blame_entry **source,
-					 unsigned score_min)
-{
-	struct blame_entry *p = *source;
-	struct blame_entry *oldsmall = *small;
-	while (p) {
-		if (blame_entry_score(sb, p) <= score_min) {
+			die_errno("failed to read from stdin");
+		/* there is a pre-chunk part not blamed on parent */
+				copy_split_if_better(sb, blame_list[j].split,
 			*small = p;
-			small = &p->next;
-			p = *small;
-		} else {
-			*source = p;
-			source = &p->next;
-			p = *source;
-		}
-	}
-	*small = oldsmall;
-	*source = NULL;
-	return small;
-}
+ * origin is suspected for can be blamed on the parent.
+	diff_flush(&diff_opts);
+ * \param map_line_number_in_b_to_a parameter to map_line_number().
+		e->s_lno += offset;
+static struct blame_origin *get_origin(struct commit *commit, const char *path)
+		add_blame_entry(unblamed, &split[2]);
 
-/*
- * See if lines currently target is suspected for can be attributed to
- * parent.
- */
-static void find_move_in_parent(struct blame_scoreboard *sb,
-				struct blame_entry ***blamed,
-				struct blame_entry **toosmall,
-				struct blame_origin *target,
-				struct blame_origin *parent)
+		closest_local_line_a = map_line_number(
 {
-	struct blame_entry *e, split[3];
-	struct blame_entry *unblamed = target->suspects;
-	struct blame_entry *leftover = NULL;
-	mmfile_t file_p;
-
-	if (!unblamed)
-		return; /* nothing remains for this target */
-
-	fill_origin_blob(&sb->revs->diffopt, parent, &file_p,
-			 &sb->num_read_blob, 0);
-	if (!file_p.ptr)
-		return;
-
-	/* At each iteration, unblamed has a NULL-terminated list of
-	 * entries that have not yet been tested for blame.  leftover
-	 * contains the reversed list of entries that have been tested
-	 * without being assignable to the parent.
+ */
+		while (*tail)
+					struct blame_origin *origin)
 	 */
-	do {
-		struct blame_entry **unblamedtail = &unblamed;
-		struct blame_entry *next;
-		for (e = unblamed; e; e = next) {
-			next = e->next;
-			find_copy_in_blob(sb, e, parent, split, &file_p);
-			if (split[1].suspect &&
-			    sb->move_score < blame_entry_score(sb, &split[1])) {
-				split_blame(blamed, &unblamedtail, split, e);
-			} else {
-				e->next = leftover;
-				leftover = e;
-			}
-			decref_split(split);
+			continue;
+		result[local_line_b] = -1;
+}
+}
+			;
+		diff_tree_oid(get_commit_tree_oid(parent),
+		    textconv_object(sb->repo, path, o->mode, &o->blob_oid, 1, (char **) &sb->final_buf,
+	for (ent = sb->ent; ent; ent = ent->next) {
+
+ */
+{
+			    oid_to_hex(&o->blob_oid),
+	else
+		/*
+			     struct fingerprint *t_fps, int t_idx,
+static struct commit *find_single_initial(struct rev_info *revs,
+					  struct commit_list **tail,
+			die("unsupported file type %s", read_from);
+
+	 */
+			if (parse_commit(p))
+	 * entirety so we don't need to store the byte pair separately.
+		do {
+	diff_opts.flags.recursive = 1;
+	long tlno;
+	int parent_slno = tlno + offset;
+		sanity_check_refcnt(sb);
+ */
+			struct blame_entry *n;
 		}
+	}
+	if (most_certain_local_line_b > 0) {
+static void set_next_blame(void *p1, void *p2)
+}
+	if (sb->final && sb->contents_from)
+			struct blame_entry *split = blame_list[j].split;
+				     struct commit *work_tree, const char *path)
+	memset(split, 0, sizeof(struct blame_entry [3]));
+		same += ent->s_lno;
+		if (!file->ptr)
+	}
+{
+}
+		int pos = index_name_pos(r->index, path, len);
+
+	if (opt & PICKAXE_BLAME_COPY) {
+		sb->commits.compare = compare_commits_by_commit_date;
+	const char *name = NULL;
+
+		/* Should be present exactly once in commit chain */
+			 struct blame_entry *sorted)
+
+{
+	 * after the blameable portion.
+		find_best_line_matches(start_a,
+	for (p = buf; p < end; p = get_next_line(p, end))
+
+		found = (struct commit *)obj;
+static void decref_split(struct blame_entry *split)
+
+ * the parent.
+
+		*name_p = xstrdup(name);
+		found = dwim_reverse_initial(revs, &name);
+		if (fuzzy_matches && fuzzy_matches[i] >= 0) {
+		/* Always terminate the string with whitespace.
+	cache_tree_invalidate_path(r->index, path);
+/*
+	struct commit *commit = prio_queue_get(&sb->commits);
+
+ * \param similarities 2-dimensional array of similarities between lines in A
+	prepare_lines(sb);
+	diff_setup_done(&diff_opts);
+/*
+static void find_copy_in_parent(struct blame_scoreboard *sb,
+
+
+			if (commit->object.parsed)
+		blame_origin_decref(suspect);
+	if (s1->s_lno == s2->s_lno)
+		FREE_AND_NULL(o->fingerprints);
+
+	 */
+{
+	init_blame_suspects(&blame_suspects);
+	new_head->suspect = o;
+	strbuf_addstr(&msg, "tree 0000000000000000000000000000000000000000\n");
+		if (!sb->final_buf)
+		do {
+
+		if (strbuf_read(&buf, 0, 0) < 0)
+	if (is_null_oid(&origin->commit->object.oid))
+		return NULL;
+void blame_origin_decref(struct blame_origin *o)
+		diff_opts.flags.find_copies_harder = 1;
+	while (e && e->s_lno < same) {
+static void add_blame_entry(struct blame_entry ***queue,
+		 * line X that matches only one line with a score of 3,
+				if (next) {
+		struct blame_entry *next = e->next;
+		while (c->parents &&
+		die(_("revision walk setup failed"));
+		struct object *obj = revs->pending.objects[i].item;
+}
+	 */
+	}
+
+		if (revs->first_parent_only &&
+		}
+		o = get_blame_suspects(sb->final);
+ * than score_min to the front of list *small.
+	free(f->entries);
+		switch (st.st_mode & S_IFMT) {
+	/* Invalidate results that may be affected by the choice of most
+	}
+	file_o.ptr = (char *) cp;
+	if (certainties[local_line_b] != CERTAINTY_NOT_CALCULATED)
+ * Then the similarity array will contain:
+				continue; /* ignore git links */
+		oidcpy(&porigin->blob_oid, &origin->blob_oid);
+		if ((p == line_end) || isspace(*p))
+		else
+define_commit_slab(blame_suspects, struct blame_origin *);
+			      struct blame_line_tracker *second)
+ * \param similarities 2-dimensional array of similarities between lines in A
+ */
+			break;
+		if (obj->flags & UNINTERESTING)
+
+	if (!porigin->file.ptr && origin->file.ptr) {
+	memcpy(e, src, sizeof(*e));
+		    commit->parents &&
+ * first suspect line number.
+			free_commit_list(commit->parents->next);
+}
+	int *similarities,
+
+		if (obj->type != OBJ_COMMIT)
+		struct blame_origin *porigin = sg_origin[i];
+	int length_b = same - tlno;
+
+	 * Discard the matches for lines in B that are currently matched with a
+			blame_origin_incref(porigin);
+	*num_ents_p = num_ents;
+
+{
+	 * bottom commits we would reach while traversing as
+			if (!origin->suspects)
+	struct cache_entry *ce;
+static int blame_chunk_cb(long start_a, long count_a,
+ * retain a sensible line ordering.
+	unsigned score;
+		if (!strcmp(o->path, path)) {
+		found = (struct commit *) obj;
+			fprintf(stderr, "%s in %s has negative refcnt %d\n",
+		name = revs->pending.objects[i].name;
+	similarities = xcalloc(sizeof(int), similarity_count);
+
+	}
+	struct hashmap map;
+	 * prepend toosmall to origin->suspects
+		 */
 		*unblamedtail = NULL;
-		toosmall = filter_small(sb, toosmall, &unblamed, sb->move_score);
-	} while (unblamed);
-	target->suspects = reverse_blame(leftover, NULL);
+	*small = oldsmall;
+	search_end = closest_local_line_a + max_search_distance_a + 1;
+	for (i = 0; i < nr_lines; i++) {
+		ent = suspect->suspects;
+	struct object *obj;
 }
 
-struct blame_list {
-	struct blame_entry *ent;
-	struct blame_entry split[3];
-};
-
-/*
- * Count the number of entries the target is suspected for,
- * and prepare a list of entry and the best split.
- */
-static struct blame_list *setup_blame_list(struct blame_entry *unblamed,
-					   int *num_ents_p)
+	diff_opts.detect_rename = 0;
 {
-	struct blame_entry *e;
-	int num_ents, i;
-	struct blame_list *blame_list = NULL;
+		free(sg_origin);
+			suspects = blamed;
+		return commit->parents;
+					    origin, sg->item, porigin, opt);
+		assert(e->num_lines == entry_len);
+		    (result[i] >= most_certain_line_a ||
+			     int from, int nr_lines)
+	do {
+	 * respective pointer value as the primary sorting criterion.
+	search_start = closest_local_line_a - max_search_distance_a;
+		return NULL;
+	struct blame_origin *o, *l;
 
-	for (e = unblamed, num_ents = 0; e; e = e->next)
-		num_ents++;
-	if (num_ents) {
-		blame_list = xcalloc(num_ents, sizeof(struct blame_list));
-		for (e = unblamed, i = 0; e; e = e->next)
+ * requires writing a link in the _previous_ element, while building
+			else
+	struct blame_origin *sg_buf[MAXSG];
+ *
+	for (i = 0; i < 3; i++) {
+	struct fingerprint *fingerprints_a = parent->fingerprints;
+	int start_a,
+		}
+static struct blame_entry *blame_merge(struct blame_entry *list1,
+	if (start_a - start_b != d->offset)
+			break;
 			blame_list[i++].ent = e;
+ * the commit priority queue of the score board.
+static int fingerprint_similarity(struct fingerprint *a, struct fingerprint *b)
+	       (mapping->source_length * 2) +
+}
+ * To allow quick access to the contents of nth line in the
+			}
+	free(certainties);
+/*
+			}
+		 * the certainty. However we still want to prioritise matching
+
+{
+struct fingerprint {
+
+ * examples.
+	for (parents = work_tree->parents; parents; parents = parents->next) {
+			find_copy_in_parent(sb, &blametail, &toosmall,
+	struct hashmap_iter iter;
+ * for the lines it is suspected to its parent.  Run diff to find
+			}
+}
+			hashmap_add(&result->map, &entry->entry);
+static void get_fingerprint(struct fingerprint *result,
+ * c | o
+void blame_coalesce(struct blame_scoreboard *sb)
+		struct blame_origin *o;
+					   &c->parents->item->object, l))
+	most_certain_line_a = result[most_certain_local_line_b];
+
+}
+ * \param start_b index of the first line in B for which matching should be
+			samep = n;
+	struct blame_entry *samep = NULL, *diffp = NULL, *ignoredp = NULL;
+		if (line_blames[i].is_parent) {
 	}
-	*num_ents_p = num_ents;
+	if (sb->reverse && sb->contents_from)
+		*dstq = &ignoredp->next;
+}
+ * a malloced blame_entry that gets added to the given queue.  The
+
+			 */
+		best_similarity_index = 0, second_best_similarity_index = 0;
+static int scan_parent_range(struct fingerprint *p_fps,
+		     i < num_sg && sg;
+		case 'M':
+				       certainties,
+ * this function directly.
+	lineno = *line_starts;
+	}
+/*
+	struct rev_info *revs = sb->revs;
+		offset_b = most_certain_local_line_b + 1;
+static void copy_split_if_better(struct blame_scoreboard *sb,
+		    "committer %s\n\n"
+
+}
+ * has an overlap with that range.  it also is known that parent's
+static struct blame_entry *split_blame_at(struct blame_entry *e, int len,
+			 * Move second half to a new record to be
+			if (!DIFF_FILE_VALID(p->one))
+	/*
+ * closest in terms of its position as a fraction of the length of the chunk.
+		entry_a = hashmap_get_entry(&a->map, entry_b, entry, NULL);
+	len = strlen(path);
+	int max_map_entry_count = 1 + line_end - line_begin;
+			*diffp = e;
+ * If two blame entries that are next to each other came from
+	while (blamed)
+			die(_("cannot read blob %s for path %s"),
+		/* me and then parent */
+
+		if (blame_entry_score(sb, &potential[1]) <
+
+	o->num_lines = find_line_starts(&line_starts, o->file.ptr,
+	}
+	int start_a = parent_slno;
+	obj = deref_tag(revs->repo, obj, NULL, 0);
+		certainties[local_line_b] = best_similarity * 2 -
+		}
+				if (!porigin)
+						     target_idx, 0,
+ * We have an origin -- find the path that corresponds to it in its
+ */
+		die("no such path '%s' in HEAD", path);
+		    !strcmp(p->two->path, origin->path)) {
+	if (pos >= 0)
+
+
+	 * Optionally find moves in parents' files.
+	for (p_idx = from; p_idx < from + nr_lines; p_idx++) {
+
+
+	new_head->s_lno = start;
+			    o->path);
+					struct blame_origin *origin)
+					   blame_origin_incref(e->suspect));
+			sb->final_buf = read_object_file(&o->blob_oid, &type,
+				struct blame_entry ***blamed,
+		die("internal error in blame::blame_chunk_cb");
+	}
+		certainties[local_line_b] = CERTAIN_NOTHING_MATCHES;
+			second_best_similarity = best_similarity;
+	mmfile_t file_p;
+ * Find the lines from parent that are the same as ent so that
+	/* Is that sole rev a committish? */
+	 */
+	const char *p;
+	if (!unblamed)
+ * It is known that lines between tlno to same came from parent, and e
+		obj = deref_tag(revs->repo, obj, NULL, 0);
+
+	invalidate_min = most_certain_local_line_b - max_search_distance_b;
+}
+					 sb->final_buf_size);
+}
+ * Any merge of blames happens on lists of blames that arrived via
+ */
+	if (opt & PICKAXE_BLAME_MOVE) {
+	if (toosmall) {
+			struct blame_entry ***unblamed,
+
+			die("Non commit %s?", revs->pending.objects[i].name);
+		search_start = 0;
+	if (!diff_opts.flags.find_copies_harder)
+		parse_commit(commit);
+						  void *c)
+	if (name_p)
+			blame_origin_decref(sg_origin[i]);
+		struct object_id oid;
+	if (!resolve_ref_unsafe("HEAD", RESOLVE_REF_READING, &head_oid, NULL))
+		}
+				       map_line_number_in_b_to_a);
+ * This decides which parts of a blame entry go to the parent (added to the
+	discard_index(r->index);
+		if (best_idx >= 0) {
+			 * processed by later chunks
+	n->num_lines = e->num_lines - len;
+			   long start_b, long count_b, void *data)
+					  fingerprints_b + start_b,
+					    max_search_distance_a);
+	struct diff_options diff_opts;
+ */
+			tail = &p1->next;
+			    sb->copy_score < blame_entry_score(sb, &split[1])) {
+
+
+ * The first pass checks the blame entry (from the target) against the parent's
+ * the string that it represents. Whitespace is added at each end of the
+ * Where similarities are denoted either by -1 for invalid, or the
+{
+	const char *p;
+	int start_b,
+			found_entry->count += 1;
+	for (porigin = get_blame_suspects(parent); porigin; porigin = porigin->next)
+					   const char **name_p)
+	 * contiguous chunk of lines: adjacent lines from the same origin
+		if (e->s_lno + e->num_lines > same) {
+{
+	 * without being assignable to the parent.
+
+			return blame_origin_incref(o);
+
+ * \param start_a index of the first line in A with which lines in B may be
+struct handle_split_cb_data {
+			if (!strcmp(name, origin->path))
+	    || ((opt & PICKAXE_BLAME_COPY_HARDER)
+		do_diff_cache(get_commit_tree_oid(parent), &diff_opts);
+				split_blame(blamed, &unblamedtail, split, e);
+ * We are looking at a part of the final image represented by
+			}
+	struct commit *commit;
+ * that passes blame to the parent.  Maintain best_so_far the best split so
+	struct commit *parent;
+
+	const struct line_number_mapping *map_line_number_in_b_to_a)
+	}
+		} else {
+	/* The number of times the byte pair occurs in the string that the
+		 * chunk to the parent */
+{
+			if (add_decoration(&sb->revs->children,
+	/* More invalidating of results that may be affected by the choice of
+		die("unable to generate diff (%s -> %s)",
+	 * same and diff-tree is fairly efficient about this.
+{
+		for (j = 0; j < num_ents; j++) {
+	int *lineno;
+
+		struct blame_entry **unblamedtail = &unblamed;
+	for (i = invalidate_min; i < invalidate_max; ++i) {
+	struct blame_origin *target;
+	d->offset = start_a + count_a - (start_b + count_b);
+	if (!mode) {
+			struct blame_origin *parent,
+	ce->ce_mode = create_ce_mode(mode);
+
+		struct blame_entry **unblamedtail = &unblamed;
+
+}
+			toosmall = NULL;
+	struct blame_entry *leftover = NULL;
+	repo_read_index(r);
+ */
+			/*
+ * [-1, -1, am, bm, cm,
+	/*
+	free(second_best_result);
+
+			second_best_similarity_index = best_similarity_index;
+
+
+				 struct blame_entry *best_so_far,
+		else
+	ce->ce_flags = create_ce_flags(0);
+		max_search_distance_a = length_a ? length_a - 1 : 0;
+	struct blame_entry *e, *suspects;
+		free_line_fingerprints(o->fingerprints, o->num_lines);
+				      int parent_len)
+	}
 	return blame_list;
 }
 
-/*
- * For lines target is suspected for, see if we can find code movement
- * across file boundary from the parent commit.  porigin is the path
- * in the parent we already tried.
- */
-static void find_copy_in_parent(struct blame_scoreboard *sb,
-				struct blame_entry ***blamed,
-				struct blame_entry **toosmall,
-				struct blame_origin *target,
-				struct commit *parent,
-				struct blame_origin *porigin,
-				int opt)
-{
-	struct diff_options diff_opts;
-	int i, j;
-	struct blame_list *blame_list;
-	int num_ents;
-	struct blame_entry *unblamed = target->suspects;
-	struct blame_entry *leftover = NULL;
-
-	if (!unblamed)
-		return; /* nothing remains for this target */
-
-	repo_diff_setup(sb->repo, &diff_opts);
-	diff_opts.flags.recursive = 1;
-	diff_opts.output_format = DIFF_FORMAT_NO_OUTPUT;
-
-	diff_setup_done(&diff_opts);
-
-	/* Try "find copies harder" on new path if requested;
-	 * we do not want to use diffcore_rename() actually to
-	 * match things up; find_copies_harder is set only to
-	 * force diff_tree_oid() to feed all filepairs to diff_queue,
-	 * and this code needs to be after diff_setup_done(), which
-	 * usually makes find-copies-harder imply copy detection.
-	 */
-	if ((opt & PICKAXE_BLAME_COPY_HARDEST)
-	    || ((opt & PICKAXE_BLAME_COPY_HARDER)
-		&& (!porigin || strcmp(target->path, porigin->path))))
-		diff_opts.flags.find_copies_harder = 1;
-
-	if (is_null_oid(&target->commit->object.oid))
-		do_diff_cache(get_commit_tree_oid(parent), &diff_opts);
-	else
-		diff_tree_oid(get_commit_tree_oid(parent),
-			      get_commit_tree_oid(target->commit),
-			      "", &diff_opts);
-
-	if (!diff_opts.flags.find_copies_harder)
-		diffcore_std(&diff_opts);
-
-	do {
-		struct blame_entry **unblamedtail = &unblamed;
-		blame_list = setup_blame_list(unblamed, &num_ents);
-
-		for (i = 0; i < diff_queued_diff.nr; i++) {
-			struct diff_filepair *p = diff_queued_diff.queue[i];
-			struct blame_origin *norigin;
-			mmfile_t file_p;
-			struct blame_entry potential[3];
-
-			if (!DIFF_FILE_VALID(p->one))
-				continue; /* does not exist in parent */
-			if (S_ISGITLINK(p->one->mode))
-				continue; /* ignore git links */
-			if (porigin && !strcmp(p->one->path, porigin->path))
-				/* find_move already dealt with this path */
-				continue;
-
-			norigin = get_origin(parent, p->one->path);
-			oidcpy(&norigin->blob_oid, &p->one->oid);
-			norigin->mode = p->one->mode;
-			fill_origin_blob(&sb->revs->diffopt, norigin, &file_p,
-					 &sb->num_read_blob, 0);
-			if (!file_p.ptr)
-				continue;
-
-			for (j = 0; j < num_ents; j++) {
-				find_copy_in_blob(sb, blame_list[j].ent,
-						  norigin, potential, &file_p);
-				copy_split_if_better(sb, blame_list[j].split,
-						     potential);
-				decref_split(potential);
-			}
-			blame_origin_decref(norigin);
+ * 		       in the chunk.
+	while (cp < ep) {
 		}
+	 * uninteresting.
+	int i, best_idx, target_idx;
 
-		for (j = 0; j < num_ents; j++) {
-			struct blame_entry *split = blame_list[j].split;
-			if (split[1].suspect &&
-			    sb->copy_score < blame_entry_score(sb, &split[1])) {
-				split_blame(blamed, &unblamedtail, split,
-					    blame_list[j].ent);
-			} else {
-				blame_list[j].ent->next = leftover;
-				leftover = blame_list[j].ent;
-			}
-			decref_split(split);
-		}
-		free(blame_list);
-		*unblamedtail = NULL;
-		toosmall = filter_small(sb, toosmall, &unblamed, sb->copy_score);
-	} while (unblamed);
-	target->suspects = reverse_blame(leftover, NULL);
-	diff_flush(&diff_opts);
-	clear_pathspec(&diff_opts.pathspec);
-}
-
-/*
- * The blobs of origin and porigin exactly match, so everything
- * origin is suspected for can be blamed on the parent.
- */
-static void pass_whole_blame(struct blame_scoreboard *sb,
-			     struct blame_origin *origin, struct blame_origin *porigin)
-{
-	struct blame_entry *e, *suspects;
-
-	if (!porigin->file.ptr && origin->file.ptr) {
-		/* Steal its file */
-		porigin->file = origin->file;
-		origin->file.ptr = NULL;
-	}
-	suspects = origin->suspects;
-	origin->suspects = NULL;
-	for (e = suspects; e; e = e->next) {
-		blame_origin_incref(porigin);
-		blame_origin_decref(e->suspect);
-		e->suspect = porigin;
-	}
-	queue_blames(sb, porigin, suspects);
-}
-
-/*
- * We pass blame from the current commit to its parents.  We keep saying
- * "parent" (and "porigin"), but what we mean is to find scapegoat to
- * exonerate ourselves.
- */
-static struct commit_list *first_scapegoat(struct rev_info *revs, struct commit *commit,
-					int reverse)
-{
-	if (!reverse) {
-		if (revs->first_parent_only &&
-		    commit->parents &&
-		    commit->parents->next) {
-			free_commit_list(commit->parents->next);
-			commit->parents->next = NULL;
-		}
-		return commit->parents;
-	}
-	return lookup_decoration(&revs->children, &commit->object);
-}
-
-static int num_scapegoats(struct rev_info *revs, struct commit *commit, int reverse)
-{
-	struct commit_list *l = first_scapegoat(revs, commit, reverse);
-	return commit_list_count(l);
-}
-
-/* Distribute collected unsorted blames to the respected sorted lists
- * in the various origins.
- */
-static void distribute_blame(struct blame_scoreboard *sb, struct blame_entry *blamed)
-{
-	blamed = llist_mergesort(blamed, get_next_blame, set_next_blame,
-				 compare_blame_suspect);
-	while (blamed)
-	{
-		struct blame_origin *porigin = blamed->suspect;
-		struct blame_entry *suspects = NULL;
-		do {
-			struct blame_entry *next = blamed->next;
-			blamed->next = suspects;
-			suspects = blamed;
-			blamed = next;
-		} while (blamed && blamed->suspect == porigin);
-		suspects = reverse_blame(suspects, NULL);
-		queue_blames(sb, porigin, suspects);
-	}
-}
-
-#define MAXSG 16
-
-static void pass_blame(struct blame_scoreboard *sb, struct blame_origin *origin, int opt)
-{
-	struct rev_info *revs = sb->revs;
-	int i, pass, num_sg;
-	struct commit *commit = origin->commit;
-	struct commit_list *sg;
-	struct blame_origin *sg_buf[MAXSG];
-	struct blame_origin *porigin, **sg_origin = sg_buf;
-	struct blame_entry *toosmall = NULL;
-	struct blame_entry *blames, **blametail = &blames;
-
-	num_sg = num_scapegoats(revs, commit, sb->reverse);
-	if (!num_sg)
-		goto finish;
-	else if (num_sg < ARRAY_SIZE(sg_buf))
-		memset(sg_buf, 0, sizeof(sg_buf));
-	else
-		sg_origin = xcalloc(num_sg, sizeof(*sg_origin));
-
-	/*
-	 * The first pass looks for unrenamed path to optimize for
-	 * common cases, then we look for renames in the second pass.
-	 */
-	for (pass = 0; pass < 2 - sb->no_whole_file_rename; pass++) {
-		struct blame_origin *(*find)(struct repository *, struct commit *, struct blame_origin *);
-		find = pass ? find_rename : find_origin;
-
-		for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
-		     i < num_sg && sg;
-		     sg = sg->next, i++) {
-			struct commit *p = sg->item;
-			int j, same;
-
-			if (sg_origin[i])
-				continue;
-			if (parse_commit(p))
-				continue;
-			porigin = find(sb->repo, p, origin);
-			if (!porigin)
-				continue;
-			if (oideq(&porigin->blob_oid, &origin->blob_oid)) {
-				pass_whole_blame(sb, origin, porigin);
-				blame_origin_decref(porigin);
-				goto finish;
-			}
-			for (j = same = 0; j < i; j++)
-				if (sg_origin[j] &&
-				    oideq(&sg_origin[j]->blob_oid, &porigin->blob_oid)) {
-					same = 1;
-					break;
-				}
-			if (!same)
-				sg_origin[i] = porigin;
-			else
-				blame_origin_decref(porigin);
-		}
-	}
-
-	sb->num_commits++;
-	for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
-	     i < num_sg && sg;
-	     sg = sg->next, i++) {
-		struct blame_origin *porigin = sg_origin[i];
-		if (!porigin)
-			continue;
-		if (!origin->previous) {
-			blame_origin_incref(porigin);
-			origin->previous = porigin;
-		}
-		pass_blame_to_parent(sb, origin, porigin, 0);
-		if (!origin->suspects)
-			goto finish;
-	}
-
-	/*
-	 * Pass remaining suspects for ignored commits to their parents.
-	 */
-	if (oidset_contains(&sb->ignore_list, &commit->object.oid)) {
-		for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
-		     i < num_sg && sg;
-		     sg = sg->next, i++) {
-			struct blame_origin *porigin = sg_origin[i];
-
-			if (!porigin)
-				continue;
-			pass_blame_to_parent(sb, origin, porigin, 1);
-			/*
-			 * Preemptively drop porigin so we can refresh the
-			 * fingerprints if we use the parent again, which can
-			 * occur if you ignore back-to-back commits.
-			 */
-			drop_origin_blob(porigin);
-			if (!origin->suspects)
-				goto finish;
-		}
-	}
-
-	/*
-	 * Optionally find moves in parents' files.
-	 */
-	if (opt & PICKAXE_BLAME_MOVE) {
-		filter_small(sb, &toosmall, &origin->suspects, sb->move_score);
-		if (origin->suspects) {
-			for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
-			     i < num_sg && sg;
-			     sg = sg->next, i++) {
-				struct blame_origin *porigin = sg_origin[i];
-				if (!porigin)
-					continue;
-				find_move_in_parent(sb, &blametail, &toosmall, origin, porigin);
-				if (!origin->suspects)
-					break;
-			}
-		}
-	}
-
-	/*
-	 * Optionally find copies from parents' files.
-	 */
-	if (opt & PICKAXE_BLAME_COPY) {
-		if (sb->copy_score > sb->move_score)
-			filter_small(sb, &toosmall, &origin->suspects, sb->copy_score);
-		else if (sb->copy_score < sb->move_score) {
-			origin->suspects = blame_merge(origin->suspects, toosmall);
-			toosmall = NULL;
-			filter_small(sb, &toosmall, &origin->suspects, sb->copy_score);
-		}
-		if (!origin->suspects)
-			goto finish;
-
-		for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
-		     i < num_sg && sg;
-		     sg = sg->next, i++) {
-			struct blame_origin *porigin = sg_origin[i];
-			find_copy_in_parent(sb, &blametail, &toosmall,
-					    origin, sg->item, porigin, opt);
-			if (!origin->suspects)
-				goto finish;
-		}
-	}
-
-finish:
-	*blametail = NULL;
-	distribute_blame(sb, blames);
-	/*
-	 * prepend toosmall to origin->suspects
-	 *
-	 * There is no point in sorting: this ends up on a big
-	 * unsorted list in the caller anyway.
-	 */
-	if (toosmall) {
-		struct blame_entry **tail = &toosmall;
-		while (*tail)
-			tail = &(*tail)->next;
-		*tail = origin->suspects;
-		origin->suspects = toosmall;
-	}
-	for (i = 0; i < num_sg; i++) {
-		if (sg_origin[i]) {
-			if (!sg_origin[i]->suspects)
-				drop_origin_blob(sg_origin[i]);
-			blame_origin_decref(sg_origin[i]);
-		}
-	}
-	drop_origin_blob(origin);
-	if (sg_buf != sg_origin)
-		free(sg_origin);
-}
-
-/*
- * The main loop -- while we have blobs with lines whose true origin
- * is still unknown, pick one blob, and allow its lines to pass blames
- * to its parents. */
-void assign_blame(struct blame_scoreboard *sb, int opt)
-{
-	struct rev_info *revs = sb->revs;
-	struct commit *commit = prio_queue_get(&sb->commits);
-
-	while (commit) {
-		struct blame_entry *ent;
-		struct blame_origin *suspect = get_blame_suspects(commit);
-
-		/* find one suspect to break down */
-		while (suspect && !suspect->suspects)
-			suspect = suspect->next;
-
-		if (!suspect) {
-			commit = prio_queue_get(&sb->commits);
-			continue;
-		}
-
-		assert(commit == suspect->commit);
-
-		/*
-		 * We will use this suspect later in the loop,
-		 * so hold onto it in the meantime.
-		 */
-		blame_origin_incref(suspect);
-		parse_commit(commit);
-		if (sb->reverse ||
-		    (!(commit->object.flags & UNINTERESTING) &&
-		     !(revs->max_age != -1 && commit->date < revs->max_age)))
-			pass_blame(sb, suspect, opt);
-		else {
-			commit->object.flags |= UNINTERESTING;
-			if (commit->object.parsed)
-				mark_parents_uninteresting(commit);
-		}
-		/* treat root commit as boundary */
-		if (!commit->parents && !sb->show_root)
-			commit->object.flags |= UNINTERESTING;
-
+	const char *linestart, *lineend;
+	hashmap_for_each_entry(&b->map, &iter, entry_b,
+		lineend = content + line_starts[i + 1];
+	int entry_len, nr_lines, i;
+ * and a line in B.
 		/* Take responsibility for the remaining entries */
-		ent = suspect->suspects;
-		if (ent) {
-			suspect->guilty = 1;
-			for (;;) {
-				struct blame_entry *next = ent->next;
-				if (sb->found_guilty_entry)
-					sb->found_guilty_entry(ent, sb->found_guilty_entry_data);
-				if (next) {
-					ent = next;
-					continue;
-				}
-				ent->next = sb->ent;
-				sb->ent = suspect->suspects;
-				suspect->suspects = NULL;
-				break;
-			}
-		}
-		blame_origin_decref(suspect);
-
-		if (sb->debug) /* sanity */
-			sanity_check_refcnt(sb);
-	}
 }
-
-/*
- * To allow quick access to the contents of nth line in the
- * final image, prepare an index in the scoreboard.
- */
-static int prepare_lines(struct blame_scoreboard *sb)
-{
-	sb->num_lines = find_line_starts(&sb->lineno, sb->final_buf,
-					 sb->final_buf_size);
-	return sb->num_lines;
-}
-
-static struct commit *find_single_final(struct rev_info *revs,
-					const char **name_p)
-{
-	int i;
-	struct commit *found = NULL;
-	const char *name = NULL;
-
-	for (i = 0; i < revs->pending.nr; i++) {
-		struct object *obj = revs->pending.objects[i].item;
-		if (obj->flags & UNINTERESTING)
-			continue;
-		obj = deref_tag(revs->repo, obj, NULL, 0);
-		if (obj->type != OBJ_COMMIT)
-			die("Non commit %s?", revs->pending.objects[i].name);
-		if (found)
 			die("More than one commit to dig from %s and %s?",
-			    revs->pending.objects[i].name, name);
-		found = (struct commit *)obj;
-		name = revs->pending.objects[i].name;
-	}
-	if (name_p)
-		*name_p = xstrdup_or_null(name);
-	return found;
+			free(next);
+ *
+		if (!oideq(&c->object.oid, &sb->final->object.oid))
+
 }
-
-static struct commit *dwim_reverse_initial(struct rev_info *revs,
-					   const char **name_p)
+}
+	struct blame_origin *parent;
+		 * do not care about.
+	/* See if the origin->path is different between parent
+finish:
+	int *result,
+}
 {
-	/*
-	 * DWIM "git blame --reverse ONE -- PATH" as
-	 * "git blame --reverse ONE..HEAD -- PATH" but only do so
-	 * when it makes sense.
+		porigin->suspects = sorted;
+		certainties[i] = CERTAINTY_NOT_CALCULATED;
+ * 		 freed later using free_fingerprint.
 	 */
-	struct object *obj;
-	struct commit *head_commit;
-	struct object_id head_oid;
+	sb->num_commits++;
+	struct blame_entry *blames, **blametail = &blames;
+		if (sb->revs->diffopt.flags.allow_textconv &&
+ * We have an origin -- check if the same path exists in the
+{
 
-	if (revs->pending.nr != 1)
-		return NULL;
+			const char *name;
+	return sb->final_buf + sb->lineno[lno];
+					o->file.size);
+	};
+ */
+ * 		  done.
+	struct blame_entry *newdest = NULL;
+		/* Break ties with the closest-to-target line number */
+	return &commit_list_insert(parent, tail)->next;
 
-	/* Is that sole rev a committish? */
-	obj = revs->pending.objects[0].item;
-	obj = deref_tag(revs->repo, obj, NULL, 0);
-	if (obj->type != OBJ_COMMIT)
-		return NULL;
-
-	/* Do we have HEAD? */
-	if (!resolve_ref_unsafe("HEAD", RESOLVE_REF_READING, &head_oid, NULL))
-		return NULL;
-	head_commit = lookup_commit_reference_gently(revs->repo,
+ * \param certainties array of values indicating how strongly a line in B is
+				ent->next = sb->ent;
+	ecb.priv = cb_data;
+		sg_origin = xcalloc(num_sg, sizeof(*sg_origin));
 						     &head_oid, 1);
-	if (!head_commit)
-		return NULL;
-
-	/* Turn "ONE" into "ONE..HEAD" then */
-	obj->flags |= UNINTERESTING;
-	add_pending_object(revs, &head_commit->object, "HEAD");
-
-	if (name_p)
-		*name_p = revs->pending.objects[0].name;
-	return (struct commit *)obj;
-}
-
-static struct commit *find_single_initial(struct rev_info *revs,
-					  const char **name_p)
-{
-	int i;
-	struct commit *found = NULL;
-	const char *name = NULL;
-
-	/*
-	 * There must be one and only one negative commit, and it must be
-	 * the boundary.
-	 */
-	for (i = 0; i < revs->pending.nr; i++) {
-		struct object *obj = revs->pending.objects[i].item;
-		if (!(obj->flags & UNINTERESTING))
-			continue;
-		obj = deref_tag(revs->repo, obj, NULL, 0);
-		if (obj->type != OBJ_COMMIT)
-			die("Non commit %s?", revs->pending.objects[i].name);
-		if (found)
-			die("More than one commit to dig up from, %s and %s?",
-			    revs->pending.objects[i].name, name);
-		found = (struct commit *) obj;
-		name = revs->pending.objects[i].name;
+	}
+				die_errno("Cannot stat '%s'", contents_from);
+	hashmap_iter_init(&b->map, &iter);
+ * \param result array of absolute indices in A for the closest match of a line
+				    &o->blob_oid, 1, &file->ptr, &file_size))
+	return first->is_parent == second->is_parent &&
+					ent = next;
+	}
+	blame_chunk(&d->dstq, &d->srcq, start_b, start_a - start_b,
+/*
+		most_certain_line_a, most_certain_local_line_b = -1,
 	}
 
-	if (!name)
-		found = dwim_reverse_initial(revs, &name);
-	if (!name)
-		die("No commit to dig up from?");
+				free(o);
+			max_search_distance_b,
 
-	if (name_p)
-		*name_p = xstrdup(name);
-	return found;
-}
+			next = split_blame_at(e, entry_len,
+		    d->ignore_diffs);
+			entry->count = 1;
+		while (suspect && !suspect->suspects)
 
-void init_scoreboard(struct blame_scoreboard *sb)
+	struct blame_entry *unblamed = target->suspects;
 {
+	 * if it turns out there is nothing to blame the parent for,
+
+			mode = r->index->cache[pos]->ce_mode;
+		}
+			diffp = e;
+}
+	return porigin;
+		free(o->file.ptr);
+		}
+	}
+		 * "--not A B -- path" without anything positive;
+		cp++;
+	if (!contents_from || strcmp("-", contents_from)) {
+ * \param local_line_b the index of the line in B, relative to the first line
+
+	 * file_o is a part of final image we are annotating.
+	if (e->score)
+				ent->suspect->path,
+		find = pass ? find_rename : find_origin;
+	}
+		}
+
+			}
+ * 		  compared.
+				continue;
+			if (strbuf_readlink(&buf, read_from, st.st_size) < 0)
+			read_from = contents_from;
+	while (head) {
+		}
+	}
+			ent->score = 0;
+
+	struct commit *commit = origin->commit;
+
+{
+ * \param line_begin the start of the string
+						  norigin, potential, &file_p);
+	return 0;
+			ent->num_lines += next->num_lines;
+	}
+	struct blame_origin *porigin;
+			      struct blame_origin *parent,
+		 * line that matches poorly with one line, hence doubling
+		**dstq = reverse_blame(samep, **dstq);
+ * The callers that add blame to the scoreboard should use
+	struct blame_chunk_cb_data *d = data;
+ * different parents in a single suspect.  In this case, we want to
+		     second_best_result[i] >= most_certain_line_a)) {
+		struct blame_entry **tail = &toosmall;
+		 * bunch of deletion of files in the directory that we
+{
+			read_from = path;
+	commit = alloc_commit_node(r);
+	const struct fingerprint_entry *entry_b;
+{
+		guess_line_blames(parent, target, tlno, offset, same,
+	} else {
+#include "cache.h"
+					  max_search_distance_b,
+static struct blame_list *setup_blame_list(struct blame_entry *unblamed,
+		toosmall = filter_small(sb, toosmall, &unblamed, sb->move_score);
+ * to its parents. */
+	for (parent = commit->parents; parent; parent = parent->next)
+{
+	free(line_blames);
+		 */
+	 * we do not want to use diffcore_rename() actually to
+		if (!origin->previous) {
+ * Example: if the chunk is 10 lines long in A and 2 lines long in B then line
+	if (orig)
+		line_blames = xcalloc(sizeof(struct blame_line_tracker),
+		*orig = o;
+ * in reverse order just requires placing the list head into the
+
+		toosmall = filter_small(sb, toosmall, &unblamed, sb->copy_score);
+
+		; /* path is in the index */
+
+			    revs->pending.objects[i].name, name);
+					  max_search_distance_a,
+			for (;;) {
+	 */
+		return NULL;
+	if (get_tree_entry(r, &origin->commit->object.oid, origin->path, &origin->blob_oid, &origin->mode))
+			/* This value will never exceed 10 but assert just in
+	blame_origin_incref(o);
+{
+ *                   <------>
+			      int tlno, int offset, int same, int parent_len,
+ error_out:
+	return -1;
+				blame_list[j].ent->next = leftover;
+
+		if (opt->flags.allow_textconv &&
+	int ignore_diffs;
+	return num;
+		return 0;
+			c1 = 0;
+					    blame_list[j].ent);
+					  set_next_blame,
+	ce->ce_namelen = len;
+		return; /* nothing remains for this target */
+		    oid_to_hex(&target->commit->object.oid));
+	}
+ * get_origin() to obtain shared, refcounted copy instead of calling
+		blame_origin_incref(potential[i].suspect);
+	/*
+		e = next;
+		if (certainties[i] > most_certain_line_certainty) {
+	mmfile_t file_o;
+		 */
+	struct blame_entry *split;
+		return NULL;
+	struct blame_scoreboard *sb;
+	if (ent->num_lines <= tlno)
+
+			 * without renaming -- the most common case.
+	while (p) {
+		const struct object_id *commit_oid = &parents->item->object.oid;
+	 * common cases, then we look for renames in the second pass.
+	if (!file_p.ptr)
+		} while (blamed && blamed->suspect == porigin);
+		die(_("--contents and --reverse do not blend well."));
+			porigin->mode = p->one->mode;
+	/* The rest are the same as the parent */
+	const char *paths[2];
+			if ((p2 = *tail) == NULL)  {
+
+	return found;
+ */
+}
+	strbuf_addf(&msg,
+	}
+		     second_best_result[i] <= most_certain_line_a)) {
+ * `struct fingerprint` for an explanation of the fingerprint representation.
+	free((char *)final_commit_name);
+	return ((struct blame_entry *)p)->next;
+	repo_diff_setup(sb->repo, &diff_opts);
+	size_t len;
+	if (sb->reverse && sb->revs->first_parent_only)
+
+			best_idx = scan_parent_range(parent->fingerprints,
+					       const char *path,
+		 * entry when we have to.
+	struct blame_entry *e = **srcq;
+
+			struct blame_origin *porigin = sg_origin[i];
+#include "diffcore.h"
+/*
+			fingerprints_b + offset_b,
+
+ */
+	 */
+ * line plno corresponds to e's line tlno.
+
+		split[1].lno = e->lno;
+ *
+	struct blame_entry *n = xcalloc(1, sizeof(struct blame_entry));
+			drop_origin_blob(porigin);
+ * Note that annotating work tree item never works in the reverse.
+	 * most certain line.
+ * \param result array of absolute indices in A for the closest match of a line
+			continue;
+		struct diff_filepair *p = diff_queued_diff.queue[i];
+ * The similarity between "cat mat" and "father rather" is 2 because "at" is
+	free(similarities);
+					    closest_local_line_a,
+		/* Pass blame for everything before the differing
+					const char **name_p)
+		if (i + 1 < nr_lines) {
+				max_search_distance_a) = -1;
+		fuzzy_find_matching_lines_recurse(
+		      xdl_emit_hunk_consume_func_t hunk_func, void *cb_data, int xdl_opts)
+			if (lstat(path, &st) < 0)
+		porigin = get_origin(parent, origin->path);
+	/*
+	 * by the choice of most certain line.
+				struct commit *parent,
+	/* See get_similarity() for details of similarities. */
+/*
 	memset(sb, 0, sizeof(struct blame_scoreboard));
 	sb->move_score = BLAME_DEFAULT_MOVE_SCORE;
-	sb->copy_score = BLAME_DEFAULT_COPY_SCORE;
-}
+ * that of its parent's.
+			     sg = sg->next, i++) {
+struct blame_origin *get_blame_suspects(struct commit *commit)
+	       mapping->destination_length /
+ *			 frame of reference as line_a. This value defines
+			if (opt->flags.allow_textconv &&
+		struct blame_origin *porigin = blamed->suspect;
+	struct blame_origin **result;
+	/* certainty has already been calculated so no need to redo the work */
+/* This contains the data necessary to linearly map a line number in one half
+ * If there were no previous blames to that commit, it is entered into
+ * fuzzy_find_matching_lines_recurse for details of preserving line ordering.
+			blamed = next;
+		*tail = p2;
+	for (p = buf; p < end; p = get_next_line(p, end))
 
-void setup_scoreboard(struct blame_scoreboard *sb,
-		      const char *path,
-		      struct blame_origin **orig)
-{
-	const char *final_commit_name = NULL;
-	struct blame_origin *o;
-	struct commit *final_commit = NULL;
-	enum object_type type;
-
-	init_blame_suspects(&blame_suspects);
-
-	if (sb->reverse && sb->contents_from)
-		die(_("--contents and --reverse do not blend well."));
-
-	if (!sb->repo)
-		BUG("repo is NULL");
-
-	if (!sb->reverse) {
-		sb->final = find_single_final(sb->revs, &final_commit_name);
-		sb->commits.compare = compare_commits_by_commit_date;
-	} else {
-		sb->final = find_single_initial(sb->revs, &final_commit_name);
-		sb->commits.compare = compare_commits_by_reverse_commit_date;
-	}
-
-	if (sb->final && sb->contents_from)
-		die(_("cannot use --contents with final commit object name"));
-
-	if (sb->reverse && sb->revs->first_parent_only)
-		sb->revs->children.name = NULL;
-
-	if (!sb->final) {
-		/*
-		 * "--not A B -- path" without anything positive;
-		 * do not default to HEAD, but use the working tree
-		 * or "--contents".
-		 */
-		setup_work_tree();
-		sb->final = fake_working_tree_commit(sb->repo,
-						     &sb->revs->diffopt,
-						     path, sb->contents_from);
-		add_pending_object(sb->revs, &(sb->final->object), ":");
-	}
-
-	if (sb->reverse && sb->revs->first_parent_only) {
-		final_commit = find_single_final(sb->revs, NULL);
-		if (!final_commit)
-			die(_("--reverse and --first-parent together require specified latest commit"));
-	}
-
+	struct diff_options diff_opts;
+		similarities[i] = -1;
+ * Splits a blame entry into two entries at 'len' lines.  The original 'e'
+	       first->s_lno + 1 == second->s_lno;
+		} while (p1->s_lno <= p2->s_lno);
 	/*
-	 * If we have bottom, this will mark the ancestors of the
-	 * bottom commits we would reach while traversing as
-	 * uninteresting.
+	d.target = target;
+	decref_split(best_so_far);
 	 */
-	if (prepare_revision_walk(sb->revs))
-		die(_("revision walk setup failed"));
+		/*
+	int best_sim_idx = -1;
+		if (errno == ENOENT)
+	}
+		 * current record starts before differing portion.  If
 
-	if (sb->reverse && sb->revs->first_parent_only) {
-		struct commit *c = final_commit;
+ * Process one hunk from the patch between the current suspect for
+		obj = deref_tag(revs->repo, obj, NULL, 0);
+	}
+struct blame_chunk_cb_data {
 
-		sb->revs->children.name = "children";
-		while (c->parents &&
-		       !oideq(&c->object.oid, &sb->final->object.oid)) {
+				goto finish;
+			/*
+
+		dup_entry(blamed, e, &split[1]);
+		fuzzy_find_matching_lines_recurse(
+	diff_opts.flags.recursive = 1;
+	}
+		}
+#define CERTAINTY_NOT_CALCULATED -1
+	((struct blame_entry *)p1)->next = p2;
+		    parent, target, 0);
+	diff_opts.flags.recursive = 1;
+	for (p = line_begin; p <= line_end; ++p, c0 = c1) {
+
+	entry_len = 1;
+			mmfile_t file_p;
+	 */
+	if (revs->pending.nr != 1)
+				*tail = p2;
+		 * or "--contents".
+
+	if (!is_null_oid(&origin->blob_oid))
+			/* Did not exist in parent, or type changed */
+ * want to transfer ownership of the buffer to the commit (so we
+#define CERTAIN_NOTHING_MATCHES -2
+		const char *read_from;
+			return;
+			    git_path_merge_head(r), line.buf);
+				       i,
+
+	 * that.
+
+/*
+static void blame_chunk(struct blame_entry ***dstq, struct blame_entry ***srcq,
+ * 		      matched with some line in A.
+		die("no such ref: HEAD");
+			filter_small(sb, &toosmall, &origin->suspects, sb->copy_score);
+		chunk_end_lno = split[2].lno;
+					   int *num_ents_p)
+{
+	for (e = unblamed, num_ents = 0; e; e = e->next)
+	struct handle_split_cb_data d;
+}
+	struct commit_list *l = first_scapegoat(revs, commit, reverse);
+					struct commit *parent,
+void assign_blame(struct blame_scoreboard *sb, int opt)
+
+	diff_flush(&diff_opts);
+ * After splitting the blame, the origins used by the
+
+	 * usually makes find-copies-harder imply copy detection.
+ * fingerprints can be quickly compared to give an indication of the similarity
+			length_b + start_b - second_half_start_b;
+ * which lines came from parent and pass blame for them.
+
+		 * best_similarity.
+	 * from the parent.
+			e->suspect = blame_origin_incref(parent);
+	clear_pathspec(&diff_opts.pathspec);
+	if (!head_commit)
+						     parent->num_lines);
+	if (!o->file.ptr) {
+	for (i = most_certain_local_line_b + 1; i < invalidate_max; ++i) {
+ */
+{
+		}
+	origin = make_origin(commit, path);
+ * \param start_a the index of the first line of the chunk in A
+ * reverse_blame reverses the list given in head, appending tail.
+	 */
+/*
+
+	diff_flush(&diff_opts);
+/* Given a line number in one range, offset and scale it to map it onto the
+			    sb->move_score < blame_entry_score(sb, &split[1])) {
+		do {
+	 * match things up; find_copies_harder is set only to
+
+		for (e = unblamed, i = 0; e; e = e->next)
+						/* member name */ entry, NULL);
+			struct commit *p = sg->item;
+			  struct blame_origin *parent)
+
+}
+	obj->flags |= UNINTERESTING;
+		*unblamedtail = NULL;
+	repo_diff_setup(r, &diff_opts);
+	}
+ */
+	certainties = xcalloc(sizeof(int), length_b);
+	if (!diff_queued_diff.nr) {
+	int length_a,
+	struct fingerprint_entry *entries;
+	long plno;
+			best_similarity_index = i;
+		**tail = &list1;
+		    oid_object_info(r, &blob_oid, NULL) == OBJ_BLOB)
+ */
+		assert(commit == suspect->commit);
+	 * Prepend the split off portions: everything after e starts
+			if (stat(contents_from, &st) < 0)
+	 */
+	e->next = **queue;
+
+static struct commit *find_single_final(struct rev_info *revs,
+
+
+		do_diff_cache(get_commit_tree_oid(parent), &diff_opts);
+static int fill_blob_sha1_and_mode(struct repository *r,
+	int *second_best_result,
+		/* Nobody should have zero or negative refcnt */
+static struct commit_list **append_parent(struct repository *r,
+	return score;
+		die("internal error in blame_origin_decref");
+
+	for (i = 0; i < 3; i++)
+		e->next = samep;
+		dup_entry(blamed, e, &split[1]);
+	else
+static void split_overlap(struct blame_entry *split,
 			struct commit_list *l = xcalloc(1, sizeof(*l));
 
-			l->item = c;
-			if (add_decoration(&sb->revs->children,
-					   &c->parents->item->object, l))
-				BUG("not unique item in first-parent chain");
-			c = c->parents->item;
-		}
-
-		if (!oideq(&c->object.oid, &sb->final->object.oid))
-			die(_("--reverse --first-parent together require range along first-parent chain"));
+	else if (num_sg < ARRAY_SIZE(sg_buf))
+				suspect->suspects = NULL;
 	}
+		      struct blame_entry *dst, struct blame_entry *src)
+/* Given a line in B, first calculate its similarities with nearby lines in A
+		pass_blame_to_parent(sb, origin, porigin, 0);
+		struct blame_origin *(*find)(struct repository *, struct commit *, struct blame_origin *);
+	hashmap_free(&f->map);
+		if (sim == best_sim_val && best_sim_idx != -1 &&
+	 * As we don't know how much of a common stretch after this
 
-	if (is_null_oid(&sb->final->object.oid)) {
-		o = get_blame_suspects(sb->final);
-		sb->final_buf = xmemdupz(o->file.ptr, o->file.size);
-		sb->final_buf_size = o->file.size;
-	}
-	else {
-		o = get_origin(sb->final, path);
-		if (fill_blob_sha1_and_mode(sb->repo, o))
-			die(_("no such path %s in %s"), path, final_commit_name);
-
-		if (sb->revs->diffopt.flags.allow_textconv &&
-		    textconv_object(sb->repo, path, o->mode, &o->blob_oid, 1, (char **) &sb->final_buf,
-				    &sb->final_buf_size))
-			;
-		else
-			sb->final_buf = read_object_file(&o->blob_oid, &type,
-							 &sb->final_buf_size);
-
-		if (!sb->final_buf)
-			die(_("cannot read blob %s for path %s"),
-			    oid_to_hex(&o->blob_oid),
-			    path);
-	}
-	sb->num_read_blob++;
-	prepare_lines(sb);
-
-	if (orig)
-		*orig = o;
-
-	free((char *)final_commit_name);
-}
-
-
-
-struct blame_entry *blame_entry_prepend(struct blame_entry *head,
-					long start, long end,
-					struct blame_origin *o)
+	struct commit *found = NULL;
 {
-	struct blame_entry *new_head = xcalloc(1, sizeof(struct blame_entry));
-	new_head->lno = start;
-	new_head->num_lines = end - start;
-	new_head->suspect = o;
-	new_head->s_lno = start;
-	new_head->next = head;
-	blame_origin_incref(o);
-	return new_head;
+#include "refs.h"
+			certainties[i] = CERTAINTY_NOT_CALCULATED;
+
+
+			if (entry_a->count <= entry_b->count)
+		blame_origin_incref(porigin);
+	sb->ent = llist_mergesort(sb->ent, get_next_blame, set_next_blame,
+	int max_search_distance_a = 10, max_search_distance_b;
+	int num_ents;
+	 * the hashmap manage the memory.
+		    blame_entry_score(sb, &best_so_far[1]))
+
+	struct blame_chunk_cb_data d;
+ * order right away.  The reason is that building in proper order
+ * ent (tlno and same are offset by ent->s_lno).
+ * afterwards.  This can be faster than building the list in proper
+#include "commit-slab.h"
+			most_certain_line_certainty = certainties[i];
+		sb->revs->children.name = "children";
+		return;
+	 * can assign to the parent for now.
+	while (commit) {
+
+
+	else {
+		if (ent->suspect == next->suspect &&
+	struct blame_entry split[3];
+	xpp.flags = xdl_opts;
+	struct blame_entry *ent;
+			certainties + offset_b,
+ * All line numbers are 0-based.
+
+ * For lines target is suspected for, see if we can find code movement
+	while (e && e->s_lno < tlno) {
+
+
+		if (found)
+
+					  length_a, length_b,
+			    textconv_object(r, read_from, mode, &null_oid, 0, &buf_ptr, &buf_len))
+		    commit->parents->next) {
+					set_blame_suspects(o->commit, p->next);
+	if (!name)
+		    oid_to_hex(&parent->commit->object.oid));
+				l->next = o->next;
+	 */
+
+		unsigned long file_size;
+	}
+/* A fingerprint is intended to loosely represent a string, such that two
+	append_merge_parents(r, parent_tail);
+ * blame_entry e and its parent.  This first blames any unfinished
+	 * The first pass looks for unrenamed path to optimize for
+			die(_("--reverse and --first-parent together require specified latest commit"));
+ *			 where similarities is centered for the line in B.
+
+			int j, same;
+{
+		} else {
+		second_half_length_a =
+	if (ignore_diffs && same - tlno > 0) {
+	}
+			if (split[1].suspect &&
+	}
+	get_line_fingerprints(o->fingerprints, o->file.ptr, line_starts,
+ * This finds the line that we can match with the most confidence, and
+					  struct commit *c,
+	{
+/*
+		}
+/*
+	split[1].suspect = blame_origin_incref(parent);
+	if (sb->reverse && sb->revs->first_parent_only) {
+
+	if (!sb->reverse) {
+				continue;
+	int start_a, int start_b,
+		entry_a = hashmap_get_entry(&a->map, entry_b, entry, NULL);
+static void fill_origin_blob(struct diff_options *opt,
 }
+	const char *cp;
+	 */
+	/* At each iteration, unblamed has a NULL-terminated list of
+		local_line_b + start_b, map_line_number_in_b_to_a) - start_a;
+
+static struct commit_list *first_scapegoat(struct rev_info *revs, struct commit *commit,
+	/* No matches. */
+		/* find one suspect to break down */
+
+			similarities +
+
+	struct blame_origin *parent;
+	xdemitconf_t xecfg = {0};
+	if (e->s_lno < tlno) {
+
+		 * If current record extends into sameness, need to split.
+		fill_origin_fingerprints(o);
+		 */
+				       struct blame_entry *list2)
+
+ *       <------ent------>
+static int are_lines_adjacent(struct blame_line_tracker *first,
+		 * This means that if we have
+}
+	if (is_null_oid(&origin->commit->object.oid))
+	if (oidset_contains(&sb->ignore_list, &commit->object.oid)) {
+		if (sb->copy_score > sb->move_score)
+				die_errno("Cannot lstat '%s'", path);
+		     sg = sg->next, i++) {
+{
+				if (l)
+ * \param fingerprints_a mutable array of fingerprints in A. The first element
+{
+
+/*
+	/* First check any existing origins */
+	return o;
+ *
+	if (sg_buf != sg_origin)
+ * parent and return an origin structure to represent it.
+		} while (p1->s_lno > p2->s_lno);
+			} else {
+#include "object-store.h"
+}
+	 */
+		second_half_start_a = most_certain_line_a;
+#include "alloc.h"
+		search_end = length_a;
+		/* In this loop we discard results for lines in B that are
+{
+ * concatenation of the two lines in the diff being compared.
+		if (found_entry) {
+					  second_best_result,
+		*tail = p1;
+		*certainties, *similarities, similarity_count;
+	for (i = search_start; i < search_end; ++i) {
+{
+ * 			     closest match of a line in B.
+}
+
+}
+
+		 * If the line matches well with two lines then that reduces
+ * \param second_best_result array of absolute indices in A for the second
+	       max_search_distance_a);
+		 * sorting until after all diff hunks are processed, so that
+			    p->status);
+		 * that is before most-certain-line-A.
+{
+	const char *name = NULL;
+		int i;
+/*
+		case S_IFREG:
+	handle_split(sb, ent, d.tlno, d.plno, ent->num_lines, parent, split);
+	}
+					sb->found_guilty_entry(ent, sb->found_guilty_entry_data);
+	if (!resolve_ref_unsafe("HEAD", RESOLVE_REF_READING, &head_oid, NULL))
+	struct blame_entry *e, split[3];
+ * 			 corresponds to the line at start_a.
+
+ * three-way comparison here.
+			most_certain_local_line_b,
+
+				 struct commit_list **tail)
+				*tail = p1;
+		return 0;
+		best_sim_idx = p_idx;
+		/* Reading from stdin */
+			  long start_b, long count_b, void *data)
+		*name_p = revs->pending.objects[0].name;
+	clear_pathspec(&diff_opts.pathspec);
+	else
+ * 		       and B. See get_similarity() for more details.
+	}
+}
+	return ((line_number - mapping->source_start) * 2 + 1) *
+				break;
+		blame_list = setup_blame_list(unblamed, &num_ents);
+				struct blame_origin *target,
+{
+ * \param line_a the index of the line in A, in the same frame of reference as
+			commit->object.flags |= UNINTERESTING;
+		result[i] = -1;
+		split[2].num_lines = e->s_lno + e->num_lines - same;
+}
+			if (o->suspects) {
+{
+ *
+	int max_search_distance_a,
+		} else
+		most_certain_line_certainty = -1,
+		for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
+	 */
+	}
+		linestart = content + line_starts[i];
+/* Calculate fingerprints for a series of lines.
+	}
+	if (most_certain_local_line_b + 1 < length_b) {
+static struct commit *fake_working_tree_commit(struct repository *r,
+	while (!strbuf_getwholeline_fd(&line, merge_head, '\n')) {
+		return;
+		}
+{
+ * src typically is on-stack; we want to copy the information in it to
+	struct blame_entry *toosmall = NULL;
+
+		for (e = unblamed; e; e = next) {
+	struct blame_entry *p1 = list1, *p2 = list2,
+
+ * we can pass blames to it.  file_p has the blob contents for
+		if (sg_origin[i]) {
+}
+	 */
+
+}
+}
+	} while (unblamed);
+	 * to allow for collating suspects, we sort according to the
+ * blame the parents.  E.g. "\t\t}\n\t}\n\n" appears everywhere in any
+			assert(abs(i - closest_local_line_a) < 1000);
+		*name_p = xstrdup_or_null(name);
+			*similarity = fingerprint_similarity(
+	assert(abs(line_a - closest_line_a) <=
+ * last 5 lines will all map onto the second line in the A chunk.
+			max_search_distance_b,
+
+		} else {
+ * Split e into potentially three parts; before this chunk, the chunk
+ */
+	/* Turn "ONE" into "ONE..HEAD" then */
+			    oid_to_hex(&parent->item->object.oid));
+		return;
+		blame_origin_decref(e->suspect);
+		 */
+		      struct blame_origin **orig)
+ * where the search range extends beyond the lines in A.
+				porigin->suspects = sorted;
+}
+	drop_origin_blob(origin);
+
+			       struct blame_entry **ignoredp,
+	n->unblamable = e->unblamable;
+ * Given an origin, prepare mmfile_t structure to be used by the
+ * This isn't as simple as passing sb->buf and sb->len, because we
+	blamed = llist_mergesort(blamed, get_next_blame, set_next_blame,
+ */
+			oidcpy(&porigin->blob_oid, &p->one->oid);
+ */
+}
+{
+		return (intptr_t)s1->suspect > (intptr_t)s2->suspect ? 1 : -1;
+ *
+ * 			      in A for other lines in A for which
+				       fingerprints_b,
+			certainties[i] = CERTAINTY_NOT_CALCULATED;
+			max_search_distance_a,
+		if (isalnum(ch))
+				drop_origin_blob(sg_origin[i]);
+				}
+
+	}
+	if (porigin->suspects)
+	closest_local_line_a = map_line_number(
+		diff_tree_oid(get_commit_tree_oid(parent),
+	line_starts += first_line;
+	}
+	}
+			for (j = same = 0; j < i; j++)
+		**dstq = reverse_blame(ignoredp, **dstq);
+static void sanity_check_refcnt(struct blame_scoreboard *sb)
+ * if not already calculated, then identify the most similar and second most
+			 */
+ */
+ * that partition. In this way we avoid lines appearing out of order, and
+	for (i = 0; i < 3; i++)
+		second_half_start_b = start_b + offset_b;
+		if (entry_a) {
+		if (ent) {
+		case S_IFLNK:
+
+	 * If we have bottom, this will mark the ancestors of the
+	*lineno = len;
+	struct blame_origin *porigin = NULL;
+		add_blame_entry(blamed, &split[1]);
+		*file = o->file;
+	int i;
+ * See struct fingerprint for details of fingerprint matching, and
+				split_blame(blamed, &unblamedtail, split,
+static void fuzzy_find_matching_lines_recurse(
+ * present twice in both strings while the similarity between "tim" and "mit"
+/*
+	else {
+
+	FLEX_ALLOC_STR(o, path, path);
+		sim = fingerprint_similarity(&t_fps[t_idx], &p_fps[p_idx]);
+	/*
+			porigin = find(sb->repo, p, origin);
+	e->num_lines = len;
+	free(fuzzy_matches);
+		struct blame_entry potential[3];
+				die_errno("cannot readlink '%s'", read_from);
+	max_search_distance_b = ((2 * max_search_distance_a + 1) * length_b
+void setup_scoreboard(struct blame_scoreboard *sb,
+		}
+			die(_("no such path %s in %s"), path, final_commit_name);
+};
+	struct commit *found = NULL;
+ *
+			score++;
+ *             <------------>
+						     target->fingerprints,
+ * 			      distance between lines in B such that they will
+	origin->file.size = buf.len;
+	}
+ */
+	int *result,
+	paths[0] = origin->path;
+			die("internal error in blame::find_origin");
+		if (o->previous)
+struct blame_line_tracker {
+	 * unsorted list in the caller anyway.
+		&& (!porigin || strcmp(target->path, porigin->path))))
+/*
+ * call to fill_origin_blob() can use it to locate the data.  blob_sha1
+			second_best_similarity;
+
+	second_best_result = xcalloc(sizeof(int), length_b);
+				set_blame_suspects(commit, o);
+	else
+		}
+ */
+	return s1->s_lno > s2->s_lno ? 1 : -1;
+	int i;
+		default:
+			return blame_origin_incref (porigin);
+
+		for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
+	if (s1->suspect != s2->suspect)
+				e->next = leftover;
+	fingerprint_subtract(fingerprints_a + most_certain_line_a - start_a,
+ * preallocated to allow storing line_count elements.
+		if (!commit->parents && !sb->show_root)
+ * The performance is believed to be O(n log n) in the typical case and O(n^2)
+		struct blame_entry *suspects = NULL;
+}
+				decref_split(potential);
+	const int max_search_distance_a,
+#include "cache-tree.h"
+		struct blame_entry *next = e->next;
+ * \param local_line_b the index of the line in B, relative to the first line
+
+			 * occur if you ignore back-to-back commits.
+	if (search_end > length_a)
+ * \param fingerprints_b array of fingerprints in B. The first element
+		/* We keep both the best and second best results to allow us to
+	struct blame_entry *e;
+ * entries before the chunk (which is where target and parent start
+
+			continue;
+	}
+	struct blame_entry *p = *source;
+			if (!origin->suspects)
+
+		porigin->mode = origin->mode;
+ * 		      matched with some line in A.
+		}
+		if (sb->reverse ||
+	/*
+		/*
+		return; /* nothing remains for this target */
+			commit->parents->next = NULL;
+ * 		       and B. See get_similarity() for more details.
+	sb->num_get_patch++;
+}
+	xdemitcb_t ecb = {NULL};
+ * Locate an existing origin or create a new one.
+		if (!origin->suspects)
+			/* Let's not bother reading from HEAD tree */
+
+		struct diff_filepair *p = NULL;
+/* Get a pointer to the element storing the similarity between a line in A
+ * Note that the blame entries on the ignoredp list are not necessarily sorted
+	struct fingerprint *fingerprints_b = target->fingerprints;
+}
+	result = blame_suspects_peek(&blame_suspects, commit);
+
+		if (0 <= pos)
+	/* Move across elements that are in the unblamable portion */
+ *
+{
+ */
+		}
+	 */
+ * \param result the fingerprint of the string is stored here. This must be
+	fuzzy_matches = fuzzy_find_matching_lines(parent, target,
+	for (o = get_blame_suspects(commit), l = NULL; o; l = o, o = o->next) {
+			    const char *line_end)
+
+			 * closest line) to act as a tie break between lines
+	struct blame_entry *e = xmalloc(sizeof(*e));
+	cp = blame_nth_line(sb, ent->lno);
+	 */
+ * same: line number in the target where this chunk ends
+		struct blame_entry *ent;
+	for (i = 0; i < nr_fingerprints; i++)
+ *    <---------preimage----->
+
+	diff_opts.single_follow = origin->path;
+			    oid_to_hex(&o->blob_oid),
+{
+static int map_line_number(int line_number,
+			origin->previous = porigin;
+/*
+ * other range.
+{
+				goto finish;
+	invalidate_max = most_certain_local_line_b + max_search_distance_b + 1;
+					  result,
+				}
+			blame_origin_decref(o->previous);
+struct blame_entry *blame_entry_prepend(struct blame_entry *head,
+{
+		sizeof(struct fingerprint_entry));
+
+}
+			break;
+			tail = &p1->next;
+		split[0].suspect = blame_origin_incref(e->suspect);
+ */
+ * totally unrelated file in the parent.
+		sb->final = fake_working_tree_commit(sb->repo,
+static void drop_origin_blob(struct blame_origin *o)
+
+				entry_len++;
+ * the parent to detect the case where a child's blob is identical to
+			struct blame_entry *n;
+	 * DWIM "git blame --reverse ONE -- PATH" as
+	return (struct commit *)obj;
+ * ranges, all we can rely on from sorting/merging is the order of the
+	n->suspect = new_suspect;
+	commit->object.parsed = 1;
+		split[0].lno = e->lno;
+		}
+{
+		 * that is after most-certain-line-A.
+	}
+ * \param length_a number of lines in A with which lines in B may be compared.
+	else
+			intersection += entry_a->count < entry_b->count ?
+	ep = blame_nth_line(sb, e->lno + e->num_lines);
+	if (!sb->final) {
+	/*
+	**queue = e;
+ * their multisets, including repeated elements. See fingerprint_similarity for
+
+			/* Push new record to samep */
+	return 0;
+			e->next = *ignoredp;
+			die("Cannot read blob %s for path %s",
+		/* Steal its file */
+		if (!p)
+			struct blame_entry *next = blamed->next;
+	memcpy(best_so_far, potential, sizeof(struct blame_entry[3]));
+		}
+	if (split[0].suspect && split[2].suspect) {
+	return tail;
+		 * The parent covers the entire area; reuse storage for
+	}
+ * in a pathological case, where n is the number of lines in the target range.
+	struct blame_entry *ent, *next;
+	for (i = 0, sg = first_scapegoat(revs, commit, sb->reverse);
+				 compare_blame_suspect);
+	d.ignore_diffs = ignore_diffs;
+ * split_overlap() divided an existing blame e into up to three parts
+ * b | n
+		 * so hold onto it in the meantime.
+	return intersection;
+ * d | p
+/*
+ * Prepare a dummy commit that represents the work tree (or staged) item.
+	nr_lines = e->num_lines;	/* e changes in the loop */
+		 */
+#define MAXSG 16
+	if (split[1].num_lines < 1)
+{
+		}
+					long start, long end,
+	/*
+	o->refcnt = 1;
+			/* Push new record to diffp */
+			  struct blame_entry *e,
+			pass_blame_to_parent(sb, origin, porigin, 1);
+		o->num_lines = 0;
+	 * the boundary.
+/* diff chunks are from parent to target */
+	drop_origin_fingerprints(o);
+/*
+		    "Version of %s from %s\n",
+		return;
+}
+static void free_fingerprint(struct fingerprint *f)
+	}
+		e = next;
+
+	if (num_ents) {
+			file->ptr = read_object_file(&o->blob_oid, &type,
+{
+{
+						  tlno, parent_slno, same,
+			      struct blame_line_tracker *line_blames)
+			/*
+ * \param fingerprints_a array of fingerprints for the chunk in A
+static void ignore_blame_entry(struct blame_entry *e,
+ * allowing repeated elements in a set.
+
+/*
+	enum object_type type;
+		struct blame_origin *p, *l = NULL;
+	pretend_object_file(buf.buf, buf.len, OBJ_BLOB, &origin->blob_oid);
+	 * when it makes sense.
+			l->item = c;
+	int i, invalidate_min, invalidate_max, offset_b,
+	for (ent = sb->ent; ent && (next = ent->next); ent = next) {
+	int *similarities,
+				continue;
+	split[1].num_lines = chunk_end_lno - split[1].lno;
+				  long first_line, long line_count)
+		return;
+		second_half_start_a, second_half_start_b,
+	if (!sb->repo)
+	return best_sim_idx;
+ * "parent" (and "porigin"), but what we mean is to find scapegoat to
+	return -compare_commits_by_commit_date(a, b, c);
+				 struct blame_origin *target,
+			start_a, start_b,
+
+/* See `struct fingerprint` for an explanation of what a fingerprint is.
+
+	for (i = 0; i < line_count; ++i) {
+	struct blame_origin *origin;
+static void free_line_fingerprints(struct fingerprint *fingerprints,
+				if (sg_origin[j] &&
+	return commit;
+		o = get_origin(sb->final, path);
+	fill_origin_blob(&sb->revs->diffopt, parent, &file_p,
+			map_line_number_in_b_to_a);
+
+				entry_a->count -= entry_b->count;
+			blame_origin_decref(next->suspect);
+				continue; /* does not exist in parent */
+			e->next = diffp;
+ */
+		/* Ignore whitespace pairs */
+				       second_best_result,
+ * \param second_best_result array of absolute indices in A for the second
+ * uses it as a partition. It then calls itself on the lines on either side of
+	/* As the fingerprint in A has changed, discard previously calculated
+	if (sb->debug) /* sanity */
+		}
+}
+						     potential);
+			oidcpy(&norigin->blob_oid, &p->one->oid);
+	result->entries = entry;
+ * Another complication is that if a line could map onto many lines in the
+		(*num_read_blob)++;
+/* Subtracts byte-pair elements in B from A, modifying A in place.
+			most_certain_local_line_b = i;
+		if (certainties[i] >= 0 &&
+			      get_commit_tree_oid(origin->commit),
+/*
+ *
+		memset(sg_buf, 0, sizeof(sg_buf));
+		die(_("cannot use --contents with final commit object name"));
+	score = 1;
+static const char *get_next_line(const char *start, const char *end)
+	else
+		/* The first part (reuse storage for the existing entry e) */
+ * 				in A for other lines in A for which
+		 * with this special value so it doesn't get invalidated and
+	 * establishes a total order.  Comparing as integers gives us
+struct fingerprint_entry {
+			return;
+		dup_entry(unblamed, e, &split[0]);
+		case 'T':
+
+			e->unblamable = 1;
+	 * Read the current index, replace the path entry with
+				  compare_blame_final);
+	const struct blame_entry *s1 = p1, *s2 = p2;
+static void drop_origin_fingerprints(struct blame_origin *o)
+ */
+	 * the same parts of the line in A.
+
+	 */
+
+	if (prepare_revision_walk(sb->revs))
+	 * closest line in A.
+				leftover = e;
+	 */
+		goto finish;
+
+
+{
+	int best_sim_val = FINGERPRINT_FILE_THRESHOLD;
+			/* scale the similarity by (1000 - distance from
+ * 0 in B will map onto line 2 in A, and line 1 in B will map onto line 7 in A.
+
+}
+		/* The path is the same as parent */
+					break;
+		} else if (*similarity > second_best_similarity) {
+	}
+				i, closest_local_line_a,
+ * reflect the split.
+	 * forget about the splitting.  !split[1].suspect signals this.
+	if (tlno < same) {
+	memcpy(ce->name, path, len);
+	return sb->num_lines;
+	}
+		invalidate_min = 0;
+		else
+	oidcpy(&ce->oid, &origin->blob_oid);
+				continue;
+			}
+	return xdi_diff(file_a, file_b, &xpp, &xecfg, &ecb);
+	set_blame_suspects(commit, o);
+				continue;
+ * very small and trivial, and at some point it becomes pointless to
+	 * convenient to store the entries in a single array instead of having
+				 struct blame_origin *parent, int ignore_diffs)
+	add_pending_object(revs, &head_commit->object, "HEAD");
+	 * There must be one and only one negative commit, and it must be
+		for (p = get_blame_suspects(o->commit); p; l = p, p = p->next) {
+		similarity = get_similarity(similarities,
+{
+ * up to (but not including) same match preimage.
+
+
+		     (!strcmp(contents_from, "-") ? "standard input" : contents_from)));
+	struct blame_entry **srcq;
+		add_blame_entry(blamed, &split[1]);
+	if (!potential[1].suspect)
+	 * max_search_distance_a means that given a line in B, compare it to
+	d.parent = parent;
+			    revs->pending.objects[i].name, name);
+		strbuf_addf(&msg, "parent %s\n",
+	if (name_p)
+			max_search_distance_a,
+				return list1;
+			porigin->mode = p->one->mode;
+	unsigned int hash, c0 = 0, c1;
+	memcpy(dst, src, sizeof(*src));
+
+	}
+		*tail = origin->suspects;
+	 */
+ * 		 in B.
+		add_pending_object(sb->revs, &(sb->final->object), ":");
+		/*
+ */
+ * That allows us to build lists in reverse order, then reverse them
+				struct blame_entry *next = ent->next;
+static void find_move_in_parent(struct blame_scoreboard *sb,
+			 struct blame_origin *parent,
+					  struct strbuf *sb)
+	}
+					 &sb->num_read_blob, 0);
+	do {
+			n = split_blame_at(e, same - e->s_lno,
+	struct commit *final_commit = NULL;
+ * occurs in the string that the fingerprint represents.
+ * Compute how trivial the lines in the blame_entry are.
+			continue;
+static void find_copy_in_blob(struct blame_scoreboard *sb,
+		split[1].s_lno = plno;
+
+		diff_tree_oid(get_commit_tree_oid(parent),
+
+		/* In this loop we discard results for lines in B that are
+{
+	/*
+	     i < num_sg && sg;
+	 * Prepare mmfile that contains only the lines in ent.
+
+/*
+	if (!unblamed)
+
+ * line to any part of parent file.  That catches cases where a change was
+	set_commit_buffer_from_strbuf(r, commit, &msg);
+		 */
+		split[1].lno = e->lno + tlno - e->s_lno;
+
+		if (!suspect) {
+ * plno is where we are looking at in the preimage.
+	queue_blames(sb, parent, newdest);
+		do {
+	struct hashmap_iter iter;
+ * of byte pairs to the count of that byte pair in the string, instead of
+				leftover = blame_list[j].ent;
+		struct object_id blob_oid;
+	 * There is no point in sorting: this ends up on a big
+		sb->commits.compare = compare_commits_by_reverse_commit_date;
+	free(line_starts);
+ *
+		unsigned ch = *((unsigned char *)cp);
+	return lookup_decoration(&revs->children, &commit->object);
+			    path);
+		struct blame_entry *next;
+			else
+		if (found)
+			++entry;
+			 struct blame_entry *ent,
+	return found;
+	}
+		} else {
+{
+	}
+ * <-------------- final image ---------------------->
+			if ((p1 = *tail) == NULL) {
+ */
+	int is_parent;
+}
+	FREE_AND_NULL(o->file.ptr);
+
+	 * and origin first.  Most of the time they are the
+	blame_origin_decref(dst->suspect);
+}
+
+
+			if (!file_p.ptr)
+{
+
+		}
+{
+static void fingerprint_subtract(struct fingerprint *a, struct fingerprint *b)
+		tail = head;
+	*queue = &dst->next;
+			e->next = *diffp;
+		invalidate_max = length_b;
+		 * We will use this suspect later in the loop,
+	hashmap_for_each_entry(&b->map, &iter, entry_b,
+			fill_origin_blob(&sb->revs->diffopt, norigin, &file_p,
+		}
+		mode = canon_mode(st.st_mode);
+		blame_origin_incref(suspect);
+ *         ^tlno ^same
+
+
+}
+	}
+ * For ease of implementation, the fingerprint is implemented as a map
+{
+ *         ^plno
+		if (hash == 0)
+	fuzzy_find_matching_lines_recurse(start_a, start_b,
+				strbuf_attach(&buf, buf_ptr, buf_len, buf_len + 1);
+	d->plno = start_a + count_a;
+				blame_origin_decref(porigin);
+ * We are looking at the origin 'target' and aiming to pass blame
+ * \param similarities array of similarities between lines in A and B
+
+}
+			  int tlno, int plno, int same,
+	parent = lookup_commit_reference(r, oid);
+}
+	unsigned mode;
+	for (i = 0; i < revs->pending.nr; i++) {
+ */
+	int *fuzzy_matches;
+}
+		       PATHSPEC_ALL_MAGIC & ~PATHSPEC_LITERAL,
+	diff_setup_done(&diff_opts);
+	new_head->num_lines = end - start;
+
+struct fingerprint_entry;
+ *                <---- e ----->
+	for (e = suspects; e; e = e->next) {
+/*
+	d->tlno = start_b + count_b;
+ */
+	if (baa)
+			goto finish;
+
+		 */
+		split[1].s_lno = plno + (e->s_lno - tlno);
+/*
+			      struct blame_entry *ent,
+ * contiguous lines in the same origin (i.e. <commit, path> pair),
+
+		else {
+		if (blame_entry_score(sb, p) <= score_min) {
+	if (obj->type != OBJ_COMMIT)
+		if (get_oid_hex(line.buf, &oid))
+ */
+static int *get_similarity(int *similarities,
+		if (entry_a) {
+ * Count the number of entries the target is suspected for,
+ * destination range then we want to choose the line at the center of those
+				int opt)
+		name = revs->pending.objects[i].name;
+ * parent.
+ * first 5 lines in B will map onto the first line in the A chunk, while the
+}
+
+ * tlno: line number in the target where this chunk begins
+	}
+			n->next = samep;
+			break;
+	n->lno = e->lno + len;
+
+	return n;
+ * \param map_line_number_in_b_to_a parameter to map_line_number().
+		e->suspect = porigin;
+ * Merge the given sorted list of blames into a preexisting origin.
+	for (i = 0; i < similarity_count; ++i)
+				offset_b * (max_search_distance_a * 2 + 1),
+	if (p1->s_lno <= p2->s_lno) {
+
+				struct blame_origin *target,
+			      "", &diff_opts);
+	 * contains the reversed list of entries that have been tested
+}
+
+				o->next = get_blame_suspects(commit);
+			struct blame_entry *e)
+			struct diff_filepair *p = diff_queued_diff.queue[i];
+	*queue = &e->next;
+
+ */
+						     &sb->revs->diffopt,
+			line_blames[i].is_parent = 1;
+				break;
+	struct blame_entry *unblamed = target->suspects;
+						     path, sb->contents_from);
+	ident = fmt_ident("Not Committed Yet", "not.committed.yet",
+	}
+{
+	int i;
+		struct stat st;
+ */
+	n->s_lno = e->s_lno + len;
+				   int nr_fingerprints)
+{
+		 * guess_line_blames() can pick *any* line in the parent.  The
+/*
+	}
+ * on-stack blame_entry should lose one refcnt each.
+		 !strcmp(r->index->cache[-1 - pos]->name, path))
+		head->next = tail;
+	verify_working_tree_path(r, commit, path);
+		goto error_out;
+			n = split_blame_at(e, tlno - e->s_lno, e->suspect);
+	}
+		case 'A':
+		 */
+	parent_tail = &commit->parents;
+		die("cannot open '%s' for reading",
+static void set_commit_buffer_from_strbuf(struct repository *r,
+	 */
+	struct blame_entry *new_head = xcalloc(1, sizeof(struct blame_entry));
+	set_commit_buffer(r, c, buf, len);
+
+				if (sb->found_guilty_entry)
+	**srcq = reverse_blame(diffp, reverse_blame(samep, e));
+ * ignoredp list) and which stay with the target (added to the diffp list).  The
+	}
+		mode = 0;
+		/* parent and then me */
+/*
+	if (same < e->s_lno + e->num_lines) {
+ * e->num_lines).  The caller needs to sort out the reference counting for the
+	if (length_a <= 0)
+			best_similarity = *similarity;
+
+	else {
+	xecfg.hunk_func = hunk_func;
+			if (sg_origin[i])
+	d.offset = 0;
+ */
+	struct blame_entry *leftover = NULL;
+ * 				similarities may be calculated.
+	if (fill_fingerprints)
+static struct blame_suspects blame_suspects;
+		} else {
+				sb->ent = suspect->suspects;
+	struct commit_list *sg;
+{
+
+	int length_a = parent_len;
+ */
+
+			pass_blame(sb, suspect, opt);
+	target->suspects = reverse_blame(leftover, NULL);
+ * Essentially this mapping is a simple linear equation but the calculation is
+static void get_line_fingerprints(struct fingerprint *fingerprints,
+ * A fingerprint is represented as a multiset of the lower-cased byte pairs in
+}
+
+
+
+					  similarities,
+		if (!porigin)
+	if (best_similarity == 0) {
+
+	*blametail = NULL;
+	struct line_number_mapping map_line_number_in_b_to_a = {
+	/*
+
+			origin->suspects = blame_merge(origin->suspects, toosmall);
+			line_blames[i].is_parent = 0;
+
+	return result;
+		split[i].unblamable = e->unblamable;
+		e->suspect = blame_origin_incref(parent);
+struct line_number_mapping {
+ * \param max_search_distance_a maximum distance in lines from the closest line
+		chunk_end_lno = e->lno + e->num_lines;
+		}
+	/*
+	if (is_null_oid(&target->commit->object.oid))
+static void set_blame_suspects(struct commit *commit, struct blame_origin *origin)
+		split[2].suspect = blame_origin_incref(e->suspect);
+/*
+ */
+	sb->num_read_blob++;
+ */
+
+		num_ents++;
+{
+	hashmap_init(&result->map, NULL, NULL, max_map_entry_count);
+	if (!parent)
+		switch (p->status) {
+	 * force diff_tree_oid() to feed all filepairs to diff_queue,
+}
+		struct blame_origin *suspect = get_blame_suspects(commit);
+	if (diff_hunks(file_p, &file_o, handle_split_cb, &d, sb->xdl_opts))
+	int i, search_start, search_end, closest_local_line_a, *similarity,
+	ce = make_empty_cache_entry(r->index, len);
+
+	for (i = 0; i < length_b; ++i) {
+
+
+	       max_search_distance_a +
+ * Fill the blob_sha1 field of an origin if it hasn't, so that later
+/*
+				find_copy_in_blob(sb, blame_list[j].ent,
+ * for the lines in 'e' are in line_blames.  This consumes e, essentially
+ * blame_origin, and choosing the best matches that preserve the line ordering.
+		num++;
+			      get_commit_tree_oid(target->commit),
+
+					  const struct object_id *oid)
+static struct blame_entry *reverse_blame(struct blame_entry *head,
+ * possibilities.
+	int *certainties,
+	if (oid_object_info(r, &origin->blob_oid, NULL) != OBJ_BLOB)
+static struct blame_entry **filter_small(struct blame_scoreboard *sb,
+				    oideq(&sg_origin[j]->blob_oid, &porigin->blob_oid)) {
+	else if (-1 - pos < r->index->cache_nr &&
+		    (!contents_from ? path :
+
+	struct blame_entry *oldsmall = *small;
+ * parent_len: number of lines in the parent chunk
+	return small;
+/* Move all blame entries from list *source that have a score smaller
+			ignore_blame_entry(e, parent, &diffp, &ignoredp,
+					 struct blame_entry **small,
+	if (invalidate_min < 0)
+	memset(&d, 0, sizeof(d));
+			sanity_check_refcnt(sb);
+	} else {
+		/* treat root commit as boundary */
+	 * (either the parent or the target).
+	}
+			 * fingerprints if we use the parent again, which can
+					continue;
+static struct blame_origin *make_origin(struct commit *commit, const char *path)
+
+			if (!sg_origin[i]->suspects)
+
+};
+}
+	diffcore_std(&diff_opts);
+	head_commit = lookup_commit_reference_gently(revs->repo,
+			}
+
+			/* Move second half to a new record */
+ */
+			      0, o->num_lines);
+
+		}
+ * it avoids unnecessary writes.
+			      struct blame_entry *split,
+	diffcore_std(&diff_opts);
+		start_a, length_a, start_b, length_b
+	 * with the same line in A according to max_search_distance_a.
+static void append_merge_parents(struct repository *r,
+		samep = e;
+					struct commit *parent,
+			tail = &(*tail)->next;
+ * For example, the string "Darth   Radar" will be converted to the following
+		die("no such commit %s", oid_to_hex(oid));
+			if (!porigin)
+
+{
+ *  ao, bo, co, do, eo,
+			struct blame_origin *target, int ignore_diffs)
+		 * won't be recalculated.
+			if (split[1].suspect &&
+static int find_line_starts(int **line_starts, const char *buf,
+					  struct blame_origin *new_suspect)
+	if (most_certain_local_line_b == -1)
+
+	else if (!split[0].suspect && !split[2].suspect)
+			 * case
+				*tail = p2;
+
+ * diff machinery
+		queue_blames(sb, porigin, suspects);
+	/* Repeat the matching process for lines after the most certain line.
+		blame_origin_decref(split[i].suspect);
+}
+	struct blame_origin *o;
+	clear_pathspec(&diff_opts.pathspec);
+	samep = NULL;
+	diff_opts.detect_rename = DIFF_DETECT_RENAME;
+	int start_b = tlno;
+	parse_pathspec(&diff_opts.pathspec,
+	}
+ * we do not underflow.
+	 * want to run "diff-index --cached".
+	 * distance between lines in B such that they will both be compared
+	 */
+			   int line_a, int local_line_b,
+
+}
+			norigin->mode = p->one->mode;
+
+			ent->next = next->next;
+		 * commit had it as a directory, we will see a whole
+
+ * exonerate ourselves.
+{
+ * 		 in B.
+/*
+			       struct blame_entry **diffp,
+ * consists of len lines, i.e. [e->lno, e->lno + len), and the second part,
+	 *
+		 * and line Z that matches only one line with a score or 2,
+				      int tlno, int parent_slno, int same,
+					       struct diff_options *opt,
+
+		*lineno++ = p - buf;
+			 */
+ * Puts the fingerprints in the fingerprints array, which must have been
+			tail = &p2->next;
+	 * line in A such that their ordering contradicts the ordering imposed
+	struct strbuf msg = STRBUF_INIT;
+	}
+		sb->final = find_single_final(sb->revs, &final_commit_name);
+ * {"\0d", "da", "da", "ar", "ar", "rt", "th", "h\0", "\0r", "ra", "ad", "r\0"}
+		filter_small(sb, &toosmall, &origin->suspects, sb->move_score);
+		die("unable to generate diff (%s)",
+		tlno += ent->s_lno;
+			second_half_length_a, second_half_length_b,
+			 struct blame_entry *split)
+
+					 unsigned score_min)
+	 * bits; we are not going to write this index out -- we just
+	new_head->lno = start;
+			porigin = get_origin(parent, origin->path);
+		; /* path is in the index, unmerged */
+
+			 &sb->num_read_blob, ignore_diffs);
+		origin->file.ptr = NULL;
+		/* this line definitely doesn't match with anything. Mark it
+				return;
+			c1 = tolower(*p);
+const char *blame_nth_line(struct blame_scoreboard *sb, long lno)
+{
+static int compare_commits_by_reverse_commit_date(const void *a,
+
+ * This moves the origin to front position in the commit util list.
+	file_o.size = blame_nth_line(sb, ent->lno + ent->num_lines) - cp;
+		 * do not default to HEAD, but use the working tree
+};
+
+		}
+			continue;
+		 * check at a later stage of the matching process whether the
+		if (abs(most_certain_line_a - start_a - closest_local_line_a) >
+	else {
+	int len;
+	}
+ * final image, prepare an index in the scoreboard.
+	struct fingerprint_entry *found_entry;
+	/* remainder, if any, all match the preimage */
+	 *
+		decref_split(potential);
+	struct object_id head_oid;
+	close(merge_head);
+ * \param max_search_distance_a maximum distance in lines from the closest line
+		if (!strcmp(porigin->path, origin->path)) {
+
+ * 			     closest match of a line in B.
+	if (best_so_far[1].suspect) {
+		source_start, source_length;
+		sb->final = find_single_initial(sb->revs, &final_commit_name);
+
+	 * Optionally find copies from parents' files.
+	return 0;
+	mmfile_t file_p, file_o;
+{
+	struct diff_options diff_opts;
+		 * passed to the parent, including those that are unrelated to
+			if (!same)
+unsigned blame_entry_score(struct blame_scoreboard *sb, struct blame_entry *e)
+ * and prepare a list of entry and the best split.
+		suspects = reverse_blame(suspects, NULL);
+	struct strbuf buf = STRBUF_INIT;
+			struct blame_origin *porigin = sg_origin[i];
+ * tlno is where we are looking at in the final image.
+static void pass_blame(struct blame_scoreboard *sb, struct blame_origin *origin, int opt)
+ * Given a commit and a path in it, create a new origin structure.
+
+				       length_a,
+
+	target->suspects = reverse_blame(leftover, NULL);
+	int i;
+					 struct blame_entry **source,
+
+
+		hashmap_entry_init(&entry->entry, hash);
+	struct fingerprint_entry *entry = xcalloc(max_map_entry_count,
+		return;
+ */
+	}
+	struct blame_entry *ent;
+		     i < num_sg && sg;
+			start_a + second_best_similarity_index;
+ * to be blamed for the parent, and after that portion.
+	add_index_entry(r->index, ce,
+			if (oideq(&porigin->blob_oid, &origin->blob_oid)) {
+				struct blame_origin *porigin = sg_origin[i];
+				struct blame_entry ***blamed,
+		}
+	diffp = NULL;
+{
+			     int *num_read_blob, int fill_fingerprints)
+	 * fingerprint represents.
+					entry_a->count : entry_b->count;
+	int i;
+/*
+		second_half_length_b =
+			blame_origin_decref(e->suspect);
+			WANT_BLANK_IDENT, NULL, 0);
+			*ignoredp = e;
+				else
+	time_t now;
+	suspects = origin->suspects;
+				entry /* member name */) {
+		second_best_result[i] = -1;
+	/* Repeat the matching process for lines before the most certain line.
+	int length_a, int length_b,
+			fingerprints_a, fingerprints_b, similarities,
+	return new_head;
+
+		second_half_length_a, second_half_length_b,
+	strbuf_release(&line);
+				      same - tlno);
+	if (!target->suspects)
+		if (*similarity == -1) {
+		free(blame_list);
+			commit->object.flags |= UNINTERESTING;
+		o->file = *file;
+		split_overlap(potential, ent, tlno, plno, same, parent);
+		second_best_result[local_line_b] =
+		best_similarity = 0, second_best_similarity = 0,
+ * with respect to the parent's line numbers yet.
+
+		    ent->unblamable == next->unblamable) {
+			for (j = 0; j < num_ents; j++) {
+			      get_commit_tree_oid(origin->commit),
+	struct blame_list *blame_list;
+	int i, pass, num_sg;
+
+	if (!p2)
+	*d.dstq = NULL;
+	struct blame_list *blame_list = NULL;
+	int *line_starts;
+		unsigned long buf_len;
+ */
+ * See if lines currently target is suspected for can be attributed to
+	} while (unblamed);
+
+			blame_origin_decref(norigin);
+			continue;
+				struct blame_origin *porigin,
+		entry_len = 1;
+	 * Subtract the most certain line's fingerprint in B from the matched
+		struct commit *c = final_commit;
+	}
+
+		} else {
+	}
+
+	d.sb = sb; d.ent = ent; d.parent = parent; d.split = split;
+				entry /* member name */) {
+ * differing) on the parent, and then splits blame entries at the
+	if (o && --o->refcnt <= 0) {
+ */
+ * new entry's suspect.
+		/*
+		sb->revs->children.name = NULL;
+{
+	for (i = 0; i < length_b; ++i) {
+	origin->mode = S_IFINVALID;
+
+		 * e and replace it with the parent.
+
+					       &line_blames[i + 1])) {
+		}
+}
+ * For example, if max_search_distance_a is 2 and the two sides of a diff chunk
+
+	#define FINGERPRINT_FILE_THRESHOLD	10
+
+	struct blame_entry **dstq;
+	e->score = score;
+ *
+	struct rev_info *revs = sb->revs;
+		}
+	}
+			       struct blame_line_tracker *line_blames)
+	const char *nl = memchr(start, '\n', end - start);
+	assert(!e);
+{
+		}
+		    ident, ident, path,
+	/*
+	int *certainties,
+			      struct blame_origin *target,
+		struct object *obj = revs->pending.objects[i].item;
+	num_sg = num_scapegoats(revs, commit, sb->reverse);
+				(1000 - abs(i - closest_local_line_a));
+#include "tag.h"
+					  const char **name_p)
+		       PATHSPEC_LITERAL_PATH, "", paths);
+	     sg = sg->next, i++) {
+		    (result[i] <= most_certain_line_a ||
+	/*
+
+
+static void pass_whole_blame(struct blame_scoreboard *sb,
+{
+			    const char *line_begin,
+					   line_blames + e->s_lno - tlno);
+static void find_best_line_matches(
+			next = e->next;
+	struct commit_list *parents;
+	/*
+	struct fingerprint *fingerprints_b,
+				    &sb->final_buf_size))
+	ALLOC_ARRAY(*line_starts, num + 1);
+			c = c->parents->item;
+					      blame_origin_incref(e->suspect));
+				struct blame_origin *parent)
+		split[2].lno = e->lno + (same - e->s_lno);
+ * best_so_far[] and potential[] are both a split of an existing blame_entry
+static void queue_blames(struct blame_scoreboard *sb, struct blame_origin *porigin,
+ * which is returned, consists of the remainder: [e->lno + len, e->lno +
+}
+ * bst_so_far as needed.
+	time(&now);
+void init_scoreboard(struct blame_scoreboard *sb)
+static void *get_next_blame(const void *p)
+
+		else
+			p = *small;
+ * of a diff chunk to the line in the other half of the diff chunk that is
+		    git_path_merge_head(r));
+	struct fingerprint_entry *entry_a;
+	}
+#include "mergesort.h"
+		BUG("repo is NULL");
+ * 			      according to max_search_distance_a.
+		unsigned short mode;
+	int i, j;
+
+	e->score = 0;
+	else {
+			commit = prio_queue_get(&sb->commits);
+		if (certainties[i] >= 0 &&
+ * This also fills origin->mode for corresponding tree path.
+			      mmfile_t *file_p)
+			    const struct blame_entry *src)
+}
+static void split_blame(struct blame_entry ***blamed,
+ * \param max_search_distance_b an upper bound on the greatest possible
+ * is 0.
+
+	struct blame_origin *o;
+
+		if (!(obj->flags & UNINTERESTING))
+

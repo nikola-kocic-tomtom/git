@@ -1,91 +1,91 @@
-/*
- * GIT - The information manager from hell
  */
-
-#include "cache.h"
-#include "refs.h"
-#include "builtin.h"
-#include "strbuf.h"
-
-static const char builtin_check_ref_format_usage[] =
-"git check-ref-format [--normalize] [<options>] <refname>\n"
-"   or: git check-ref-format --branch <branchname-shorthand>";
-
-/*
- * Return a copy of refname but with leading slashes removed and runs
- * of adjacent slashes replaced with single slashes.
- *
- * This function is similar to normalize_path_copy(), but stripped down
- * to meet check_ref_format's simpler needs.
- */
-static char *collapse_slashes(const char *refname)
-{
-	char *ret = xmallocz(strlen(refname));
-	char ch;
-	char prev = '/';
-	char *cp = ret;
-
-	while ((ch = *refname++) != '\0') {
-		if (prev == '/' && ch == prev)
-			continue;
-
-		*cp++ = ch;
-		prev = ch;
-	}
-	*cp = '\0';
-	return ret;
-}
-
-static int check_ref_format_branch(const char *arg)
-{
-	struct strbuf sb = STRBUF_INIT;
-	const char *name;
+	if (strbuf_check_branch_ref(&sb, arg) ||
+	return 0;
 	int nongit;
 
-	setup_git_directory_gently(&nongit);
-	if (strbuf_check_branch_ref(&sb, arg) ||
-	    !skip_prefix(sb.buf, "refs/heads/", &name))
-		die("'%s' is not a valid branch name", arg);
-	printf("%s\n", name);
-	strbuf_release(&sb);
-	return 0;
-}
 
-int cmd_check_ref_format(int argc, const char **argv, const char *prefix)
-{
-	int i;
-	int normalize = 0;
-	int flags = 0;
-	const char *refname;
 
-	if (argc == 2 && !strcmp(argv[1], "-h"))
-		usage(builtin_check_ref_format_usage);
 
-	if (argc == 3 && !strcmp(argv[1], "--branch"))
-		return check_ref_format_branch(argv[2]);
-
-	for (i = 1; i < argc && argv[i][0] == '-'; i++) {
-		if (!strcmp(argv[i], "--normalize") || !strcmp(argv[i], "--print"))
 			normalize = 1;
-		else if (!strcmp(argv[i], "--allow-onelevel"))
-			flags |= REFNAME_ALLOW_ONELEVEL;
-		else if (!strcmp(argv[i], "--no-allow-onelevel"))
-			flags &= ~REFNAME_ALLOW_ONELEVEL;
-		else if (!strcmp(argv[i], "--refspec-pattern"))
-			flags |= REFNAME_REFSPEC_PATTERN;
-		else
-			usage(builtin_check_ref_format_usage);
-	}
-	if (! (i == argc - 1))
+	const char *name;
+	const char *refname;
 		usage(builtin_check_ref_format_usage);
 
-	refname = argv[i];
-	if (normalize)
-		refname = collapse_slashes(refname);
-	if (check_refname_format(refname, flags))
+	char ch;
+ * of adjacent slashes replaced with single slashes.
+	char *ret = xmallocz(strlen(refname));
+{
+	for (i = 1; i < argc && argv[i][0] == '-'; i++) {
+
 		return 1;
+#include "refs.h"
+}
+ * GIT - The information manager from hell
+	return ret;
+	    !skip_prefix(sb.buf, "refs/heads/", &name))
+
+		if (prev == '/' && ch == prev)
+{
+	}
+			flags &= ~REFNAME_ALLOW_ONELEVEL;
+}
+"   or: git check-ref-format --branch <branchname-shorthand>";
+int cmd_check_ref_format(int argc, const char **argv, const char *prefix)
+static int check_ref_format_branch(const char *arg)
+#include "strbuf.h"
+		if (!strcmp(argv[i], "--normalize") || !strcmp(argv[i], "--print"))
+ * This function is similar to normalize_path_copy(), but stripped down
+ *
+	}
+	refname = argv[i];
+	return 0;
+/*
+ */
+ * to meet check_ref_format's simpler needs.
+		refname = collapse_slashes(refname);
+		else if (!strcmp(argv[i], "--refspec-pattern"))
+		else
+	int i;
+static const char builtin_check_ref_format_usage[] =
 	if (normalize)
+{
+	char prev = '/';
+
+		usage(builtin_check_ref_format_usage);
+	int normalize = 0;
+	if (! (i == argc - 1))
+		*cp++ = ch;
+	int flags = 0;
+ * Return a copy of refname but with leading slashes removed and runs
+"git check-ref-format [--normalize] [<options>] <refname>\n"
+	char *cp = ret;
+		return check_ref_format_branch(argv[2]);
+	struct strbuf sb = STRBUF_INIT;
+			usage(builtin_check_ref_format_usage);
+
+		die("'%s' is not a valid branch name", arg);
+	strbuf_release(&sb);
+	if (argc == 3 && !strcmp(argv[1], "--branch"))
+	*cp = '\0';
+}
+	while ((ch = *refname++) != '\0') {
+	if (argc == 2 && !strcmp(argv[1], "-h"))
 		printf("%s\n", refname);
 
-	return 0;
-}
+		prev = ch;
+static char *collapse_slashes(const char *refname)
+			flags |= REFNAME_REFSPEC_PATTERN;
+	if (check_refname_format(refname, flags))
+	setup_git_directory_gently(&nongit);
+	if (normalize)
+			continue;
+		else if (!strcmp(argv[i], "--no-allow-onelevel"))
+	printf("%s\n", name);
+
+			flags |= REFNAME_ALLOW_ONELEVEL;
+
+/*
+
+#include "builtin.h"
+		else if (!strcmp(argv[i], "--allow-onelevel"))
+#include "cache.h"

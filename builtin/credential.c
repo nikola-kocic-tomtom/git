@@ -1,31 +1,31 @@
-#include "git-compat-util.h"
-#include "credential.h"
+	if (!strcmp(op, "fill")) {
+	if (argc != 2 || !strcmp(argv[1], "-h"))
+		die("unable to read credential from stdin");
+	op = argv[1];
+	if (credential_read(&c, stdin) < 0)
+	"git credential [fill|approve|reject]";
+	}
+
+
+{
+	} else if (!strcmp(op, "reject")) {
+	struct credential c = CREDENTIAL_INIT;
+		usage(usage_msg);
+		credential_reject(&c);
+		credential_fill(&c);
+}
+static const char usage_msg[] =
 #include "builtin.h"
 
-static const char usage_msg[] =
-	"git credential [fill|approve|reject]";
+#include "git-compat-util.h"
 
-int cmd_credential(int argc, const char **argv, const char *prefix)
-{
-	const char *op;
-	struct credential c = CREDENTIAL_INIT;
-
-	if (argc != 2 || !strcmp(argv[1], "-h"))
-		usage(usage_msg);
-	op = argv[1];
-
-	if (credential_read(&c, stdin) < 0)
-		die("unable to read credential from stdin");
-
-	if (!strcmp(op, "fill")) {
-		credential_fill(&c);
 		credential_write(&c, stdout);
+
+	const char *op;
 	} else if (!strcmp(op, "approve")) {
-		credential_approve(&c);
-	} else if (!strcmp(op, "reject")) {
-		credential_reject(&c);
-	} else {
 		usage(usage_msg);
-	}
+	} else {
 	return 0;
-}
+		credential_approve(&c);
+int cmd_credential(int argc, const char **argv, const char *prefix)
+#include "credential.h"

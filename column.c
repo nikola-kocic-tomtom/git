@@ -1,405 +1,405 @@
-#include "cache.h"
-#include "config.h"
-#include "column.h"
-#include "string-list.h"
-#include "parse-options.h"
-#include "run-command.h"
-#include "utf8.h"
-
-#define XY2LINEAR(d, x, y) (COL_LAYOUT((d)->colopts) == COL_COLUMN ? \
-			    (x) * (d)->rows + (y) : \
-			    (y) * (d)->cols + (x))
-
-struct column_data {
-	const struct string_list *list;
-	unsigned int colopts;
-	struct column_options opts;
-
-	int rows, cols;
-	int *len;		/* cell length */
-	int *width;	      /* index to the longest row in column */
-};
-
-/* return length of 's' in letters, ANSI escapes stripped */
-static int item_length(const char *s)
-{
-	return utf8_strnwidth(s, -1, 1);
+	}
+int run_column_filter(int colopts, const struct column_options *opts)
 }
+		return 0;
+		{ "never",  COL_DISABLED, COL_ENABLE_MASK },
 
-/*
- * Calculate cell width, rows and cols for a table of equal cells, given
- * table width and how many spaces between cells.
- */
-static void layout(struct column_data *data, int *width)
-{
-	int i;
+	column_process.in = -1;
 
-	*width = 0;
-	for (i = 0; i < data->list->nr; i++)
-		if (*width < data->len[i])
-			*width = data->len[i];
-
-	*width += data->opts.padding;
-
-	data->cols = (data->opts.width - strlen(data->opts.indent)) / *width;
 	if (data->cols == 0)
-		data->cols = 1;
-
-	data->rows = DIV_ROUND_UP(data->list->nr, data->cols);
-}
-
-static void compute_column_width(struct column_data *data)
 {
-	int i, x, y;
-	for (x = 0; x < data->cols; x++) {
-		data->width[x] = XY2LINEAR(data, x, 0);
-		for (y = 0; y < data->rows; y++) {
-			i = XY2LINEAR(data, x, y);
-			if (i < data->list->nr &&
-			    data->len[data->width[x]] < data->len[i])
-				data->width[x] = i;
-		}
-	}
-}
 
-/*
- * Shrink all columns by shortening them one row each time (and adding
- * more columns along the way). Hopefully the longest cell will be
- * moved to the next column, column is shrunk so we have more space
- * for new columns. The process ends when the whole thing no longer
- * fits in data->total_width.
- */
-static void shrink_columns(struct column_data *data)
-{
-	REALLOC_ARRAY(data->width, data->cols);
-	while (data->rows > 1) {
-		int x, total_width, cols, rows;
-		rows = data->rows;
-		cols = data->cols;
-
-		data->rows--;
-		data->cols = DIV_ROUND_UP(data->list->nr, data->rows);
-		if (data->cols != cols)
-			REALLOC_ARRAY(data->width, data->cols);
-		compute_column_width(data);
-
-		total_width = strlen(data->opts.indent);
-		for (x = 0; x < data->cols; x++) {
-			total_width += data->len[data->width[x]];
-			total_width += data->opts.padding;
-		}
+		int len = strcspn(value, sep);
 		if (total_width > data->opts.width) {
-			data->rows = rows;
-			data->cols = cols;
-			break;
-		}
-	}
-	compute_column_width(data);
-}
-
-/* Display without layout when not enabled */
-static void display_plain(const struct string_list *list,
-			  const char *indent, const char *nl)
-{
-	int i;
-
-	for (i = 0; i < list->nr; i++)
-		printf("%s%s%s", indent, list->items[i].string, nl);
-}
-
-/* Print a cell to stdout with all necessary leading/traling space */
-static int display_cell(struct column_data *data, int initial_width,
-			const char *empty_cell, int x, int y)
-{
 	int i, len, newline;
-
-	i = XY2LINEAR(data, x, y);
-	if (i >= data->list->nr)
-		return -1;
-
-	len = data->len[i];
-	if (data->width && data->len[data->width[x]] < initial_width) {
-		/*
-		 * empty_cell has initial_width chars, if real column
-		 * is narrower, increase len a bit so we fill less
-		 * space.
-		 */
-		len += initial_width - data->len[data->width[x]];
-		len -= data->opts.padding;
-	}
-
-	if (COL_LAYOUT(data->colopts) == COL_COLUMN)
-		newline = i + data->rows >= data->list->nr;
-	else
-		newline = x == data->cols - 1 || i == data->list->nr - 1;
-
-	printf("%s%s%s",
-	       x == 0 ? data->opts.indent : "",
-	       data->list->items[i].string,
-	       newline ? data->opts.nl : empty_cell + len);
-	return 0;
-}
-
-/* Display COL_COLUMN or COL_ROW */
-static void display_table(const struct string_list *list,
-			  unsigned int colopts,
-			  const struct column_options *opts)
-{
-	struct column_data data;
-	int x, y, i, initial_width;
-	char *empty_cell;
-
-	memset(&data, 0, sizeof(data));
-	data.list = list;
-	data.colopts = colopts;
-	data.opts = *opts;
-
-	ALLOC_ARRAY(data.len, list->nr);
-	for (i = 0; i < list->nr; i++)
-		data.len[i] = item_length(list->items[i].string);
-
-	layout(&data, &initial_width);
-
-	if (colopts & COL_DENSE)
-		shrink_columns(&data);
-
-	empty_cell = xmallocz(initial_width);
-	memset(empty_cell, ' ', initial_width);
-	for (y = 0; y < data.rows; y++) {
-		for (x = 0; x < data.cols; x++)
-			if (display_cell(&data, initial_width, empty_cell, x, y))
-				break;
-	}
-
-	free(data.len);
-	free(data.width);
-	free(empty_cell);
-}
-
-void print_columns(const struct string_list *list, unsigned int colopts,
+			continue;
 		   const struct column_options *opts)
+	layout(&data, &initial_width);
+	 */
+		return 0;
+		if (*width < data->len[i])
+				break;
+			}
+		return -2;
+	fflush(stdout);
+	unsigned int colopts;
+		if (stdout_is_tty < 0)
+	else
+#define ENABLE_SET 2
+		if (arg_len != name_len ||
+	int group_set = 0;
+		data->cols = DIV_ROUND_UP(data->list->nr, data->rows);
+		newline = i + data->rows >= data->list->nr;
+		len += initial_width - data->len[data->width[x]];
 {
+	if (!list->nr)
+
+			break;
+
+
+			    data->len[data->width[x]] < data->len[i])
+
 	struct column_options nopts;
 
-	if (!list->nr)
-		return;
-	assert((colopts & COL_ENABLE_MASK) != COL_AUTO);
-
-	memset(&nopts, 0, sizeof(nopts));
-	nopts.indent = opts && opts->indent ? opts->indent : "";
-	nopts.nl = opts && opts->nl ? opts->nl : "\n";
-	nopts.padding = opts ? opts->padding : 1;
-	nopts.width = opts && opts->width ? opts->width : term_columns() - 1;
-	if (!column_active(colopts)) {
-		display_plain(list, "", "\n");
-		return;
-	}
-	switch (COL_LAYOUT(colopts)) {
-	case COL_PLAIN:
-		display_plain(list, nopts.indent, nopts.nl);
-		break;
-	case COL_ROW:
-	case COL_COLUMN:
-		display_table(list, colopts, &nopts);
-		break;
-	default:
-		BUG("invalid layout mode %d", COL_LAYOUT(colopts));
-	}
-}
-
-int finalize_colopts(unsigned int *colopts, int stdout_is_tty)
+#include "cache.h"
 {
-	if ((*colopts & COL_ENABLE_MASK) == COL_AUTO) {
-		if (stdout_is_tty < 0)
-			stdout_is_tty = isatty(1);
-		*colopts &= ~COL_ENABLE_MASK;
-		if (stdout_is_tty || pager_in_use())
-			*colopts |= COL_ENABLED;
-	}
+		case COL_LAYOUT_MASK:
 	return 0;
-}
+		for (x = 0; x < data->cols; x++) {
+		printf("%s%s%s", indent, list->items[i].string, nl);
+	/*
+		}
+			  const struct column_options *opts)
+	data->rows = DIV_ROUND_UP(data->list->nr, data->cols);
 
-struct colopt {
-	const char *name;
-	unsigned int value;
-	unsigned int mask;
-};
+		if (!opts[i].mask) {
 
-#define LAYOUT_SET 1
-#define ENABLE_SET 2
-
-static int parse_option(const char *arg, int len, unsigned int *colopts,
-			int *group_set)
+/* Display COL_COLUMN or COL_ROW */
+	data->cols = (data->opts.width - strlen(data->opts.indent)) / *width;
+		}
+	}
 {
-	struct colopt opts[] = {
-		{ "always", COL_ENABLED,  COL_ENABLE_MASK },
-		{ "never",  COL_DISABLED, COL_ENABLE_MASK },
-		{ "auto",   COL_AUTO,     COL_ENABLE_MASK },
-		{ "plain",  COL_PLAIN,    COL_LAYOUT_MASK },
-		{ "column", COL_COLUMN,   COL_LAYOUT_MASK },
-		{ "row",    COL_ROW,      COL_LAYOUT_MASK },
-		{ "dense",  COL_DENSE,    0 },
+static void compute_column_width(struct column_data *data)
+#define XY2LINEAR(d, x, y) (COL_LAYOUT((d)->colopts) == COL_COLUMN ? \
 	};
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(opts); i++) {
-		int set = 1, arg_len = len, name_len;
-		const char *arg_str = arg;
-
-		if (!opts[i].mask) {
-			if (arg_len > 2 && !strncmp(arg_str, "no", 2)) {
-				arg_str += 2;
 				arg_len -= 2;
-				set = 0;
-			}
-		}
+			data->cols = cols;
+			stdout_is_tty = isatty(1);
+			REALLOC_ARRAY(data->width, data->cols);
+				data->width[x] = i;
+ * Shrink all columns by shortening them one row each time (and adding
 
-		name_len = strlen(opts[i].name);
-		if (arg_len != name_len ||
-		    strncmp(arg_str, opts[i].name, name_len))
-			continue;
+ * for new columns. The process ends when the whole thing no longer
+{
+	fflush(stdout);
 
-		switch (opts[i].mask) {
-		case COL_ENABLE_MASK:
-			*group_set |= ENABLE_SET;
+	if ((*colopts & COL_ENABLE_MASK) == COL_AUTO) {
+ * fits in data->total_width.
+	column_process.git_cmd = 1;
+	       x == 0 ? data->opts.indent : "",
+	assert((colopts & COL_ENABLE_MASK) != COL_AUTO);
+	len = data->len[i];
+
+	}
+		 * space.
+			else
 			break;
-		case COL_LAYOUT_MASK:
-			*group_set |= LAYOUT_SET;
+	data.list = list;
+{
+#define LAYOUT_SET 1
+{
+static void display_plain(const struct string_list *list,
+	if (opts && opts->indent)
+	struct column_options opts;
 			break;
-		}
+		value += strspn(value, sep);
+ * moved to the next column, column is shrunk so we have more space
+		data->rows--;
+	free(data.width);
+ * more columns along the way). Hopefully the longest cell will be
+		return config_error_nonbool(var);
+	REALLOC_ARRAY(data->width, data->cols);
 
-		if (opts[i].mask)
+
+
+	int i;
+		 */
+	       newline ? data->opts.nl : empty_cell + len);
+
 			*colopts = (*colopts & ~opts[i].mask) | opts[i].value;
+		cols = data->cols;
+			total_width += data->opts.padding;
+	if (fd_out != -1)
+
+	printf("%s%s%s",
+};
+{
+#include "parse-options.h"
+	if (arg)
+
+
+		data.len[i] = item_length(list->items[i].string);
+
+
+{
+				arg_str += 2;
+ * Calculate cell width, rows and cols for a table of equal cells, given
+	}
+		 * is narrower, increase len a bit so we fill less
+	if (command && !strcmp(it, command))
+int git_column_config(const char *var, const char *value,
+		compute_column_width(data);
+
+		{ "always", COL_ENABLED,  COL_ENABLE_MASK },
+		return -1;
+}
+			  unsigned int colopts,
+{
+}
+	if (fd_out == -1)
+	finish_command(&column_process);
+	nopts.indent = opts && opts->indent ? opts->indent : "";
+	return 0;
+
+		break;
+#include "run-command.h"
+			i = XY2LINEAR(data, x, y);
+		{ "plain",  COL_PLAIN,    COL_LAYOUT_MASK },
+{
+{
+
+#include "string-list.h"
+	int *len;		/* cell length */
+		const char *arg_str = arg;
+		break;
+
+
+		data->cols = 1;
+	switch (COL_LAYOUT(colopts)) {
+	close(1);
+
+				*colopts &= ~opts[i].value;
+}
+struct colopt {
+
+
+		rows = data->rows;
+	/* --column == always unless "arg" states otherwise */
+	memset(&nopts, 0, sizeof(nopts));
+}
+		argv_array_pushf(argv, "--indent=%s", opts->indent);
+	argv_array_push(argv, "column");
+	const char *name;
+		if (len) {
+
+	if ((group_set & LAYOUT_SET) && !(group_set & ENABLE_SET))
+	unsigned int *colopts = opt->value;
+	 * If none of "always", "never", and "auto" is specified, then setting
+/* Print a cell to stdout with all necessary leading/traling space */
+		{ "dense",  COL_DENSE,    0 },
+		if (data->cols != cols)
+ */
+		}
+static int display_cell(struct column_data *data, int initial_width,
+	data.opts = *opts;
+	dup2(column_process.in, 1);
+	unsigned int value;
+
+	}
+
+		    strncmp(arg_str, opts[i].name, name_len))
+
+struct column_data {
+	close(1);
 		else {
 			if (set)
-				*colopts |= opts[i].value;
-			else
-				*colopts &= ~opts[i].value;
-		}
-		return 0;
-	}
+			if (arg_len > 2 && !strncmp(arg_str, "no", 2)) {
 
-	return error("unsupported option '%s'", arg);
-}
-
-static int parse_config(unsigned int *colopts, const char *value)
-{
-	const char *sep = " ,";
-	int group_set = 0;
-
-	while (*value) {
-		int len = strcspn(value, sep);
-		if (len) {
-			if (parse_option(value, len, colopts, &group_set))
-				return -1;
-
-			value += len;
-		}
-		value += strspn(value, sep);
-	}
-	/*
-	 * If none of "always", "never", and "auto" is specified, then setting
-	 * layout implies "always".
-	 *
-	 * Current value in COL_ENABLE_MASK is disregarded. This means if
-	 * you set column.ui = auto and pass --column=row, then "auto"
-	 * will become "always".
-	 */
-	if ((group_set & LAYOUT_SET) && !(group_set & ENABLE_SET))
-		*colopts = (*colopts & ~COL_ENABLE_MASK) | COL_ENABLED;
-	return 0;
-}
-
-static int column_config(const char *var, const char *value,
-			 const char *key, unsigned int *colopts)
-{
-	if (!value)
-		return config_error_nonbool(var);
-	if (parse_config(colopts, value))
-		return error("invalid column.%s mode %s", key, value);
-	return 0;
-}
-
-int git_column_config(const char *var, const char *value,
-		      const char *command, unsigned int *colopts)
-{
-	const char *it;
-
-	if (!skip_prefix(var, "column.", &it))
-		return 0;
-
-	if (!strcmp(it, "ui"))
-		return column_config(var, value, "ui", colopts);
-
-	if (command && !strcmp(it, command))
-		return column_config(var, value, it, colopts);
-
-	return 0;
-}
-
-int parseopt_column_callback(const struct option *opt,
-			     const char *arg, int unset)
-{
-	unsigned int *colopts = opt->value;
-	*colopts |= COL_PARSEOPT;
-	*colopts &= ~COL_ENABLE_MASK;
-	if (unset)		/* --no-column == never */
-		return 0;
-	/* --column == always unless "arg" states otherwise */
-	*colopts |= COL_ENABLED;
-	if (arg)
-		return parse_config(colopts, arg);
-
-	return 0;
-}
-
-static int fd_out = -1;
-static struct child_process column_process = CHILD_PROCESS_INIT;
-
-int run_column_filter(int colopts, const struct column_options *opts)
-{
+	unsigned int mask;
+		case COL_ENABLE_MASK:
 	struct argv_array *argv;
+	if (!skip_prefix(var, "column.", &it))
+	char *empty_cell;
+		*colopts = (*colopts & ~COL_ENABLE_MASK) | COL_ENABLED;
 
-	if (fd_out != -1)
-		return -1;
+			*colopts |= COL_ENABLED;
+	*colopts |= COL_ENABLED;
+	struct colopt opts[] = {
+		return parse_config(colopts, arg);
+	const char *it;
+	}
+		return;
+	struct column_data data;
 
-	child_process_init(&column_process);
-	argv = &column_process.args;
-
-	argv_array_push(argv, "column");
+	}
+		name_len = strlen(opts[i].name);
+	free(data.len);
+	nopts.nl = opts && opts->nl ? opts->nl : "\n";
+		display_plain(list, nopts.indent, nopts.nl);
+		{ "auto",   COL_AUTO,     COL_ENABLE_MASK },
 	argv_array_pushf(argv, "--raw-mode=%d", colopts);
-	if (opts && opts->width)
-		argv_array_pushf(argv, "--width=%d", opts->width);
-	if (opts && opts->indent)
-		argv_array_pushf(argv, "--indent=%s", opts->indent);
-	if (opts && opts->padding)
-		argv_array_pushf(argv, "--padding=%d", opts->padding);
-
-	fflush(stdout);
-	column_process.in = -1;
-	column_process.out = dup(1);
-	column_process.git_cmd = 1;
-
-	if (start_command(&column_process))
-		return -2;
-
-	fd_out = dup(1);
-	close(1);
-	dup2(column_process.in, 1);
-	close(column_process.in);
 	return 0;
-}
+		display_table(list, colopts, &nopts);
 
-int stop_column_filter(void)
-{
-	if (fd_out == -1)
+	nopts.padding = opts ? opts->padding : 1;
+			total_width += data->len[data->width[x]];
+	*width += data->opts.padding;
+	return 0;
+int finalize_colopts(unsigned int *colopts, int stdout_is_tty)
+	*width = 0;
+#include "config.h"
+	const char *sep = " ,";
+	 * you set column.ui = auto and pass --column=row, then "auto"
+
+	if (unset)		/* --no-column == never */
+	memset(empty_cell, ' ', initial_width);
+	return 0;
+
+static void shrink_columns(struct column_data *data)
+			value += len;
+	compute_column_width(data);
+	int i;
+				*colopts |= opts[i].value;
+
+ */
+	return 0;
+	i = XY2LINEAR(data, x, y);
+	if (!strcmp(it, "ui"))
+	       data->list->items[i].string,
+		display_plain(list, "", "\n");
+}
+		switch (opts[i].mask) {
+			const char *empty_cell, int x, int y)
+	memset(&data, 0, sizeof(data));
+	while (*value) {
+		return error("invalid column.%s mode %s", key, value);
 		return -1;
+	if (start_command(&column_process))
+		return 0;
+	 * layout implies "always".
+	if (i >= data->list->nr)
+			*group_set |= ENABLE_SET;
+	for (i = 0; i < list->nr; i++)
+			*group_set |= LAYOUT_SET;
+		}
+		return -1;
+		int x, total_width, cols, rows;
+	free(empty_cell);
+		 * empty_cell has initial_width chars, if real column
+	if (!column_active(colopts)) {
 
-	fflush(stdout);
-	close(1);
-	finish_command(&column_process);
-	dup2(fd_out, 1);
-	close(fd_out);
-	fd_out = -1;
-	return 0;
+/* Display without layout when not enabled */
+	int x, y, i, initial_width;
+
+		BUG("invalid layout mode %d", COL_LAYOUT(colopts));
+		int set = 1, arg_len = len, name_len;
+static int item_length(const char *s)
+	child_process_init(&column_process);
+static void display_table(const struct string_list *list,
+	empty_cell = xmallocz(initial_width);
+{
+	default:
+	if (opts && opts->padding)
+			data->rows = rows;
+{
+	close(column_process.in);
+	ALLOC_ARRAY(data.len, list->nr);
+	nopts.width = opts && opts->width ? opts->width : term_columns() - 1;
+/* return length of 's' in letters, ANSI escapes stripped */
+		*colopts &= ~COL_ENABLE_MASK;
+	 * Current value in COL_ENABLE_MASK is disregarded. This means if
+			 const char *key, unsigned int *colopts)
+	if (opts && opts->width)
+	int rows, cols;
+static int parse_option(const char *arg, int len, unsigned int *colopts,
+				set = 0;
+			int *group_set)
+	*colopts &= ~COL_ENABLE_MASK;
+	data.colopts = colopts;
+
+
+
+};
+
+		      const char *command, unsigned int *colopts)
 }
+		/*
+	argv = &column_process.args;
+}
+	const struct string_list *list;
+	for (x = 0; x < data->cols; x++) {
+		len -= data->opts.padding;
+		{ "row",    COL_ROW,      COL_LAYOUT_MASK },
+	if (colopts & COL_DENSE)
+			    (x) * (d)->rows + (y) : \
+
+}
+
+	while (data->rows > 1) {
+	}
+	if (parse_config(colopts, value))
+int parseopt_column_callback(const struct option *opt,
+	*colopts |= COL_PARSEOPT;
+#include "column.h"
+		argv_array_pushf(argv, "--padding=%d", opts->padding);
+{
+	return utf8_strnwidth(s, -1, 1);
+
+		data->width[x] = XY2LINEAR(data, x, 0);
+	for (i = 0; i < list->nr; i++)
+		}
+	int *width;	      /* index to the longest row in column */
+void print_columns(const struct string_list *list, unsigned int colopts,
+	close(fd_out);
+ * table width and how many spaces between cells.
+		return column_config(var, value, "ui", colopts);
+/*
+		newline = x == data->cols - 1 || i == data->list->nr - 1;
+	if (COL_LAYOUT(data->colopts) == COL_COLUMN)
+}
+
+	return 0;
+			if (parse_option(value, len, colopts, &group_set))
+
+
+
+		for (x = 0; x < data.cols; x++)
+		for (y = 0; y < data->rows; y++) {
+}
+#include "utf8.h"
+int stop_column_filter(void)
+}
+		if (opts[i].mask)
+	column_process.out = dup(1);
+		return column_config(var, value, it, colopts);
+	 *
+			    (y) * (d)->cols + (x))
+		shrink_columns(&data);
+	fd_out = -1;
+
+
+	int i, x, y;
+	case COL_ROW:
+	fd_out = dup(1);
+	if (data->width && data->len[data->width[x]] < initial_width) {
+
+{
+}
+static void layout(struct column_data *data, int *width)
+	if (!value)
+			if (i < data->list->nr &&
+		{ "column", COL_COLUMN,   COL_LAYOUT_MASK },
+	for (i = 0; i < data->list->nr; i++)
+		total_width = strlen(data->opts.indent);
+}
+
+		argv_array_pushf(argv, "--width=%d", opts->width);
+			     const char *arg, int unset)
+	case COL_PLAIN:
+/*
+}
+	for (i = 0; i < ARRAY_SIZE(opts); i++) {
+static int fd_out = -1;
+	}
+		}
+				return -1;
+	return 0;
+		if (stdout_is_tty || pager_in_use())
+static struct child_process column_process = CHILD_PROCESS_INIT;
+			*width = data->len[i];
+	dup2(fd_out, 1);
+static int parse_config(unsigned int *colopts, const char *value)
+			  const char *indent, const char *nl)
+
+	for (y = 0; y < data.rows; y++) {
+			if (display_cell(&data, initial_width, empty_cell, x, y))
+static int column_config(const char *var, const char *value,
+
+		return;
+	 * will become "always".
+}
+	return error("unsupported option '%s'", arg);
+		}
+	case COL_COLUMN:

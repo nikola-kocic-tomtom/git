@@ -1,349 +1,349 @@
-#include "cache.h"
-#include "walker.h"
-#include "repository.h"
-#include "object-store.h"
-#include "commit.h"
-#include "tree.h"
-#include "tree-walk.h"
-#include "tag.h"
-#include "blob.h"
-#include "refs.h"
-#include "progress.h"
 
-static struct object_id current_commit_oid;
-
-void walker_say(struct walker *walker, const char *fmt, ...)
-{
-	if (walker->get_verbosely) {
-		va_list ap;
-		va_start(ap, fmt);
-		vfprintf(stderr, fmt, ap);
-		va_end(ap);
 	}
-}
-
-static void report_missing(const struct object *obj)
-{
-	fprintf(stderr, "Cannot obtain needed %s %s\n",
-		obj->type ? type_name(obj->type): "object",
-		oid_to_hex(&obj->oid));
-	if (!is_null_oid(&current_commit_oid))
-		fprintf(stderr, "while processing commit %s.\n",
-			oid_to_hex(&current_commit_oid));
-}
-
-static int process(struct walker *walker, struct object *obj);
-
-static int process_tree(struct walker *walker, struct tree *tree)
-{
-	struct tree_desc desc;
-	struct name_entry entry;
-
-	if (parse_tree(tree))
-		return -1;
-
-	init_tree_desc(&desc, tree->buffer, tree->size);
-	while (tree_entry(&desc, &entry)) {
-		struct object *obj = NULL;
-
-		/* submodule commits are not stored in the superproject */
-		if (S_ISGITLINK(entry.mode))
-			continue;
-		if (S_ISDIR(entry.mode)) {
-			struct tree *tree = lookup_tree(the_repository,
-							&entry.oid);
-			if (tree)
-				obj = &tree->object;
-		}
-		else {
-			struct blob *blob = lookup_blob(the_repository,
-							&entry.oid);
-			if (blob)
-				obj = &blob->object;
-		}
-		if (!obj || process(walker, obj))
-			return -1;
-	}
-	free_tree_buffer(tree);
-	return 0;
-}
-
-/* Remember to update object flag allocation in object.h */
-#define COMPLETE	(1U << 0)
-#define SEEN		(1U << 1)
-#define TO_SCAN		(1U << 2)
-
-static struct commit_list *complete = NULL;
-
-static int process_commit(struct walker *walker, struct commit *commit)
-{
-	struct commit_list *parents;
-
-	if (parse_commit(commit))
-		return -1;
-
-	while (complete && complete->item->date >= commit->date) {
-		pop_most_recent_commit(&complete, COMPLETE);
-	}
-
-	if (commit->object.flags & COMPLETE)
-		return 0;
-
-	oidcpy(&current_commit_oid, &commit->object.oid);
-
-	walker_say(walker, "walk %s\n", oid_to_hex(&commit->object.oid));
-
-	if (process(walker, &get_commit_tree(commit)->object))
-		return -1;
-
-	for (parents = commit->parents; parents; parents = parents->next) {
-		if (process(walker, &parents->item->object))
-			return -1;
-	}
-
-	return 0;
-}
-
-static int process_tag(struct walker *walker, struct tag *tag)
-{
-	if (parse_tag(tag))
-		return -1;
-	return process(walker, tag->tagged);
-}
-
-static struct object_list *process_queue = NULL;
-static struct object_list **process_queue_end = &process_queue;
-
-static int process_object(struct walker *walker, struct object *obj)
-{
-	if (obj->type == OBJ_COMMIT) {
-		if (process_commit(walker, (struct commit *)obj))
-			return -1;
-		return 0;
-	}
-	if (obj->type == OBJ_TREE) {
-		if (process_tree(walker, (struct tree *)obj))
-			return -1;
-		return 0;
-	}
-	if (obj->type == OBJ_BLOB) {
-		return 0;
-	}
-	if (obj->type == OBJ_TAG) {
-		if (process_tag(walker, (struct tag *)obj))
-			return -1;
-		return 0;
-	}
-	return error("Unable to determine requirements "
-		     "of type %s for %s",
-		     type_name(obj->type), oid_to_hex(&obj->oid));
-}
-
-static int process(struct walker *walker, struct object *obj)
-{
-	if (obj->flags & SEEN)
-		return 0;
-	obj->flags |= SEEN;
-
-	if (has_object_file(&obj->oid)) {
-		/* We already have it, so we should scan it now. */
-		obj->flags |= TO_SCAN;
-	}
-	else {
-		if (obj->flags & COMPLETE)
-			return 0;
-		walker->prefetch(walker, obj->oid.hash);
-	}
-
-	object_list_insert(obj, process_queue_end);
-	process_queue_end = &(*process_queue_end)->next;
-	return 0;
-}
-
-static int loop(struct walker *walker)
-{
-	struct object_list *elem;
-	struct progress *progress = NULL;
-	uint64_t nr = 0;
-
-	if (walker->get_progress)
-		progress = start_delayed_progress(_("Fetching objects"), 0);
-
-	while (process_queue) {
-		struct object *obj = process_queue->item;
-		elem = process_queue;
-		process_queue = elem->next;
-		free(elem);
-		if (!process_queue)
-			process_queue_end = &process_queue;
-
-		/* If we are not scanning this object, we placed it in
-		 * the queue because we needed to fetch it first.
-		 */
-		if (! (obj->flags & TO_SCAN)) {
-			if (walker->fetch(walker, obj->oid.hash)) {
-				stop_progress(&progress);
-				report_missing(obj);
-				return -1;
-			}
-		}
-		if (!obj->type)
-			parse_object(the_repository, &obj->oid);
-		if (process_object(walker, obj)) {
-			stop_progress(&progress);
-			return -1;
-		}
-		display_progress(progress, ++nr);
-	}
-	stop_progress(&progress);
-	return 0;
-}
-
-static int interpret_target(struct walker *walker, char *target, struct object_id *oid)
-{
-	if (!get_oid_hex(target, oid))
-		return 0;
-	if (!check_refname_format(target, 0)) {
-		struct ref *ref = alloc_ref(target);
-		if (!walker->fetch_ref(walker, ref)) {
-			oidcpy(oid, &ref->old_oid);
-			free(ref);
-			return 0;
-		}
-		free(ref);
-	}
-	return -1;
-}
-
-static int mark_complete(const char *path, const struct object_id *oid,
-			 int flag, void *cb_data)
-{
-	struct commit *commit = lookup_commit_reference_gently(the_repository,
-							       oid, 1);
-
-	if (commit) {
-		commit->object.flags |= COMPLETE;
-		commit_list_insert(commit, &complete);
-	}
-	return 0;
-}
-
-int walker_targets_stdin(char ***target, const char ***write_ref)
-{
-	int targets = 0, targets_alloc = 0;
-	struct strbuf buf = STRBUF_INIT;
-	*target = NULL; *write_ref = NULL;
-	while (1) {
 		char *rf_one = NULL;
-		char *tg_one;
-
-		if (strbuf_getline_lf(&buf, stdin) == EOF)
-			break;
-		tg_one = buf.buf;
-		rf_one = strchr(tg_one, '\t');
-		if (rf_one)
-			*rf_one++ = 0;
-
-		if (targets >= targets_alloc) {
-			targets_alloc = targets_alloc ? targets_alloc * 2 : 64;
-			REALLOC_ARRAY(*target, targets_alloc);
-			REALLOC_ARRAY(*write_ref, targets_alloc);
+	for (i = 0; i < targets; i++) {
 		}
-		(*target)[targets] = xstrdup(tg_one);
-		(*write_ref)[targets] = xstrdup_or_null(rf_one);
-		targets++;
-	}
-	strbuf_release(&buf);
-	return targets;
+				obj = &blob->object;
 }
-
-void walker_targets_free(int targets, char **target, const char **write_ref)
-{
-	while (targets--) {
-		free(target[targets]);
-		if (write_ref)
-			free((char *) write_ref[targets]);
-	}
-}
-
-int walker_fetch(struct walker *walker, int targets, char **target,
-		 const char **write_ref, const char *write_ref_log_details)
-{
-	struct strbuf refname = STRBUF_INIT;
-	struct strbuf err = STRBUF_INIT;
-	struct ref_transaction *transaction = NULL;
-	struct object_id *oids;
 	char *msg = NULL;
+void walker_say(struct walker *walker, const char *fmt, ...)
+			continue;
+	return 0;
+	if (obj->type == OBJ_COMMIT) {
+
+		display_progress(progress, ++nr);
+#include "tree-walk.h"
+
+	if (!is_null_oid(&current_commit_oid))
+			 int flag, void *cb_data)
+		}
+		rf_one = strchr(tg_one, '\t');
+static int loop(struct walker *walker)
+		free(target[targets]);
+	}
+		if (process_tag(walker, (struct tag *)obj))
+		if (S_ISGITLINK(entry.mode))
+	return targets;
+	if (walker->get_progress)
+	if (loop(walker))
+		(*target)[targets] = xstrdup(tg_one);
+	save_commit_buffer = 0;
+				report_missing(obj);
+{
+
+			if (blob)
+			}
+	}
+#include "blob.h"
+		if (process(walker, lookup_unknown_object(&oids[i])))
+							       oid, 1);
+		return 0;
+
+
+#include "commit.h"
+	struct object_list *elem;
+	ref_transaction_free(transaction);
+int walker_targets_stdin(char ***target, const char ***write_ref)
+		fprintf(stderr, "while processing commit %s.\n",
+	struct name_entry entry;
+			goto done;
+{
+
+		if (write_ref)
+		return -1;
+		if (process_object(walker, obj)) {
+	while (targets--) {
+	}
+}
+					   msg ? msg : "fetch (unknown)",
+	if (write_ref_log_details) {
+			return -1;
+	if (obj->type == OBJ_BLOB) {
+	}
+	}
+static int process(struct walker *walker, struct object *obj)
+	strbuf_release(&buf);
+		elem = process_queue;
+		 * the queue because we needed to fetch it first.
+{
+
+
+			return 0;
+			error("%s", err.buf);
+		if (process(walker, &parents->item->object))
+
+
+{
+	}
+
+{
+		strbuf_addf(&refname, "refs/%s", write_ref[i]);
+		msg = NULL;
+	if (walker->get_verbosely) {
+
 	int i, ret = -1;
 
-	save_commit_buffer = 0;
 
-	ALLOC_ARRAY(oids, targets);
-
-	if (write_ref) {
-		transaction = ref_transaction_begin(&err);
+			struct tree *tree = lookup_tree(the_repository,
 		if (!transaction) {
-			error("%s", err.buf);
-			goto done;
-		}
-	}
-
-	if (!walker->get_recover) {
-		for_each_ref(mark_complete, NULL);
-		commit_list_sort_by_date(&complete);
-	}
-
-	for (i = 0; i < targets; i++) {
-		if (interpret_target(walker, target[i], oids + i)) {
-			error("Could not interpret response from server '%s' as something to pull", target[i]);
-			goto done;
-		}
-		if (process(walker, lookup_unknown_object(&oids[i])))
-			goto done;
-	}
-
-	if (loop(walker))
-		goto done;
-	if (!write_ref) {
-		ret = 0;
-		goto done;
-	}
-	if (write_ref_log_details) {
-		msg = xstrfmt("fetch from %s", write_ref_log_details);
-	} else {
-		msg = NULL;
-	}
-	for (i = 0; i < targets; i++) {
-		if (!write_ref[i])
-			continue;
-		strbuf_reset(&refname);
-		strbuf_addf(&refname, "refs/%s", write_ref[i]);
-		if (ref_transaction_update(transaction, refname.buf,
-					   oids + i, NULL, 0,
-					   msg ? msg : "fetch (unknown)",
-					   &err)) {
-			error("%s", err.buf);
-			goto done;
-		}
-	}
-	if (ref_transaction_commit(transaction, &err)) {
-		error("%s", err.buf);
-		goto done;
-	}
-
-	ret = 0;
-
-done:
-	ref_transaction_free(transaction);
-	free(msg);
-	free(oids);
-	strbuf_release(&err);
-	strbuf_release(&refname);
-	return ret;
+	return 0;
 }
-
-void walker_free(struct walker *walker)
 {
-	walker->cleanup(walker);
-	free(walker);
+		commit->object.flags |= COMPLETE;
+		char *tg_one;
+		else {
+		if (obj->flags & COMPLETE)
+	if (write_ref) {
+		va_list ap;
+		if (! (obj->flags & TO_SCAN)) {
 }
+	free_tree_buffer(tree);
+			struct blob *blob = lookup_blob(the_repository,
+#include "walker.h"
+
+		/* We already have it, so we should scan it now. */
+	if (parse_tag(tag))
+	if (!get_oid_hex(target, oid))
+		walker->prefetch(walker, obj->oid.hash);
+			return -1;
+		}
+		process_queue = elem->next;
+			return -1;
+			goto done;
+		if (process_commit(walker, (struct commit *)obj))
+		obj->type ? type_name(obj->type): "object",
+	}
+	if (!walker->get_recover) {
+	free(msg);
+	}
+			break;
+			return -1;
+		 */
+			return -1;
+	if (!check_refname_format(target, 0)) {
+}
+		if (S_ISDIR(entry.mode)) {
+							&entry.oid);
+		return 0;
+				stop_progress(&progress);
+	while (1) {
+}
+	if (parse_commit(commit))
+		}
+#include "refs.h"
+			targets_alloc = targets_alloc ? targets_alloc * 2 : 64;
+		obj->flags |= TO_SCAN;
+			oidcpy(oid, &ref->old_oid);
+	object_list_insert(obj, process_queue_end);
+		error("%s", err.buf);
+		if (!walker->fetch_ref(walker, ref)) {
+{
+	while (tree_entry(&desc, &entry)) {
+		strbuf_reset(&refname);
+	free(oids);
+}
+		     type_name(obj->type), oid_to_hex(&obj->oid));
+		if (interpret_target(walker, target[i], oids + i)) {
+void walker_free(struct walker *walker)
+		struct ref *ref = alloc_ref(target);
+	return 0;
+		}
+		commit_list_insert(commit, &complete);
+		va_start(ap, fmt);
+			goto done;
+					   &err)) {
+		if (!obj || process(walker, obj))
+	}
+		commit_list_sort_by_date(&complete);
+
+		vfprintf(stderr, fmt, ap);
+			REALLOC_ARRAY(*write_ref, targets_alloc);
+			parse_object(the_repository, &obj->oid);
+		ret = 0;
+
+		goto done;
+static struct object_list *process_queue = NULL;
+	struct strbuf err = STRBUF_INIT;
+				return -1;
+		/* If we are not scanning this object, we placed it in
+		return 0;
+static int process_object(struct walker *walker, struct object *obj)
+				obj = &tree->object;
+		if (targets >= targets_alloc) {
+	for (parents = commit->parents; parents; parents = parents->next) {
+
+	if (obj->type == OBJ_TREE) {
+static int interpret_target(struct walker *walker, char *target, struct object_id *oid)
+static int process_tree(struct walker *walker, struct tree *tree)
+
+
+	if (parse_tree(tree))
+	}
+		pop_most_recent_commit(&complete, COMPLETE);
+#define SEEN		(1U << 1)
+			if (walker->fetch(walker, obj->oid.hash)) {
+			stop_progress(&progress);
+	for (i = 0; i < targets; i++) {
+	strbuf_release(&refname);
+	struct object_id *oids;
+	if (ref_transaction_commit(transaction, &err)) {
+		if (!process_queue)
+static struct object_list **process_queue_end = &process_queue;
+		if (ref_transaction_update(transaction, refname.buf,
+	ret = 0;
+#include "progress.h"
+			*rf_one++ = 0;
+	free(walker);
+
+static void report_missing(const struct object *obj)
+#define COMPLETE	(1U << 0)
+
+	if (!write_ref) {
+		free(elem);
+	walker_say(walker, "walk %s\n", oid_to_hex(&commit->object.oid));
+			process_queue_end = &process_queue;
+	ALLOC_ARRAY(oids, targets);
+			oid_to_hex(&current_commit_oid));
+static int process(struct walker *walker, struct object *obj);
+			return -1;
+
+	*target = NULL; *write_ref = NULL;
+		struct object *obj = NULL;
+
+static struct object_id current_commit_oid;
+		}
+		     "of type %s for %s",
+		if (!obj->type)
+	struct strbuf buf = STRBUF_INIT;
+}
+}
+	init_tree_desc(&desc, tree->buffer, tree->size);
+	if (process(walker, &get_commit_tree(commit)->object))
+#include "tree.h"
+{
+		goto done;
+		(*write_ref)[targets] = xstrdup_or_null(rf_one);
+
+	int targets = 0, targets_alloc = 0;
+							&entry.oid);
+	struct ref_transaction *transaction = NULL;
+	fprintf(stderr, "Cannot obtain needed %s %s\n",
+	}
+{
+		if (rf_one)
+
+static int process_commit(struct walker *walker, struct commit *commit)
+
+		transaction = ref_transaction_begin(&err);
+	obj->flags |= SEEN;
+		return 0;
+	if (has_object_file(&obj->oid)) {
+	stop_progress(&progress);
+done:
+}
+	if (commit) {
+	struct commit_list *parents;
+	}
+		if (strbuf_getline_lf(&buf, stdin) == EOF)
+{
+	return 0;
+}
+
+	else {
+}
+			goto done;
+	if (obj->flags & SEEN)
+	while (process_queue) {
+		return 0;
+		return -1;
+	if (commit->object.flags & COMPLETE)
+		}
+	uint64_t nr = 0;
+
+		targets++;
+	}
+		struct object *obj = process_queue->item;
+		return 0;
+
+
+
+}
+			free((char *) write_ref[targets]);
+#include "repository.h"
+
+/* Remember to update object flag allocation in object.h */
+		return 0;
+		/* submodule commits are not stored in the superproject */
+	if (obj->type == OBJ_TAG) {
+		va_end(ap);
+	process_queue_end = &(*process_queue_end)->next;
+{
+	}
+		return -1;
+#define TO_SCAN		(1U << 2)
+	}
+		goto done;
+#include "tag.h"
+	walker->cleanup(walker);
+static int process_tag(struct walker *walker, struct tag *tag)
+void walker_targets_free(int targets, char **target, const char **write_ref)
+		return -1;
+
+			return 0;
+	strbuf_release(&err);
+	return 0;
+	}
+	return error("Unable to determine requirements "
+}
+		free(ref);
+
+#include "object-store.h"
+			free(ref);
+		for_each_ref(mark_complete, NULL);
+#include "cache.h"
+	}
+	return ret;
+		}
+
+	while (complete && complete->item->date >= commit->date) {
+			error("%s", err.buf);
+static int mark_complete(const char *path, const struct object_id *oid,
+	}
+
+	return -1;
+		}
+			if (tree)
+		oid_to_hex(&obj->oid));
+	oidcpy(&current_commit_oid, &commit->object.oid);
+int walker_fetch(struct walker *walker, int targets, char **target,
+			REALLOC_ARRAY(*target, targets_alloc);
+		if (process_tree(walker, (struct tree *)obj))
+{
+
+		 const char **write_ref, const char *write_ref_log_details)
+
+	}
+
+
+	struct progress *progress = NULL;
+			continue;
+
+	return process(walker, tag->tagged);
+		msg = xstrfmt("fetch from %s", write_ref_log_details);
+	struct tree_desc desc;
+
+
+		progress = start_delayed_progress(_("Fetching objects"), 0);
+	struct commit *commit = lookup_commit_reference_gently(the_repository,
+	struct strbuf refname = STRBUF_INIT;
+static struct commit_list *complete = NULL;
+					   oids + i, NULL, 0,
+{
+			error("Could not interpret response from server '%s' as something to pull", target[i]);
+	}
+		tg_one = buf.buf;
+{
+
+	} else {
+		if (!write_ref[i])
+	}

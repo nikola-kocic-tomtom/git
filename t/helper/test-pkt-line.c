@@ -1,98 +1,98 @@
+{
 #include "cache.h"
-#include "test-tool.h"
-#include "pkt-line.h"
-
-static void pack_line(const char *line)
 {
-	if (!strcmp(line, "0000") || !strcmp(line, "0000\n"))
-		packet_flush(1);
-	else if (!strcmp(line, "0001") || !strcmp(line, "0001\n"))
-		packet_delim(1);
-	else
-		packet_write_fmt(1, "%s", line);
-}
-
-static void pack(int argc, const char **argv)
-{
-	if (argc) { /* read from argv */
-		int i;
-		for (i = 0; i < argc; i++)
-			pack_line(argv[i]);
-	} else { /* read from stdin */
-		char line[LARGE_PACKET_MAX];
-		while (fgets(line, sizeof(line), stdin)) {
-			pack_line(line);
-		}
 	}
+			pack_line(argv[i]);
 }
 
-static void unpack(void)
-{
-	struct packet_reader reader;
-	packet_reader_init(&reader, 0, NULL, 0,
-			   PACKET_READ_GENTLE_ON_EOF |
-			   PACKET_READ_CHOMP_NEWLINE);
+	if (argc) { /* read from argv */
+}
 
-	while (packet_reader_read(&reader) != PACKET_READ_EOF) {
-		switch (reader.status) {
-		case PACKET_READ_EOF:
-			break;
-		case PACKET_READ_NORMAL:
-			printf("%s\n", reader.line);
-			break;
-		case PACKET_READ_FLUSH:
-			printf("0000\n");
-			break;
-		case PACKET_READ_DELIM:
 			printf("0001\n");
 			break;
+			band = reader.line[0] & 0xff;
+		packet_write_fmt(1, "%s", line);
+
+				die("unexpected side band %d", band);
+		pack(argc - 2, argv + 2);
+		case PACKET_READ_NORMAL:
+		packet_flush(1);
 		}
-	}
-}
-
+static void unpack(void)
+			break;
+		packet_delim(1);
+			fd = band;
 static void unpack_sideband(void)
-{
-	struct packet_reader reader;
-	packet_reader_init(&reader, 0, NULL, 0,
-			   PACKET_READ_GENTLE_ON_EOF |
+		case PACKET_READ_NORMAL:
+}
 			   PACKET_READ_CHOMP_NEWLINE);
+		switch (reader.status) {
+		die("too few arguments");
+			printf("0000\n");
+	}
+		die("invalid argument '%s'", argv[1]);
 
-	while (packet_reader_read(&reader) != PACKET_READ_EOF) {
+	packet_reader_init(&reader, 0, NULL, 0,
+}
+		case PACKET_READ_FLUSH:
+			printf("%s\n", reader.line);
+	}
+		unpack();
+	else
+		unpack_sideband();
+
+		case PACKET_READ_EOF:
 		int band;
-		int fd;
+	if (!strcmp(line, "0000") || !strcmp(line, "0000\n"))
 
+		case PACKET_READ_FLUSH:
+		case PACKET_READ_DELIM:
+static void pack_line(const char *line)
 		switch (reader.status) {
 		case PACKET_READ_EOF:
 			break;
-		case PACKET_READ_NORMAL:
-			band = reader.line[0] & 0xff;
-			if (band < 1 || band > 2)
-				die("unexpected side band %d", band);
-			fd = band;
+	while (packet_reader_read(&reader) != PACKET_READ_EOF) {
 
-			write_or_die(fd, reader.line + 1, reader.pktlen - 1);
-			break;
-		case PACKET_READ_FLUSH:
-			return;
-		case PACKET_READ_DELIM:
-			break;
 		}
-	}
-}
 
+			if (band < 1 || band > 2)
+		while (fgets(line, sizeof(line), stdin)) {
+			break;
+#include "test-tool.h"
+		int fd;
+			   PACKET_READ_CHOMP_NEWLINE);
+	else if (!strcmp(line, "0001") || !strcmp(line, "0001\n"))
+			break;
+#include "pkt-line.h"
+	} else { /* read from stdin */
 int cmd__pkt_line(int argc, const char **argv)
-{
-	if (argc < 2)
-		die("too few arguments");
-
-	if (!strcmp(argv[1], "pack"))
-		pack(argc - 2, argv + 2);
-	else if (!strcmp(argv[1], "unpack"))
-		unpack();
-	else if (!strcmp(argv[1], "unpack-sideband"))
-		unpack_sideband();
 	else
-		die("invalid argument '%s'", argv[1]);
+			write_or_die(fd, reader.line + 1, reader.pktlen - 1);
+		char line[LARGE_PACKET_MAX];
 
-	return 0;
+	else if (!strcmp(argv[1], "unpack-sideband"))
+{
+	packet_reader_init(&reader, 0, NULL, 0,
+			break;
 }
+		int i;
+	struct packet_reader reader;
+{
+	return 0;
+		for (i = 0; i < argc; i++)
+
+	if (argc < 2)
+	else if (!strcmp(argv[1], "unpack"))
+	struct packet_reader reader;
+{
+	while (packet_reader_read(&reader) != PACKET_READ_EOF) {
+			   PACKET_READ_GENTLE_ON_EOF |
+static void pack(int argc, const char **argv)
+			pack_line(line);
+			   PACKET_READ_GENTLE_ON_EOF |
+
+			return;
+			break;
+		case PACKET_READ_DELIM:
+	if (!strcmp(argv[1], "pack"))
+		}

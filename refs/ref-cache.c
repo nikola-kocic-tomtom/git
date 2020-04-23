@@ -1,551 +1,551 @@
-#include "../cache.h"
-#include "../refs.h"
-#include "refs-internal.h"
-#include "ref-cache.h"
-#include "../iterator.h"
-
-void add_entry_to_dir(struct ref_dir *dir, struct ref_entry *entry)
-{
-	ALLOC_GROW(dir->entries, dir->nr + 1, dir->alloc);
-	dir->entries[dir->nr++] = entry;
-	/* optimize for the case that entries are added in order */
-	if (dir->nr == 1 ||
-	    (dir->nr == dir->sorted + 1 &&
-	     strcmp(dir->entries[dir->nr - 2]->name,
-		    dir->entries[dir->nr - 1]->name) < 0))
-		dir->sorted = dir->nr;
-}
-
-struct ref_dir *get_ref_dir(struct ref_entry *entry)
-{
-	struct ref_dir *dir;
-	assert(entry->flag & REF_DIR);
-	dir = &entry->u.subdir;
-	if (entry->flag & REF_INCOMPLETE) {
-		if (!dir->cache->fill_ref_dir)
-			BUG("incomplete ref_store without fill_ref_dir function");
-
-		dir->cache->fill_ref_dir(dir->cache->ref_store, dir, entry->name);
-		entry->flag &= ~REF_INCOMPLETE;
-	}
-	return dir;
-}
-
-struct ref_entry *create_ref_entry(const char *refname,
-				   const struct object_id *oid, int flag)
-{
-	struct ref_entry *ref;
-
-	FLEX_ALLOC_STR(ref, name, refname);
-	oidcpy(&ref->u.value.oid, oid);
-	ref->flag = flag;
-	return ref;
-}
-
-struct ref_cache *create_ref_cache(struct ref_store *refs,
-				   fill_ref_dir_fn *fill_ref_dir)
-{
-	struct ref_cache *ret = xcalloc(1, sizeof(*ret));
-
-	ret->ref_store = refs;
-	ret->fill_ref_dir = fill_ref_dir;
-	ret->root = create_dir_entry(ret, "", 0, 1);
-	return ret;
-}
-
-static void clear_ref_dir(struct ref_dir *dir);
-
-static void free_ref_entry(struct ref_entry *entry)
-{
-	if (entry->flag & REF_DIR) {
-		/*
-		 * Do not use get_ref_dir() here, as that might
-		 * trigger the reading of loose refs.
-		 */
-		clear_ref_dir(&entry->u.subdir);
-	}
-	free(entry);
-}
-
-void free_ref_cache(struct ref_cache *cache)
-{
-	free_ref_entry(cache->root);
-	free(cache);
-}
-
-/*
- * Clear and free all entries in dir, recursively.
- */
-static void clear_ref_dir(struct ref_dir *dir)
-{
-	int i;
-	for (i = 0; i < dir->nr; i++)
-		free_ref_entry(dir->entries[i]);
-	FREE_AND_NULL(dir->entries);
-	dir->sorted = dir->nr = dir->alloc = 0;
-}
-
-struct ref_entry *create_dir_entry(struct ref_cache *cache,
-				   const char *dirname, size_t len,
-				   int incomplete)
-{
-	struct ref_entry *direntry;
-
-	FLEX_ALLOC_MEM(direntry, name, dirname, len);
-	direntry->u.subdir.cache = cache;
-	direntry->flag = REF_DIR | (incomplete ? REF_INCOMPLETE : 0);
-	return direntry;
-}
-
-static int ref_entry_cmp(const void *a, const void *b)
-{
-	struct ref_entry *one = *(struct ref_entry **)a;
-	struct ref_entry *two = *(struct ref_entry **)b;
-	return strcmp(one->name, two->name);
-}
-
-static void sort_ref_dir(struct ref_dir *dir);
-
-struct string_slice {
-	size_t len;
-	const char *str;
-};
-
-static int ref_entry_cmp_sslice(const void *key_, const void *ent_)
-{
-	const struct string_slice *key = key_;
-	const struct ref_entry *ent = *(const struct ref_entry * const *)ent_;
-	int cmp = strncmp(key->str, ent->name, key->len);
-	if (cmp)
-		return cmp;
-	return '\0' - (unsigned char)ent->name[key->len];
-}
-
-int search_ref_dir(struct ref_dir *dir, const char *refname, size_t len)
-{
-	struct ref_entry **r;
-	struct string_slice key;
-
-	if (refname == NULL || !dir->nr)
-		return -1;
-
-	sort_ref_dir(dir);
-	key.len = len;
-	key.str = refname;
-	r = bsearch(&key, dir->entries, dir->nr, sizeof(*dir->entries),
-		    ref_entry_cmp_sslice);
-
-	if (r == NULL)
-		return -1;
-
-	return r - dir->entries;
-}
-
-/*
- * Search for a directory entry directly within dir (without
- * recursing).  Sort dir if necessary.  subdirname must be a directory
- * name (i.e., end in '/').  If mkdir is set, then create the
- * directory if it is missing; otherwise, return NULL if the desired
- * directory cannot be found.  dir must already be complete.
- */
-static struct ref_dir *search_for_subdir(struct ref_dir *dir,
-					 const char *subdirname, size_t len,
-					 int mkdir)
-{
-	int entry_index = search_ref_dir(dir, subdirname, len);
-	struct ref_entry *entry;
-	if (entry_index == -1) {
-		if (!mkdir)
-			return NULL;
-		/*
-		 * Since dir is complete, the absence of a subdir
-		 * means that the subdir really doesn't exist;
-		 * therefore, create an empty record for it but mark
-		 * the record complete.
-		 */
-		entry = create_dir_entry(dir->cache, subdirname, len, 0);
-		add_entry_to_dir(dir, entry);
-	} else {
-		entry = dir->entries[entry_index];
-	}
-	return get_ref_dir(entry);
-}
-
-/*
- * If refname is a reference name, find the ref_dir within the dir
- * tree that should hold refname. If refname is a directory name
- * (i.e., it ends in '/'), then return that ref_dir itself. dir must
- * represent the top-level directory and must already be complete.
- * Sort ref_dirs and recurse into subdirectories as necessary. If
- * mkdir is set, then create any missing directories; otherwise,
- * return NULL if the desired directory cannot be found.
- */
-static struct ref_dir *find_containing_dir(struct ref_dir *dir,
-					   const char *refname, int mkdir)
-{
-	const char *slash;
-	for (slash = strchr(refname, '/'); slash; slash = strchr(slash + 1, '/')) {
-		size_t dirnamelen = slash - refname + 1;
-		struct ref_dir *subdir;
-		subdir = search_for_subdir(dir, refname, dirnamelen, mkdir);
-		if (!subdir) {
-			dir = NULL;
-			break;
-		}
-		dir = subdir;
-	}
-
-	return dir;
-}
-
-struct ref_entry *find_ref_entry(struct ref_dir *dir, const char *refname)
-{
-	int entry_index;
-	struct ref_entry *entry;
-	dir = find_containing_dir(dir, refname, 0);
-	if (!dir)
-		return NULL;
-	entry_index = search_ref_dir(dir, refname, strlen(refname));
-	if (entry_index == -1)
-		return NULL;
-	entry = dir->entries[entry_index];
-	return (entry->flag & REF_DIR) ? NULL : entry;
-}
-
-int remove_entry_from_dir(struct ref_dir *dir, const char *refname)
-{
-	int refname_len = strlen(refname);
-	int entry_index;
-	struct ref_entry *entry;
-	int is_dir = refname[refname_len - 1] == '/';
-	if (is_dir) {
-		/*
-		 * refname represents a reference directory.  Remove
-		 * the trailing slash; otherwise we will get the
-		 * directory *representing* refname rather than the
-		 * one *containing* it.
-		 */
-		char *dirname = xmemdupz(refname, refname_len - 1);
-		dir = find_containing_dir(dir, dirname, 0);
-		free(dirname);
-	} else {
-		dir = find_containing_dir(dir, refname, 0);
-	}
-	if (!dir)
-		return -1;
-	entry_index = search_ref_dir(dir, refname, refname_len);
-	if (entry_index == -1)
-		return -1;
-	entry = dir->entries[entry_index];
-
-	MOVE_ARRAY(&dir->entries[entry_index],
-		   &dir->entries[entry_index + 1], dir->nr - entry_index - 1);
-	dir->nr--;
-	if (dir->sorted > entry_index)
-		dir->sorted--;
-	free_ref_entry(entry);
-	return dir->nr;
-}
-
-int add_ref_entry(struct ref_dir *dir, struct ref_entry *ref)
-{
-	dir = find_containing_dir(dir, ref->name, 1);
-	if (!dir)
-		return -1;
-	add_entry_to_dir(dir, ref);
-	return 0;
-}
-
-/*
- * Emit a warning and return true iff ref1 and ref2 have the same name
- * and the same oid. Die if they have the same name but different
- * oids.
- */
-static int is_dup_ref(const struct ref_entry *ref1, const struct ref_entry *ref2)
-{
-	if (strcmp(ref1->name, ref2->name))
-		return 0;
-
-	/* Duplicate name; make sure that they don't conflict: */
-
-	if ((ref1->flag & REF_DIR) || (ref2->flag & REF_DIR))
-		/* This is impossible by construction */
-		die("Reference directory conflict: %s", ref1->name);
-
-	if (!oideq(&ref1->u.value.oid, &ref2->u.value.oid))
-		die("Duplicated ref, and SHA1s don't match: %s", ref1->name);
-
-	warning("Duplicated ref: %s", ref1->name);
-	return 1;
-}
-
-/*
- * Sort the entries in dir non-recursively (if they are not already
- * sorted) and remove any duplicate entries.
- */
-static void sort_ref_dir(struct ref_dir *dir)
-{
-	int i, j;
-	struct ref_entry *last = NULL;
-
-	/*
-	 * This check also prevents passing a zero-length array to qsort(),
-	 * which is a problem on some platforms.
-	 */
-	if (dir->sorted == dir->nr)
-		return;
-
-	QSORT(dir->entries, dir->nr, ref_entry_cmp);
-
-	/* Remove any duplicates: */
-	for (i = 0, j = 0; j < dir->nr; j++) {
-		struct ref_entry *entry = dir->entries[j];
-		if (last && is_dup_ref(last, entry))
-			free_ref_entry(entry);
-		else
-			last = dir->entries[i++] = entry;
-	}
-	dir->sorted = dir->nr = i;
-}
-
-enum prefix_state {
-	/* All refs within the directory would match prefix: */
-	PREFIX_CONTAINS_DIR,
-
-	/* Some, but not all, refs within the directory might match prefix: */
-	PREFIX_WITHIN_DIR,
-
-	/* No refs within the directory could possibly match prefix: */
-	PREFIX_EXCLUDES_DIR
-};
-
-/*
- * Return a `prefix_state` constant describing the relationship
- * between the directory with the specified `dirname` and `prefix`.
- */
-static enum prefix_state overlaps_prefix(const char *dirname,
-					 const char *prefix)
-{
-	while (*prefix && *dirname == *prefix) {
-		dirname++;
-		prefix++;
-	}
-	if (!*prefix)
-		return PREFIX_CONTAINS_DIR;
-	else if (!*dirname)
-		return PREFIX_WITHIN_DIR;
-	else
-		return PREFIX_EXCLUDES_DIR;
-}
-
-/*
- * Load all of the refs from `dir` (recursively) that could possibly
- * contain references matching `prefix` into our in-memory cache. If
- * `prefix` is NULL, prime unconditionally.
- */
-static void prime_ref_dir(struct ref_dir *dir, const char *prefix)
-{
-	/*
-	 * The hard work of loading loose refs is done by get_ref_dir(), so we
-	 * just need to recurse through all of the sub-directories. We do not
-	 * even need to care about sorting, as traversal order does not matter
-	 * to us.
-	 */
-	int i;
-	for (i = 0; i < dir->nr; i++) {
-		struct ref_entry *entry = dir->entries[i];
-		if (!(entry->flag & REF_DIR)) {
-			/* Not a directory; no need to recurse. */
-		} else if (!prefix) {
-			/* Recurse in any case: */
-			prime_ref_dir(get_ref_dir(entry), NULL);
-		} else {
-			switch (overlaps_prefix(entry->name, prefix)) {
-			case PREFIX_CONTAINS_DIR:
-				/*
-				 * Recurse, and from here down we
-				 * don't have to check the prefix
-				 * anymore:
-				 */
-				prime_ref_dir(get_ref_dir(entry), NULL);
-				break;
-			case PREFIX_WITHIN_DIR:
-				prime_ref_dir(get_ref_dir(entry), prefix);
-				break;
-			case PREFIX_EXCLUDES_DIR:
-				/* No need to prime this directory. */
-				break;
-			}
-		}
-	}
-}
-
-/*
- * A level in the reference hierarchy that is currently being iterated
- * through.
- */
-struct cache_ref_iterator_level {
-	/*
-	 * The ref_dir being iterated over at this level. The ref_dir
-	 * is sorted before being stored here.
-	 */
-	struct ref_dir *dir;
-
-	enum prefix_state prefix_state;
-
-	/*
-	 * The index of the current entry within dir (which might
-	 * itself be a directory). If index == -1, then the iteration
-	 * hasn't yet begun. If index == dir->nr, then the iteration
-	 * through this level is over.
-	 */
-	int index;
-};
-
-/*
- * Represent an iteration through a ref_dir in the memory cache. The
- * iteration recurses through subdirectories.
- */
-struct cache_ref_iterator {
-	struct ref_iterator base;
-
-	/*
-	 * The number of levels currently on the stack. This is always
-	 * at least 1, because when it becomes zero the iteration is
-	 * ended and this struct is freed.
-	 */
-	size_t levels_nr;
-
-	/* The number of levels that have been allocated on the stack */
-	size_t levels_alloc;
-
-	/*
-	 * Only include references with this prefix in the iteration.
-	 * The prefix is matched textually, without regard for path
-	 * component boundaries.
-	 */
-	const char *prefix;
-
-	/*
-	 * A stack of levels. levels[0] is the uppermost level that is
-	 * being iterated over in this iteration. (This is not
-	 * necessary the top level in the references hierarchy. If we
-	 * are iterating through a subtree, then levels[0] will hold
-	 * the ref_dir for that subtree, and subsequent levels will go
-	 * on from there.)
-	 */
-	struct cache_ref_iterator_level *levels;
-};
-
-static int cache_ref_iterator_advance(struct ref_iterator *ref_iterator)
-{
-	struct cache_ref_iterator *iter =
-		(struct cache_ref_iterator *)ref_iterator;
-
-	while (1) {
-		struct cache_ref_iterator_level *level =
-			&iter->levels[iter->levels_nr - 1];
-		struct ref_dir *dir = level->dir;
-		struct ref_entry *entry;
-		enum prefix_state entry_prefix_state;
-
-		if (level->index == -1)
-			sort_ref_dir(dir);
-
-		if (++level->index == level->dir->nr) {
-			/* This level is exhausted; pop up a level */
-			if (--iter->levels_nr == 0)
-				return ref_iterator_abort(ref_iterator);
-
-			continue;
-		}
-
-		entry = dir->entries[level->index];
-
-		if (level->prefix_state == PREFIX_WITHIN_DIR) {
-			entry_prefix_state = overlaps_prefix(entry->name, iter->prefix);
-			if (entry_prefix_state == PREFIX_EXCLUDES_DIR)
-				continue;
-		} else {
-			entry_prefix_state = level->prefix_state;
-		}
-
-		if (entry->flag & REF_DIR) {
-			/* push down a level */
-			ALLOC_GROW(iter->levels, iter->levels_nr + 1,
-				   iter->levels_alloc);
-
-			level = &iter->levels[iter->levels_nr++];
-			level->dir = get_ref_dir(entry);
-			level->prefix_state = entry_prefix_state;
-			level->index = -1;
-		} else {
-			iter->base.refname = entry->name;
-			iter->base.oid = &entry->u.value.oid;
-			iter->base.flags = entry->flag;
-			return ITER_OK;
-		}
-	}
-}
-
-static int cache_ref_iterator_peel(struct ref_iterator *ref_iterator,
-				   struct object_id *peeled)
-{
-	return peel_object(ref_iterator->oid, peeled);
-}
-
-static int cache_ref_iterator_abort(struct ref_iterator *ref_iterator)
-{
-	struct cache_ref_iterator *iter =
-		(struct cache_ref_iterator *)ref_iterator;
-
-	free((char *)iter->prefix);
-	free(iter->levels);
-	base_ref_iterator_free(ref_iterator);
-	return ITER_DONE;
-}
-
-static struct ref_iterator_vtable cache_ref_iterator_vtable = {
-	cache_ref_iterator_advance,
-	cache_ref_iterator_peel,
-	cache_ref_iterator_abort
-};
-
-struct ref_iterator *cache_ref_iterator_begin(struct ref_cache *cache,
-					      const char *prefix,
-					      int prime_dir)
-{
-	struct ref_dir *dir;
-	struct cache_ref_iterator *iter;
-	struct ref_iterator *ref_iterator;
-	struct cache_ref_iterator_level *level;
-
-	dir = get_ref_dir(cache->root);
-	if (prefix && *prefix)
-		dir = find_containing_dir(dir, prefix, 0);
-	if (!dir)
-		/* There's nothing to iterate over. */
-		return empty_ref_iterator_begin();
-
-	if (prime_dir)
-		prime_ref_dir(dir, prefix);
-
 	iter = xcalloc(1, sizeof(*iter));
-	ref_iterator = &iter->base;
-	base_ref_iterator_init(ref_iterator, &cache_ref_iterator_vtable, 1);
-	ALLOC_GROW(iter->levels, 10, iter->levels_alloc);
+	 */
+
+		if (last && is_dup_ref(last, entry))
+	return strcmp(one->name, two->name);
+	struct ref_entry *entry;
+				 * don't have to check the prefix
+
+			break;
+			continue;
+		char *dirname = xmemdupz(refname, refname_len - 1);
+
+	} else {
+
+	int i, j;
+ * oids.
+	 */
+}
+	key.str = refname;
+			level->dir = get_ref_dir(entry);
+{
+					 const char *prefix)
+
+	int entry_index;
+	if (cmp)
+		}
+static void prime_ref_dir(struct ref_dir *dir, const char *prefix)
+		prefix++;
+	if (dir->sorted == dir->nr)
+		    dir->entries[dir->nr - 1]->name) < 0))
+		if (level->prefix_state == PREFIX_WITHIN_DIR) {
+
+ * `prefix` is NULL, prime unconditionally.
+
+
+	struct ref_entry **r;
+		dir = find_containing_dir(dir, dirname, 0);
+
+			dir = NULL;
+static void free_ref_entry(struct ref_entry *entry)
+	    (dir->nr == dir->sorted + 1 &&
+	struct ref_dir *dir;
+	}
+static int cache_ref_iterator_abort(struct ref_iterator *ref_iterator)
+	struct cache_ref_iterator *iter;
 
 	iter->levels_nr = 1;
-	level = &iter->levels[0];
-	level->index = -1;
-	level->dir = dir;
+	 * A stack of levels. levels[0] is the uppermost level that is
+	cache_ref_iterator_peel,
+				 */
+		/*
+		/* There's nothing to iterate over. */
+	return ref;
+{
+		return -1;
+{
 
-	if (prefix && *prefix) {
-		iter->prefix = xstrdup(prefix);
-		level->prefix_state = PREFIX_WITHIN_DIR;
+	free_ref_entry(entry);
+		if (!(entry->flag & REF_DIR)) {
+/*
+		if (!subdir) {
+		if (!mkdir)
+					      const char *prefix,
+
+
+		enum prefix_state entry_prefix_state;
+struct ref_entry *create_dir_entry(struct ref_cache *cache,
+}
+	 * which is a problem on some platforms.
+#include "refs-internal.h"
+	struct ref_iterator base;
+ * Represent an iteration through a ref_dir in the memory cache. The
+		(struct cache_ref_iterator *)ref_iterator;
+}
+/*
+		entry = dir->entries[entry_index];
+}
+	 * The ref_dir being iterated over at this level. The ref_dir
+
+		} else {
+
+	FLEX_ALLOC_MEM(direntry, name, dirname, len);
+void free_ref_cache(struct ref_cache *cache)
+}
+	else if (!*dirname)
+	return dir->nr;
+	if (!*prefix)
+	free_ref_entry(cache->root);
+
+	return 1;
+#include "../cache.h"
+
+
+		 * the trailing slash; otherwise we will get the
+	level = &iter->levels[0];
+	cache_ref_iterator_advance,
+	}
+		return -1;
+
+	ret->ref_store = refs;
+
+static void clear_ref_dir(struct ref_dir *dir)
+	QSORT(dir->entries, dir->nr, ref_entry_cmp);
+	free(cache);
+	/*
+
+	if (prefix && *prefix)
+		 */
+	}
+	ref_iterator = &iter->base;
+#include "../refs.h"
 	} else {
+	 * even need to care about sorting, as traversal order does not matter
+	if (entry_index == -1)
+	ret->fill_ref_dir = fill_ref_dir;
+	if (!dir)
+
+
+	return get_ref_dir(entry);
+}
+			}
+		/*
+				   iter->levels_alloc);
+	const struct string_slice *key = key_;
+		return -1;
+		(struct cache_ref_iterator *)ref_iterator;
+					 const char *subdirname, size_t len,
+	while (1) {
+		 * therefore, create an empty record for it but mark
+	entry = dir->entries[entry_index];
+	 * The hard work of loading loose refs is done by get_ref_dir(), so we
+	 * hasn't yet begun. If index == dir->nr, then the iteration
+	for (i = 0; i < dir->nr; i++)
+ */
+
+
+		dir = find_containing_dir(dir, prefix, 0);
+{
+		if (entry->flag & REF_DIR) {
+				   fill_ref_dir_fn *fill_ref_dir)
+	ALLOC_GROW(iter->levels, 10, iter->levels_alloc);
+		 * trigger the reading of loose refs.
+ */
+ */
+	const char *str;
+{
+ */
+			iter->base.oid = &entry->u.value.oid;
+		entry = create_dir_entry(dir->cache, subdirname, len, 0);
+ * A level in the reference hierarchy that is currently being iterated
+static void sort_ref_dir(struct ref_dir *dir)
+	if (is_dir) {
+enum prefix_state {
+{
+}
+				   int incomplete)
+		/* This is impossible by construction */
+		return NULL;
+
+	struct ref_entry *one = *(struct ref_entry **)a;
+	free(iter->levels);
+	}
+}
+		 */
+	return (entry->flag & REF_DIR) ? NULL : entry;
+	free((char *)iter->prefix);
+	 * at least 1, because when it becomes zero the iteration is
+{
+	/* Some, but not all, refs within the directory might match prefix: */
+			iter->base.refname = entry->name;
+/*
+	for (i = 0, j = 0; j < dir->nr; j++) {
+	direntry->flag = REF_DIR | (incomplete ? REF_INCOMPLETE : 0);
+		dirname++;
+	direntry->u.subdir.cache = cache;
+	return dir;
+	 * The prefix is matched textually, without regard for path
+
+				   const struct object_id *oid, int flag)
+	for (i = 0; i < dir->nr; i++) {
+				prime_ref_dir(get_ref_dir(entry), prefix);
+
+	size_t len;
+				   const char *dirname, size_t len,
+				break;
+	/*
+struct ref_entry *create_ref_entry(const char *refname,
 		level->prefix_state = PREFIX_CONTAINS_DIR;
+					 int mkdir)
+					   const char *refname, int mkdir)
+	struct ref_entry *two = *(struct ref_entry **)b;
+struct ref_dir *get_ref_dir(struct ref_entry *entry)
+{
+			/* This level is exhausted; pop up a level */
+	 */
+/*
+	base_ref_iterator_init(ref_iterator, &cache_ref_iterator_vtable, 1);
+			sort_ref_dir(dir);
+	int refname_len = strlen(refname);
+
+	oidcpy(&ref->u.value.oid, oid);
+	for (slash = strchr(refname, '/'); slash; slash = strchr(slash + 1, '/')) {
+	int i;
+
+
+ * (i.e., it ends in '/'), then return that ref_dir itself. dir must
+};
+
+
+ * return NULL if the desired directory cannot be found.
+
+			return ITER_OK;
+	int i;
+	/* Remove any duplicates: */
+				 * Recurse, and from here down we
+/*
+	dir->entries[dir->nr++] = entry;
+
+static enum prefix_state overlaps_prefix(const char *dirname,
+		iter->prefix = xstrdup(prefix);
+struct cache_ref_iterator {
+}
+				return ref_iterator_abort(ref_iterator);
+int search_ref_dir(struct ref_dir *dir, const char *refname, size_t len)
+	ALLOC_GROW(dir->entries, dir->nr + 1, dir->alloc);
+		 * Since dir is complete, the absence of a subdir
+		 * means that the subdir really doesn't exist;
+		} else {
+	/* optimize for the case that entries are added in order */
+		}
+		entry->flag &= ~REF_INCOMPLETE;
+static void sort_ref_dir(struct ref_dir *dir);
+	struct ref_entry *direntry;
+int remove_entry_from_dir(struct ref_dir *dir, const char *refname)
+	 * being iterated over in this iteration. (This is not
+		if (level->index == -1)
+	int entry_index = search_ref_dir(dir, subdirname, len);
+			switch (overlaps_prefix(entry->name, prefix)) {
+		}
+	r = bsearch(&key, dir->entries, dir->nr, sizeof(*dir->entries),
+	if (entry_index == -1)
+	entry_index = search_ref_dir(dir, refname, refname_len);
+
+	int is_dir = refname[refname_len - 1] == '/';
+	key.len = len;
+}
+			if (entry_prefix_state == PREFIX_EXCLUDES_DIR)
+ */
+					      int prime_dir)
+struct ref_entry *find_ref_entry(struct ref_dir *dir, const char *refname)
+		return PREFIX_EXCLUDES_DIR;
+
+	size_t levels_alloc;
+{
+	struct ref_dir *dir;
+ * name (i.e., end in '/').  If mkdir is set, then create the
+	struct ref_entry *ref;
+	int index;
+	return '\0' - (unsigned char)ent->name[key->len];
+ * Return a `prefix_state` constant describing the relationship
+static int ref_entry_cmp_sslice(const void *key_, const void *ent_)
+{
+		}
+	dir->sorted = dir->nr = dir->alloc = 0;
+{
+	 * The index of the current entry within dir (which might
+{
+			iter->base.flags = entry->flag;
+
+	/* No refs within the directory could possibly match prefix: */
+			return NULL;
+			case PREFIX_WITHIN_DIR:
+static int cache_ref_iterator_peel(struct ref_iterator *ref_iterator,
+	free(entry);
+	if ((ref1->flag & REF_DIR) || (ref2->flag & REF_DIR))
+static int cache_ref_iterator_advance(struct ref_iterator *ref_iterator)
+
+	dir->nr--;
+			case PREFIX_CONTAINS_DIR:
+{
+	/* The number of levels that have been allocated on the stack */
+		return PREFIX_CONTAINS_DIR;
+		dir = subdir;
+		struct ref_dir *dir = level->dir;
+		dir->sorted--;
+	if (entry->flag & REF_INCOMPLETE) {
+	struct cache_ref_iterator *iter =
+	FLEX_ALLOC_STR(ref, name, refname);
+static void clear_ref_dir(struct ref_dir *dir);
+{
+}
+ */
+	/* Duplicate name; make sure that they don't conflict: */
+ * through.
+		 * refname represents a reference directory.  Remove
 	}
 
-	return ref_iterator;
+	struct ref_iterator *ref_iterator;
+/*
+
+	level->dir = dir;
+		return empty_ref_iterator_begin();
+	if (!dir)
+
+		}
+	     strcmp(dir->entries[dir->nr - 2]->name,
+	 * itself be a directory). If index == -1, then the iteration
+	 * just need to recurse through all of the sub-directories. We do not
+	struct ref_entry *last = NULL;
+	if (!dir)
+	PREFIX_WITHIN_DIR,
+
+ * represent the top-level directory and must already be complete.
+	ref->flag = flag;
+int add_ref_entry(struct ref_dir *dir, struct ref_entry *ref)
+	if (r == NULL)
+
+	struct string_slice key;
+	if (prefix && *prefix) {
+	entry = dir->entries[entry_index];
+struct ref_iterator *cache_ref_iterator_begin(struct ref_cache *cache,
+ * sorted) and remove any duplicate entries.
+/*
+	return 0;
+		if (++level->index == level->dir->nr) {
+#include "../iterator.h"
+		struct cache_ref_iterator_level *level =
+				   struct object_id *peeled)
+void add_entry_to_dir(struct ref_dir *dir, struct ref_entry *entry)
+};
+	struct cache_ref_iterator *iter =
+	}
+				/*
+			entry_prefix_state = level->prefix_state;
 }
+	if (refname == NULL || !dir->nr)
+	entry_index = search_ref_dir(dir, refname, strlen(refname));
+{
+	}
+	} else {
+		   &dir->entries[entry_index + 1], dir->nr - entry_index - 1);
+ * Clear and free all entries in dir, recursively.
+	if (dir->sorted > entry_index)
+ * recursing).  Sort dir if necessary.  subdirname must be a directory
+	if (strcmp(ref1->name, ref2->name))
+		die("Duplicated ref, and SHA1s don't match: %s", ref1->name);
+		level->prefix_state = PREFIX_WITHIN_DIR;
+static int is_dup_ref(const struct ref_entry *ref1, const struct ref_entry *ref2)
+ * tree that should hold refname. If refname is a directory name
+ * Sort ref_dirs and recurse into subdirectories as necessary. If
+static struct ref_iterator_vtable cache_ref_iterator_vtable = {
+
+	 * is sorted before being stored here.
+	 * are iterating through a subtree, then levels[0] will hold
+	/* All refs within the directory would match prefix: */
+	MOVE_ARRAY(&dir->entries[entry_index],
+	struct ref_dir *dir;
+			free_ref_entry(entry);
+		return PREFIX_WITHIN_DIR;
+			level = &iter->levels[iter->levels_nr++];
+		 */
+}
+}
+
+		if (!dir->cache->fill_ref_dir)
+}
+}
+	struct ref_cache *ret = xcalloc(1, sizeof(*ret));
+	/*
+{
+		 * Do not use get_ref_dir() here, as that might
+ * iteration recurses through subdirectories.
+		return -1;
+			/* Recurse in any case: */
+			level->index = -1;
+	dir = find_containing_dir(dir, ref->name, 1);
+			level->prefix_state = entry_prefix_state;
+ * and the same oid. Die if they have the same name but different
+	const struct ref_entry *ent = *(const struct ref_entry * const *)ent_;
+	 * the ref_dir for that subtree, and subsequent levels will go
+		dir->cache->fill_ref_dir(dir->cache->ref_store, dir, entry->name);
+		size_t dirnamelen = slash - refname + 1;
+			case PREFIX_EXCLUDES_DIR:
+	 */
+
+	dir = find_containing_dir(dir, refname, 0);
+		free(dirname);
+	if (!oideq(&ref1->u.value.oid, &ref2->u.value.oid))
+	if (!dir)
+ */
+	else
+		 * directory *representing* refname rather than the
+}
+struct cache_ref_iterator_level {
+		clear_ref_dir(&entry->u.subdir);
+		dir = find_containing_dir(dir, refname, 0);
+	ret->root = create_dir_entry(ret, "", 0, 1);
+	dir->sorted = dir->nr = i;
+	return ITER_DONE;
+	warning("Duplicated ref: %s", ref1->name);
+	 * This check also prevents passing a zero-length array to qsort(),
+			entry_prefix_state = overlaps_prefix(entry->name, iter->prefix);
+
+ */
+{
+	return dir;
+		return NULL;
+};
+static struct ref_dir *find_containing_dir(struct ref_dir *dir,
+	const char *prefix;
+ * mkdir is set, then create any missing directories; otherwise,
+};
+			/* push down a level */
+	return direntry;
+	return ret;
+/*
+struct ref_cache *create_ref_cache(struct ref_store *refs,
+
+	base_ref_iterator_free(ref_iterator);
+		prime_ref_dir(dir, prefix);
+
+	}
+	assert(entry->flag & REF_DIR);
+
+	dir = &entry->u.subdir;
+struct string_slice {
+};
+ * If refname is a reference name, find the ref_dir within the dir
+				break;
+
+}
+ * Search for a directory entry directly within dir (without
+ * Sort the entries in dir non-recursively (if they are not already
+{
+	 */
+		struct ref_dir *subdir;
+	/*
+			last = dir->entries[i++] = entry;
+	return r - dir->entries;
+		 * the record complete.
+		return 0;
+		free_ref_entry(dir->entries[i]);
+	if (prime_dir)
+ * contain references matching `prefix` into our in-memory cache. If
+
+	const char *slash;
+	enum prefix_state prefix_state;
+	}
+static int ref_entry_cmp(const void *a, const void *b)
+		dir->sorted = dir->nr;
+		struct ref_entry *entry = dir->entries[j];
+		add_entry_to_dir(dir, entry);
+	/*
+		return;
+		struct ref_entry *entry = dir->entries[i];
+
+}
+{
+
+	 * ended and this struct is freed.
+ * Load all of the refs from `dir` (recursively) that could possibly
+	add_entry_to_dir(dir, ref);
+ * Emit a warning and return true iff ref1 and ref2 have the same name
+{
+	PREFIX_EXCLUDES_DIR
+			if (--iter->levels_nr == 0)
+	int entry_index;
+
+	 * to us.
+		} else {
+
+	size_t levels_nr;
+	 * The number of levels currently on the stack. This is always
+
+
+{
+		 * one *containing* it.
+				/* No need to prime this directory. */
+}
+	 * on from there.)
+	struct cache_ref_iterator_level *levels;
+	 * necessary the top level in the references hierarchy. If we
+		} else if (!prefix) {
+
+#include "ref-cache.h"
+	dir = get_ref_dir(cache->root);
+}
+	while (*prefix && *dirname == *prefix) {
+		return cmp;
+			BUG("incomplete ref_store without fill_ref_dir function");
+
+		die("Reference directory conflict: %s", ref1->name);
+
+	return peel_object(ref_iterator->oid, peeled);
+{
+
+{
+	 */
+		else
+			&iter->levels[iter->levels_nr - 1];
+	sort_ref_dir(dir);
+ * directory if it is missing; otherwise, return NULL if the desired
+}
+	return ref_iterator;
+
+	/*
+}
+ */
+	struct cache_ref_iterator_level *level;
+			prime_ref_dir(get_ref_dir(entry), NULL);
+				break;
+	 * Only include references with this prefix in the iteration.
+	}
+static struct ref_dir *search_for_subdir(struct ref_dir *dir,
+/*
+
+		return -1;
+
+
+	cache_ref_iterator_abort
+				continue;
+	struct ref_entry *entry;
+	FREE_AND_NULL(dir->entries);
+
+		/*
+{
+	 * component boundaries.
+		struct ref_entry *entry;
+	if (entry->flag & REF_DIR) {
+ * between the directory with the specified `dirname` and `prefix`.
+	/*
+			/* Not a directory; no need to recurse. */
+}
+	 */
+	level->index = -1;
+
+	int cmp = strncmp(key->str, ent->name, key->len);
+				prime_ref_dir(get_ref_dir(entry), NULL);
+	if (dir->nr == 1 ||
+		entry = dir->entries[level->index];
+ * directory cannot be found.  dir must already be complete.
+	PREFIX_CONTAINS_DIR,
+				 * anymore:
+	if (entry_index == -1) {
+		    ref_entry_cmp_sslice);
+		subdir = search_for_subdir(dir, refname, dirnamelen, mkdir);
+	struct ref_entry *entry;
+
+	 * through this level is over.
+			ALLOC_GROW(iter->levels, iter->levels_nr + 1,
+

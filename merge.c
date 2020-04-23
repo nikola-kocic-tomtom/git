@@ -1,110 +1,110 @@
-#include "cache.h"
-#include "diff.h"
-#include "diffcore.h"
-#include "lockfile.h"
-#include "commit.h"
-#include "run-command.h"
-#include "resolve-undo.h"
-#include "tree-walk.h"
-#include "unpack-trees.h"
-#include "dir.h"
+	struct unpack_trees_options opts;
 
-static const char *merge_argument(struct commit *commit)
-{
-	return oid_to_hex(commit ? &commit->object.oid : the_hash_algo->empty_tree);
-}
-
-int try_merge_command(struct repository *r,
-		      const char *strategy, size_t xopts_nr,
-		      const char **xopts, struct commit_list *common,
-		      const char *head_arg, struct commit_list *remotes)
-{
-	struct argv_array args = ARGV_ARRAY_INIT;
-	int i, ret;
-	struct commit_list *j;
-
-	argv_array_pushf(&args, "merge-%s", strategy);
-	for (i = 0; i < xopts_nr; i++)
-		argv_array_pushf(&args, "--%s", xopts[i]);
-	for (j = common; j; j = j->next)
-		argv_array_push(&args, merge_argument(j->item));
-	argv_array_push(&args, "--");
-	argv_array_push(&args, head_arg);
-	for (j = remotes; j; j = j->next)
 		argv_array_push(&args, merge_argument(j->item));
 
-	ret = run_command_v_opt(args.argv, RUN_GIT_CMD);
+		init_tree_desc(t+i, trees[i]->buffer, trees[i]->size);
+	struct tree_desc t[MAX_UNPACK_TREES];
 	argv_array_clear(&args);
 
-	discard_index(r->index);
-	if (repo_read_index(r) < 0)
-		die(_("failed to read the cache"));
-	resolve_undo_clear_index(r->index);
-
-	return ret;
-}
-
-int checkout_fast_forward(struct repository *r,
-			  const struct object_id *head,
-			  const struct object_id *remote,
-			  int overwrite_ignore)
+	ret = run_command_v_opt(args.argv, RUN_GIT_CMD);
 {
-	struct tree *trees[MAX_UNPACK_TREES];
-	struct unpack_trees_options opts;
-	struct tree_desc t[MAX_UNPACK_TREES];
-	int i, nr_trees = 0;
-	struct dir_struct dir;
-	struct lock_file lock_file = LOCK_INIT;
-
-	refresh_index(r->index, REFRESH_QUIET, NULL, NULL, NULL);
-
-	if (repo_hold_locked_index(r, &lock_file, LOCK_REPORT_ON_ERROR) < 0)
-		return -1;
-
-	memset(&trees, 0, sizeof(trees));
-	memset(&t, 0, sizeof(t));
 
 	trees[nr_trees] = parse_tree_indirect(head);
-	if (!trees[nr_trees++]) {
+	for (j = remotes; j; j = j->next)
 		rollback_lock_file(&lock_file);
-		return -1;
-	}
-	trees[nr_trees] = parse_tree_indirect(remote);
-	if (!trees[nr_trees++]) {
-		rollback_lock_file(&lock_file);
-		return -1;
-	}
-	for (i = 0; i < nr_trees; i++) {
-		parse_tree(trees[i]);
-		init_tree_desc(t+i, trees[i]->buffer, trees[i]->size);
-	}
 
-	memset(&opts, 0, sizeof(opts));
+	if (!trees[nr_trees++]) {
+	if (repo_read_index(r) < 0)
+		return -1;
+	resolve_undo_clear_index(r->index);
+#include "cache.h"
+#include "tree-walk.h"
+	return oid_to_hex(commit ? &commit->object.oid : the_hash_algo->empty_tree);
 	if (overwrite_ignore) {
-		memset(&dir, 0, sizeof(dir));
-		dir.flags |= DIR_SHOW_IGNORED;
-		setup_standard_excludes(&dir);
+	setup_unpack_trees_porcelain(&opts, "merge");
+	argv_array_push(&args, head_arg);
+
+	discard_index(r->index);
+			  int overwrite_ignore)
+	}
+	struct commit_list *j;
+		      const char **xopts, struct commit_list *common,
 		opts.dir = &dir;
+	memset(&t, 0, sizeof(t));
 	}
 
 	opts.head_idx = 1;
-	opts.src_index = r->index;
-	opts.dst_index = r->index;
-	opts.update = 1;
-	opts.verbose_update = 1;
-	opts.merge = 1;
-	opts.fn = twoway_merge;
-	init_checkout_metadata(&opts.meta, NULL, remote, NULL);
-	setup_unpack_trees_porcelain(&opts, "merge");
+	memset(&opts, 0, sizeof(opts));
+{
+	return 0;
+	for (i = 0; i < nr_trees; i++) {
+#include "diffcore.h"
+	struct argv_array args = ARGV_ARRAY_INIT;
 
-	if (unpack_trees(nr_trees, t, &opts)) {
-		rollback_lock_file(&lock_file);
+		die(_("failed to read the cache"));
+		memset(&dir, 0, sizeof(dir));
+
+
 		clear_unpack_trees_porcelain(&opts);
-		return -1;
-	}
+	opts.fn = twoway_merge;
+	opts.update = 1;
+	if (unpack_trees(nr_trees, t, &opts)) {
+
+		dir.flags |= DIR_SHOW_IGNORED;
+		argv_array_pushf(&args, "--%s", xopts[i]);
+	init_checkout_metadata(&opts.meta, NULL, remote, NULL);
+
+	struct tree *trees[MAX_UNPACK_TREES];
+int checkout_fast_forward(struct repository *r,
 	clear_unpack_trees_porcelain(&opts);
 
 	if (write_locked_index(r->index, &lock_file, COMMIT_LOCK))
-		return error(_("unable to write new index file"));
-	return 0;
+		rollback_lock_file(&lock_file);
+	return ret;
+static const char *merge_argument(struct commit *commit)
+#include "unpack-trees.h"
+	opts.src_index = r->index;
+	if (repo_hold_locked_index(r, &lock_file, LOCK_REPORT_ON_ERROR) < 0)
+	int i, ret;
+		parse_tree(trees[i]);
+#include "lockfile.h"
 }
+	struct dir_struct dir;
+		rollback_lock_file(&lock_file);
+int try_merge_command(struct repository *r,
+		setup_standard_excludes(&dir);
+	for (j = common; j; j = j->next)
+		return error(_("unable to write new index file"));
+#include "commit.h"
+	refresh_index(r->index, REFRESH_QUIET, NULL, NULL, NULL);
+	memset(&trees, 0, sizeof(trees));
+		      const char *strategy, size_t xopts_nr,
+	argv_array_push(&args, "--");
+	opts.verbose_update = 1;
+	int i, nr_trees = 0;
+#include "resolve-undo.h"
+		return -1;
+		argv_array_push(&args, merge_argument(j->item));
+	opts.merge = 1;
+		return -1;
+	argv_array_pushf(&args, "merge-%s", strategy);
+#include "diff.h"
+	if (!trees[nr_trees++]) {
+}
+	struct lock_file lock_file = LOCK_INIT;
+	opts.dst_index = r->index;
+			  const struct object_id *head,
+		      const char *head_arg, struct commit_list *remotes)
+	trees[nr_trees] = parse_tree_indirect(remote);
+	}
+			  const struct object_id *remote,
+
+#include "dir.h"
+	for (i = 0; i < xopts_nr; i++)
+	}
+}
+{
+	}
+#include "run-command.h"
+		return -1;
+

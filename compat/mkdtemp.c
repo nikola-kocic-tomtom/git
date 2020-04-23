@@ -1,8 +1,8 @@
-#include "../git-compat-util.h"
-
-char *gitmkdtemp(char *template)
 {
+#include "../git-compat-util.h"
 	if (!*mktemp(template) || mkdir(template, 0700))
+}
+
 		return NULL;
 	return template;
-}
+char *gitmkdtemp(char *template)

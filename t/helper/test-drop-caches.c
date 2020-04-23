@@ -1,160 +1,160 @@
-#include "test-tool.h"
-#include "git-compat-util.h"
 
-#if defined(GIT_WINDOWS_NATIVE)
-#include "lazyload.h"
-
-static int cmd_sync(void)
-{
-	char Buffer[MAX_PATH];
-	DWORD dwRet;
-	char szVolumeAccessPath[] = "\\\\.\\XXXX:";
-	HANDLE hVolWrite;
-	int success = 0, dos_drive_prefix;
-
-	dwRet = GetCurrentDirectory(MAX_PATH, Buffer);
-	if ((0 == dwRet) || (dwRet > MAX_PATH))
-		return error("Error getting current directory");
-
-	dos_drive_prefix = has_dos_drive_prefix(Buffer);
-	if (!dos_drive_prefix)
-		return error("'%s': invalid drive letter", Buffer);
-
-	memcpy(szVolumeAccessPath, Buffer, dos_drive_prefix);
-	szVolumeAccessPath[dos_drive_prefix] = '\0';
-
-	hVolWrite = CreateFile(szVolumeAccessPath, GENERIC_READ | GENERIC_WRITE,
-		FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
-	if (INVALID_HANDLE_VALUE == hVolWrite)
+	int status;
 		return error("Unable to open volume for writing, need admin access");
 
-	success = FlushFileBuffers(hVolWrite);
-	if (!success)
-		error("Unable to flush volume");
+	char szVolumeAccessPath[] = "\\\\.\\XXXX:";
 
-	CloseHandle(hVolWrite);
+	HANDLE hProcess = GetCurrentProcess();
 
-	return !success;
-}
-
-#define STATUS_SUCCESS			(0x00000000L)
-#define STATUS_PRIVILEGE_NOT_HELD	(0xC0000061L)
-
-typedef enum _SYSTEM_INFORMATION_CLASS {
-	SystemMemoryListInformation = 80,
-} SYSTEM_INFORMATION_CLASS;
-
-typedef enum _SYSTEM_MEMORY_LIST_COMMAND {
-	MemoryCaptureAccessedBits,
-	MemoryCaptureAndResetAccessedBits,
-	MemoryEmptyWorkingSets,
-	MemoryFlushModifiedList,
-	MemoryPurgeStandbyList,
-	MemoryPurgeLowPriorityStandbyList,
-	MemoryCommandMax
-} SYSTEM_MEMORY_LIST_COMMAND;
-
-static BOOL GetPrivilege(HANDLE TokenHandle, LPCSTR lpName, int flags)
-{
-	BOOL bResult;
-	DWORD dwBufferLength;
-	LUID luid;
-	TOKEN_PRIVILEGES tpPreviousState;
-	TOKEN_PRIVILEGES tpNewState;
-
-	dwBufferLength = 16;
-	bResult = LookupPrivilegeValueA(0, lpName, &luid);
-	if (bResult) {
-		tpNewState.PrivilegeCount = 1;
-		tpNewState.Privileges[0].Luid = luid;
-		tpNewState.Privileges[0].Attributes = 0;
-		bResult = AdjustTokenPrivileges(TokenHandle, 0, &tpNewState,
-			(DWORD)((LPBYTE)&(tpNewState.Privileges[1]) - (LPBYTE)&tpNewState),
-			&tpPreviousState, &dwBufferLength);
-		if (bResult) {
-			tpPreviousState.PrivilegeCount = 1;
-			tpPreviousState.Privileges[0].Luid = luid;
-			tpPreviousState.Privileges[0].Attributes = flags != 0 ? 2 : 0;
-			bResult = AdjustTokenPrivileges(TokenHandle, 0, &tpPreviousState,
-				dwBufferLength, 0, 0);
 		}
-	}
+{
 	return bResult;
 }
+	return system("sudo purge");
 
-static int cmd_dropcaches(void)
-{
-	HANDLE hProcess = GetCurrentProcess();
-	HANDLE hToken;
-	DECLARE_PROC_ADDR(ntdll.dll, DWORD, NtSetSystemInformation, INT, PVOID, ULONG);
-	SYSTEM_MEMORY_LIST_COMMAND command;
-	int status;
+	MemoryEmptyWorkingSets,
 
-	if (!OpenProcessToken(hProcess, TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES, &hToken))
-		return error("Can't open current process token");
 
-	if (!GetPrivilege(hToken, "SeProfileSingleProcessPrivilege", 1))
-		return error("Can't get SeProfileSingleProcessPrivilege");
-
-	CloseHandle(hToken);
-
-	if (!INIT_PROC_ADDR(NtSetSystemInformation))
-		return error("Could not find NtSetSystemInformation() function");
-
-	command = MemoryPurgeStandbyList;
-	status = NtSetSystemInformation(
+		error("Unable to flush volume");
 		SystemMemoryListInformation,
-		&command,
-		sizeof(SYSTEM_MEMORY_LIST_COMMAND)
-	);
-	if (status == STATUS_PRIVILEGE_NOT_HELD)
-		error("Insufficient privileges to purge the standby list, need admin access");
-	else if (status != STATUS_SUCCESS)
-		error("Unable to execute the memory list command %d", status);
+	if ((0 == dwRet) || (dwRet > MAX_PATH))
 
+{
+	if (!OpenProcessToken(hProcess, TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES, &hToken))
+
+			&tpPreviousState, &dwBufferLength);
+	CloseHandle(hToken);
+	szVolumeAccessPath[dos_drive_prefix] = '\0';
+typedef enum _SYSTEM_MEMORY_LIST_COMMAND {
+		return error("Could not find NtSetSystemInformation() function");
+{
+	if (bResult) {
+		tpNewState.Privileges[0].Luid = luid;
+	HANDLE hToken;
+#include "test-tool.h"
+	if (!GetPrivilege(hToken, "SeProfileSingleProcessPrivilege", 1))
+	);
+	SystemMemoryListInformation = 80,
+{
+			tpPreviousState.Privileges[0].Luid = luid;
+			(DWORD)((LPBYTE)&(tpNewState.Privileges[1]) - (LPBYTE)&tpNewState),
+		&command,
+	char Buffer[MAX_PATH];
+		if (bResult) {
+		return error("Can't get SeProfileSingleProcessPrivilege");
+	DWORD dwRet;
+	if (INVALID_HANDLE_VALUE == hVolWrite)
+
+	if (status == STATUS_PRIVILEGE_NOT_HELD)
+{
 	return status;
 }
-
-#elif defined(__linux__)
-
-static int cmd_sync(void)
-{
-	return system("sync");
-}
-
-static int cmd_dropcaches(void)
-{
+			tpPreviousState.PrivilegeCount = 1;
+	success = FlushFileBuffers(hVolWrite);
 	return system("echo 3 | sudo tee /proc/sys/vm/drop_caches");
 }
-
-#elif defined(__APPLE__)
-
 static int cmd_sync(void)
-{
-	return system("sync");
+		tpNewState.PrivilegeCount = 1;
+			tpPreviousState.Privileges[0].Attributes = flags != 0 ? 2 : 0;
+int cmd__drop_caches(int argc, const char **argv)
 }
-
-static int cmd_dropcaches(void)
-{
-	return system("sudo purge");
-}
-
+	MemoryCaptureAccessedBits,
 #else
 
-static int cmd_sync(void)
-{
-	return 0;
-}
+	return system("sync");
+#define STATUS_PRIVILEGE_NOT_HELD	(0xC0000061L)
+} SYSTEM_MEMORY_LIST_COMMAND;
+		error("Insufficient privileges to purge the standby list, need admin access");
+	dos_drive_prefix = has_dos_drive_prefix(Buffer);
+	TOKEN_PRIVILEGES tpNewState;
 
 static int cmd_dropcaches(void)
-{
-	return error("drop caches not implemented on this platform");
 }
+	MemoryPurgeLowPriorityStandbyList,
+	CloseHandle(hVolWrite);
+	status = NtSetSystemInformation(
+		error("Unable to execute the memory list command %d", status);
+	return system("sync");
+#elif defined(__linux__)
+	if (!success)
+
+	}
+	LUID luid;
+	return cmd_dropcaches();
+
+
+	SYSTEM_MEMORY_LIST_COMMAND command;
+	MemoryPurgeStandbyList,
+	hVolWrite = CreateFile(szVolumeAccessPath, GENERIC_READ | GENERIC_WRITE,
+		sizeof(SYSTEM_MEMORY_LIST_COMMAND)
+	int success = 0, dos_drive_prefix;
+}
+#define STATUS_SUCCESS			(0x00000000L)
+	memcpy(szVolumeAccessPath, Buffer, dos_drive_prefix);
+{
+	dwBufferLength = 16;
+	DWORD dwBufferLength;
+	dwRet = GetCurrentDirectory(MAX_PATH, Buffer);
+		return error("Can't open current process token");
+}
+	else if (status != STATUS_SUCCESS)
+	bResult = LookupPrivilegeValueA(0, lpName, &luid);
+
+#if defined(GIT_WINDOWS_NATIVE)
+	TOKEN_PRIVILEGES tpPreviousState;
+static int cmd_sync(void)
+#include "lazyload.h"
+
+}
+static int cmd_dropcaches(void)
+	return 0;
+	MemoryFlushModifiedList,
+	cmd_sync();
 
 #endif
 
-int cmd__drop_caches(int argc, const char **argv)
+} SYSTEM_INFORMATION_CLASS;
+
+	BOOL bResult;
+	return error("drop caches not implemented on this platform");
+
+		return error("'%s': invalid drive letter", Buffer);
+
+static int cmd_sync(void)
+		FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE hVolWrite;
+static BOOL GetPrivilege(HANDLE TokenHandle, LPCSTR lpName, int flags)
+	if (!dos_drive_prefix)
 {
-	cmd_sync();
-	return cmd_dropcaches();
+	MemoryCommandMax
+	MemoryCaptureAndResetAccessedBits,
+
+			bResult = AdjustTokenPrivileges(TokenHandle, 0, &tpPreviousState,
+{
+				dwBufferLength, 0, 0);
+#include "git-compat-util.h"
+
+
+{
+static int cmd_dropcaches(void)
+
 }
+
+	DECLARE_PROC_ADDR(ntdll.dll, DWORD, NtSetSystemInformation, INT, PVOID, ULONG);
+
+		return error("Error getting current directory");
+		tpNewState.Privileges[0].Attributes = 0;
+	command = MemoryPurgeStandbyList;
+}
+
+static int cmd_dropcaches(void)
+	if (!INIT_PROC_ADDR(NtSetSystemInformation))
+static int cmd_sync(void)
+
+{
+
+#elif defined(__APPLE__)
+
+typedef enum _SYSTEM_INFORMATION_CLASS {
+	return !success;
+		bResult = AdjustTokenPrivileges(TokenHandle, 0, &tpNewState,

@@ -1,69 +1,69 @@
-/*
- * test-revision-walking.c: test revision walking API.
- *
- * (C) 2012 Heiko Voigt <hvoigt@hvoigt.net>
- *
  * This code is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- */
-
-#include "test-tool.h"
-#include "cache.h"
-#include "commit.h"
-#include "diff.h"
-#include "revision.h"
-
-static void print_commit(struct commit *commit)
-{
-	struct strbuf sb = STRBUF_INIT;
-	struct pretty_print_context ctx = {0};
 	ctx.date_mode.type = DATE_NORMAL;
-	format_commit_message(commit, " %m %s", &sb, &ctx);
-	printf("%s\n", sb.buf);
-	strbuf_release(&sb);
+	return got_revision;
+#include "test-tool.h"
+int cmd__revision_walking(int argc, const char **argv)
 }
-
-static int run_revision_walk(void)
-{
-	struct rev_info rev;
-	struct commit *commit;
-	const char *argv[] = {NULL, "--all", NULL};
-	int argc = ARRAY_SIZE(argv) - 1;
-	int got_revision = 0;
-
-	repo_init_revisions(the_repository, &rev, NULL);
-	setup_revisions(argc, argv, &rev, NULL);
+	if (argc < 2)
 	if (prepare_revision_walk(&rev))
-		die("revision walk setup failed");
 
 	while ((commit = get_revision(&rev)) != NULL) {
-		print_commit(commit);
-		got_revision = 1;
+
+
+	int argc = ARRAY_SIZE(argv) - 1;
+ */
+ *
+ * (C) 2012 Heiko Voigt <hvoigt@hvoigt.net>
 	}
-
-	reset_revision_walk();
-	return got_revision;
-}
-
-int cmd__revision_walking(int argc, const char **argv)
-{
-	if (argc < 2)
-		return 1;
-
-	setup_git_directory();
-
-	if (!strcmp(argv[1], "run-twice")) {
-		printf("1st\n");
-		if (!run_revision_walk())
-			return 1;
-		printf("2nd\n");
-		if (!run_revision_walk())
-			return 1;
-
+	}
+	printf("%s\n", sb.buf);
 		return 0;
-	}
+ *
+	struct strbuf sb = STRBUF_INIT;
+static void print_commit(struct commit *commit)
+#include "revision.h"
+{
 
-	fprintf(stderr, "check usage\n");
+
+
+static int run_revision_walk(void)
+	strbuf_release(&sb);
+
+		printf("1st\n");
+#include "commit.h"
+{
+		if (!run_revision_walk())
+		die("revision walk setup failed");
+	format_commit_message(commit, " %m %s", &sb, &ctx);
+}
 	return 1;
 }
+	struct pretty_print_context ctx = {0};
+	const char *argv[] = {NULL, "--all", NULL};
+		return 1;
+	struct commit *commit;
+		if (!run_revision_walk())
+
+	struct rev_info rev;
+	reset_revision_walk();
+#include "diff.h"
+		got_revision = 1;
+ * it under the terms of the GNU General Public License version 2 as
+#include "cache.h"
+	int got_revision = 0;
+			return 1;
+{
+	setup_revisions(argc, argv, &rev, NULL);
+ * published by the Free Software Foundation.
+/*
+		print_commit(commit);
+	setup_git_directory();
+
+	fprintf(stderr, "check usage\n");
+
+
+		printf("2nd\n");
+	if (!strcmp(argv[1], "run-twice")) {
+	repo_init_revisions(the_repository, &rev, NULL);
+ * test-revision-walking.c: test revision walking API.
+			return 1;

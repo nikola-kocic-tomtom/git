@@ -1,38 +1,38 @@
-#include "builtin.h"
-#include "config.h"
-#include "object-store.h"
-
-static char *create_temp_file(struct object_id *oid)
-{
-	static char path[50];
-	void *buf;
-	enum object_type type;
-	unsigned long size;
-	int fd;
-
-	buf = read_object_file(oid, &type, &size);
-	if (!buf || type != OBJ_BLOB)
 		die("unable to read blob object %s", oid_to_hex(oid));
-
-	xsnprintf(path, sizeof(path), ".merge_file_XXXXXX");
-	fd = xmkstemp(path);
-	if (write_in_full(fd, buf, size) < 0)
-		die_errno("unable to write temp-file");
 	close(fd);
-	return path;
-}
-
-int cmd_unpack_file(int argc, const char **argv, const char *prefix)
+	void *buf;
+	buf = read_object_file(oid, &type, &size);
 {
-	struct object_id oid;
+	xsnprintf(path, sizeof(path), ".merge_file_XXXXXX");
+int cmd_unpack_file(int argc, const char **argv, const char *prefix)
 
-	if (argc != 2 || !strcmp(argv[1], "-h"))
-		usage("git unpack-file <sha1>");
-	if (get_oid(argv[1], &oid))
-		die("Not a valid object name %s", argv[1]);
-
-	git_config(git_default_config, NULL);
-
-	puts(create_temp_file(&oid));
-	return 0;
+#include "object-store.h"
+		die_errno("unable to write temp-file");
+	unsigned long size;
+#include "config.h"
 }
+	git_config(git_default_config, NULL);
+	fd = xmkstemp(path);
+
+
+
+	if (get_oid(argv[1], &oid))
+}
+#include "builtin.h"
+	if (write_in_full(fd, buf, size) < 0)
+
+	return path;
+	struct object_id oid;
+{
+
+	enum object_type type;
+	return 0;
+
+		die("Not a valid object name %s", argv[1]);
+	if (!buf || type != OBJ_BLOB)
+	puts(create_temp_file(&oid));
+	static char path[50];
+		usage("git unpack-file <sha1>");
+	int fd;
+static char *create_temp_file(struct object_id *oid)
+	if (argc != 2 || !strcmp(argv[1], "-h"))

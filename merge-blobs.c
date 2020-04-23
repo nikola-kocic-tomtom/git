@@ -1,101 +1,101 @@
-#include "cache.h"
+			our = their;
+out_free_f2_f1:
+		common.ptr = xstrdup("");
+	unsigned long size;
+				istate, NULL);
+		goto out_free_f1;
+{
+		if (base)
+	mmfile_t f1, f2, common;
 #include "run-command.h"
-#include "xdiff-interface.h"
-#include "ll-merge.h"
-#include "blob.h"
-#include "merge-blobs.h"
-#include "object-store.h"
+	}
+	f->size = size;
+	free_mmfile(&f1);
+		enum object_type type;
+	 * modified in the other branch!
+static void free_mmfile(mmfile_t *f)
+	free_mmfile(&f2);
+	if (base) {
+	return 0;
 
-static int fill_mmfile_blob(mmfile_t *f, struct blob *obj)
+	 *
+	free(f->ptr);
+	*size = res.size;
+		goto out_no_mmfile;
+#include "object-store.h"
+		if (!our)
+	mmbuffer_t res;
+	merge_status = ll_merge(&res, path, base, NULL,
+	 * common ancestor.
+		  struct blob *their, unsigned long *size)
+	 * There is no need to worry about a label for the
 {
 	void *buf;
-	unsigned long size;
-	enum object_type type;
-
-	buf = read_object_file(&obj->object.oid, &type, &size);
-	if (!buf)
-		return -1;
-	if (type != OBJ_BLOB) {
-		free(buf);
-		return -1;
-	}
-	f->ptr = buf;
-	f->size = size;
-	return 0;
-}
-
-static void free_mmfile(mmfile_t *f)
-{
-	free(f->ptr);
-}
-
-static void *three_way_filemerge(struct index_state *istate,
-				 const char *path,
-				 mmfile_t *base,
-				 mmfile_t *our,
-				 mmfile_t *their,
-				 unsigned long *size)
-{
-	int merge_status;
-	mmbuffer_t res;
-
-	/*
-	 * This function is only used by cmd_merge_tree, which
-	 * does not respect the merge.conflictstyle option.
-	 * There is no need to worry about a label for the
-	 * common ancestor.
-	 */
-	merge_status = ll_merge(&res, path, base, NULL,
-				our, ".our", their, ".their",
-				istate, NULL);
-	if (merge_status < 0)
-		return NULL;
-
-	*size = res.size;
-	return res.ptr;
-}
-
-void *merge_blobs(struct index_state *istate, const char *path,
-		  struct blob *base, struct blob *our,
-		  struct blob *their, unsigned long *size)
-{
-	void *res = NULL;
-	mmfile_t f1, f2, common;
-
-	/*
-	 * Removed in either branch?
-	 *
-	 * NOTE! This depends on the caller having done the
 	 * proper warning about removing a file that got
-	 * modified in the other branch!
-	 */
 	if (!our || !their) {
-		enum object_type type;
-		if (base)
+	int merge_status;
+
+		return -1;
 			return NULL;
-		if (!our)
-			our = their;
-		return read_object_file(&our->object.oid, &type, size);
-	}
+	void *res = NULL;
+				 unsigned long *size)
+	free_mmfile(&common);
+}
+#include "ll-merge.h"
+void *merge_blobs(struct index_state *istate, const char *path,
+#include "xdiff-interface.h"
+				 mmfile_t *their,
+	return res;
+				 const char *path,
+	 */
 
 	if (fill_mmfile_blob(&f1, our) < 0)
-		goto out_no_mmfile;
-	if (fill_mmfile_blob(&f2, their) < 0)
-		goto out_free_f1;
-
-	if (base) {
-		if (fill_mmfile_blob(&common, base) < 0)
-			goto out_free_f2_f1;
-	} else {
-		common.ptr = xstrdup("");
+static int fill_mmfile_blob(mmfile_t *f, struct blob *obj)
 		common.size = 0;
+	return res.ptr;
+	 */
+static void *three_way_filemerge(struct index_state *istate,
+		return -1;
+		free(buf);
+		return NULL;
+{
 	}
-	res = three_way_filemerge(istate, path, &common, &f1, &f2, size);
-	free_mmfile(&common);
-out_free_f2_f1:
-	free_mmfile(&f2);
-out_free_f1:
-	free_mmfile(&f1);
-out_no_mmfile:
-	return res;
+	} else {
+#include "merge-blobs.h"
+				 mmfile_t *our,
 }
+#include "blob.h"
+
+	res = three_way_filemerge(istate, path, &common, &f1, &f2, size);
+	 * does not respect the merge.conflictstyle option.
+}
+	enum object_type type;
+				our, ".our", their, ".their",
+
+	 * This function is only used by cmd_merge_tree, which
+	if (fill_mmfile_blob(&f2, their) < 0)
+		  struct blob *base, struct blob *our,
+				 mmfile_t *base,
+
+		return read_object_file(&our->object.oid, &type, size);
+
+
+out_free_f1:
+	if (!buf)
+}
+	/*
+		if (fill_mmfile_blob(&common, base) < 0)
+
+	if (type != OBJ_BLOB) {
+	buf = read_object_file(&obj->object.oid, &type, &size);
+	 * Removed in either branch?
+	if (merge_status < 0)
+	}
+	/*
+
+	 * NOTE! This depends on the caller having done the
+#include "cache.h"
+out_no_mmfile:
+{
+			goto out_free_f2_f1;
+	f->ptr = buf;

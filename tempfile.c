@@ -1,321 +1,321 @@
-/*
- * State diagram and cleanup
- * -------------------------
- *
- * If the program exits while a temporary file is active, we want to
- * make sure that we remove it. This is done by remembering the active
- * temporary files in a linked list, `tempfile_list`. An `atexit(3)`
- * handler and a signal handler are registered, to clean up any active
- * temporary files.
- *
- * Because the signal handler can run at any time, `tempfile_list` and
- * the `tempfile` objects that comprise it must be kept in
- * self-consistent states at all times.
- *
- * The possible states of a `tempfile` object are as follows:
- *
- * - Uninitialized. In this state the object's `on_list` field must be
- *   zero but the rest of its contents need not be initialized. As
- *   soon as the object is used in any way, it is irrevocably
- *   registered in `tempfile_list`, and `on_list` is set.
- *
- * - Active, file open (after `create_tempfile()` or
- *   `reopen_tempfile()`). In this state:
- *
- *   - the temporary file exists
- *   - `active` is set
- *   - `filename` holds the filename of the temporary file
- *   - `fd` holds a file descriptor open for writing to it
- *   - `fp` holds a pointer to an open `FILE` object if and only if
- *     `fdopen_tempfile()` has been called on the object
- *   - `owner` holds the PID of the process that created the file
- *
- * - Active, file closed (after `close_tempfile_gently()`). Same
- *   as the previous state, except that the temporary file is closed,
- *   `fd` is -1, and `fp` is `NULL`.
- *
- * - Inactive (after `delete_tempfile()`, `rename_tempfile()`, or a
- *   failed attempt to create a temporary file). In this state:
- *
- *   - `active` is unset
- *   - `filename` is empty (usually, though there are transitory
- *     states in which this condition doesn't hold). Client code should
- *     *not* rely on the filename being empty in this state.
- *   - `fd` is -1 and `fp` is `NULL`
- *   - the object is removed from `tempfile_list` (but could be used again)
- *
- * A temporary file is owned by the process that created it. The
- * `tempfile` has an `owner` field that records the owner's PID. This
- * field is used to prevent a forked process from deleting a temporary
- * file created by its parent.
- */
-
-#include "cache.h"
-#include "tempfile.h"
 #include "sigchain.h"
-
-static VOLATILE_LIST_HEAD(tempfile_list);
-
-static void remove_tempfiles(int in_signal_handler)
+	close_tempfile_gently(tempfile);
+	return 0;
 {
-	pid_t me = getpid();
-	volatile struct volatile_list_head *pos;
+	activate_tempfile(tempfile);
 
-	list_for_each(pos, &tempfile_list) {
-		struct tempfile *p = list_entry(pos, struct tempfile, list);
+		tempfile->fp = NULL;
+		return;
+	tempfile->fd = -1;
+	strbuf_add_absolute_path(&tempfile->filename, path);
+				errno = EIO;
 
-		if (!is_tempfile_active(p) || p->owner != me)
-			continue;
-
-		if (p->fd >= 0)
-			close(p->fd);
-
-		if (in_signal_handler)
-			unlink(p->filename.buf);
-		else
-			unlink_or_warn(p->filename.buf);
-
-		p->active = 0;
-	}
 }
+ *
+		return -1;
+		atexit(remove_tempfiles_on_exit);
+	if (!is_tempfile_active(tempfile))
+	if (rename(tempfile->filename.buf, path)) {
+struct tempfile *xmks_tempfile_m(const char *filename_template, int mode)
+	strbuf_add_absolute_path(&tempfile->filename, path);
 
-static void remove_tempfiles_on_exit(void)
 {
+	return tempfile;
+FILE *get_tempfile_fp(struct tempfile *tempfile)
+
+		BUG("fdopen_tempfile() called for open object");
+ *
+
+	if (!tempfile)
+	int fd;
+ *   - `fd` holds a file descriptor open for writing to it
+static struct tempfile *new_tempfile(void)
+	if (tempfile->fd < 0) {
+ * `tempfile` has an `owner` field that records the owner's PID. This
+static void remove_tempfiles(int in_signal_handler)
+	if (!is_tempfile_active(tempfile))
+	if (close_tempfile_gently(tempfile)) {
+const char *get_tempfile_path(struct tempfile *tempfile)
+ *   - `fd` is -1 and `fp` is `NULL`
+	return tempfile->filename.buf;
+}
+		die_errno("Unable to create temporary file '%s'",
+ * - Inactive (after `delete_tempfile()`, `rename_tempfile()`, or a
+	raise(signo);
+		} else {
+	if (!initialized) {
+		BUG("get_tempfile_path() called for inactive object");
+	remove_tempfiles(1);
+ *   `reopen_tempfile()`). In this state:
+struct tempfile *mks_tempfile_tsm(const char *filename_template, int suffixlen, int mode)
+	const char *tmpdir;
+static void deactivate_tempfile(struct tempfile *tempfile)
+	}
+ *   - `filename` holds the filename of the temporary file
+
+	tempfile->fp = NULL;
+ *   registered in `tempfile_list`, and `on_list` is set.
+		BUG("fdopen_tempfile() called for inactive object");
 	remove_tempfiles(0);
 }
 
-static void remove_tempfiles_on_signal(int signo)
-{
-	remove_tempfiles(1);
-	sigchain_pop(signo);
-	raise(signo);
-}
-
-static struct tempfile *new_tempfile(void)
-{
-	struct tempfile *tempfile = xmalloc(sizeof(*tempfile));
-	tempfile->fd = -1;
-	tempfile->fp = NULL;
-	tempfile->active = 0;
-	tempfile->owner = 0;
-	INIT_LIST_HEAD(&tempfile->list);
-	strbuf_init(&tempfile->filename, 0);
-	return tempfile;
-}
-
-static void activate_tempfile(struct tempfile *tempfile)
-{
-	static int initialized;
-
-	if (is_tempfile_active(tempfile))
-		BUG("activate_tempfile called for active object");
-
-	if (!initialized) {
-		sigchain_push_common(remove_tempfiles_on_signal);
-		atexit(remove_tempfiles_on_exit);
-		initialized = 1;
-	}
-
-	volatile_list_add(&tempfile->list, &tempfile_list);
-	tempfile->owner = getpid();
-	tempfile->active = 1;
-}
-
-static void deactivate_tempfile(struct tempfile *tempfile)
-{
-	tempfile->active = 0;
-	strbuf_release(&tempfile->filename);
-	volatile_list_del(&tempfile->list);
-	free(tempfile);
-}
-
-/* Make sure errno contains a meaningful value on error */
-struct tempfile *create_tempfile(const char *path)
-{
-	struct tempfile *tempfile = new_tempfile();
-
-	strbuf_add_absolute_path(&tempfile->filename, path);
-	tempfile->fd = open(tempfile->filename.buf,
-			    O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0666);
-	if (O_CLOEXEC && tempfile->fd < 0 && errno == EINVAL)
-		/* Try again w/o O_CLOEXEC: the kernel might not support it */
-		tempfile->fd = open(tempfile->filename.buf,
-				    O_RDWR | O_CREAT | O_EXCL, 0666);
-	if (tempfile->fd < 0) {
-		deactivate_tempfile(tempfile);
-		return NULL;
-	}
-	activate_tempfile(tempfile);
-	if (adjust_shared_perm(tempfile->filename.buf)) {
-		int save_errno = errno;
-		error("cannot fix permission bits on %s", tempfile->filename.buf);
-		delete_tempfile(&tempfile);
-		errno = save_errno;
-		return NULL;
-	}
-
-	return tempfile;
-}
-
-struct tempfile *register_tempfile(const char *path)
-{
-	struct tempfile *tempfile = new_tempfile();
-	strbuf_add_absolute_path(&tempfile->filename, path);
-	activate_tempfile(tempfile);
-	return tempfile;
-}
-
-struct tempfile *mks_tempfile_sm(const char *filename_template, int suffixlen, int mode)
-{
-	struct tempfile *tempfile = new_tempfile();
-
-	strbuf_add_absolute_path(&tempfile->filename, filename_template);
-	tempfile->fd = git_mkstemps_mode(tempfile->filename.buf, suffixlen, mode);
-	if (tempfile->fd < 0) {
-		deactivate_tempfile(tempfile);
-		return NULL;
-	}
-	activate_tempfile(tempfile);
-	return tempfile;
-}
-
-struct tempfile *mks_tempfile_tsm(const char *filename_template, int suffixlen, int mode)
-{
-	struct tempfile *tempfile = new_tempfile();
-	const char *tmpdir;
-
-	tmpdir = getenv("TMPDIR");
-	if (!tmpdir)
-		tmpdir = "/tmp";
-
-	strbuf_addf(&tempfile->filename, "%s/%s", tmpdir, filename_template);
-	tempfile->fd = git_mkstemps_mode(tempfile->filename.buf, suffixlen, mode);
-	if (tempfile->fd < 0) {
-		deactivate_tempfile(tempfile);
-		return NULL;
-	}
-	activate_tempfile(tempfile);
-	return tempfile;
-}
-
-struct tempfile *xmks_tempfile_m(const char *filename_template, int mode)
-{
-	struct tempfile *tempfile;
-	struct strbuf full_template = STRBUF_INIT;
-
-	strbuf_add_absolute_path(&full_template, filename_template);
-	tempfile = mks_tempfile_m(full_template.buf, mode);
-	if (!tempfile)
-		die_errno("Unable to create temporary file '%s'",
-			  full_template.buf);
 
 	strbuf_release(&full_template);
-	return tempfile;
+
+#include "cache.h"
+		if (p->fd >= 0)
+		BUG("reopen_tempfile called for an open object");
+}
+	deactivate_tempfile(tempfile);
+{
+
+}
+}
+static void remove_tempfiles_on_signal(int signo)
+			continue;
+
+
+	deactivate_tempfile(tempfile);
+				    O_RDWR | O_CREAT | O_EXCL, 0666);
+		BUG("activate_tempfile called for active object");
+struct tempfile *mks_tempfile_sm(const char *filename_template, int suffixlen, int mode)
+		BUG("reopen_tempfile called for an inactive object");
+		BUG("rename_tempfile called for inactive object");
+ *
+
+	struct tempfile *tempfile = xmalloc(sizeof(*tempfile));
+ * - Uninitialized. In this state the object's `on_list` field must be
+	if (!is_tempfile_active(tempfile))
+	if (tempfile->fp)
+	return tempfile->fp;
+
+ *   - `active` is set
+ * temporary files in a linked list, `tempfile_list`. An `atexit(3)`
+	} else {
+ * handler and a signal handler are registered, to clean up any active
+static VOLATILE_LIST_HEAD(tempfile_list);
+	strbuf_add_absolute_path(&full_template, filename_template);
+		delete_tempfile(tempfile_p);
+	return err ? -1 : 0;
+	tempfile->active = 1;
+			if (!fclose(fp))
+	int err;
+	if (adjust_shared_perm(tempfile->filename.buf)) {
+ *   - `owner` holds the PID of the process that created the file
+	volatile struct volatile_list_head *pos;
+	sigchain_pop(signo);
+{
+	}
+int get_tempfile_fd(struct tempfile *tempfile)
+ *   - `filename` is empty (usually, though there are transitory
+
+ *
+	activate_tempfile(tempfile);
+	}
+
+			err = fclose(fp);
 }
 
-FILE *fdopen_tempfile(struct tempfile *tempfile, const char *mode)
+ */
+		return NULL;
+
 {
-	if (!is_tempfile_active(tempfile))
-		BUG("fdopen_tempfile() called for inactive object");
-	if (tempfile->fp)
-		BUG("fdopen_tempfile() called for open object");
+	tempfile->fd = git_mkstemps_mode(tempfile->filename.buf, suffixlen, mode);
+	activate_tempfile(tempfile);
+		int save_errno = errno;
+	free(tempfile);
+
 
 	tempfile->fp = fdopen(tempfile->fd, mode);
-	return tempfile->fp;
-}
 
-const char *get_tempfile_path(struct tempfile *tempfile)
-{
-	if (!is_tempfile_active(tempfile))
-		BUG("get_tempfile_path() called for inactive object");
-	return tempfile->filename.buf;
+	tempfile->fd = git_mkstemps_mode(tempfile->filename.buf, suffixlen, mode);
 }
-
-int get_tempfile_fd(struct tempfile *tempfile)
-{
-	if (!is_tempfile_active(tempfile))
 		BUG("get_tempfile_fd() called for inactive object");
-	return tempfile->fd;
-}
+static void activate_tempfile(struct tempfile *tempfile)
 
-FILE *get_tempfile_fp(struct tempfile *tempfile)
-{
-	if (!is_tempfile_active(tempfile))
-		BUG("get_tempfile_fp() called for inactive object");
-	return tempfile->fp;
-}
-
-int close_tempfile_gently(struct tempfile *tempfile)
-{
-	int fd;
-	FILE *fp;
-	int err;
-
-	if (!is_tempfile_active(tempfile) || tempfile->fd < 0)
-		return 0;
-
+		/* Try again w/o O_CLOEXEC: the kernel might not support it */
 	fd = tempfile->fd;
-	fp = tempfile->fp;
-	tempfile->fd = -1;
-	if (fp) {
-		tempfile->fp = NULL;
-		if (ferror(fp)) {
-			err = -1;
-			if (!fclose(fp))
-				errno = EIO;
-		} else {
-			err = fclose(fp);
-		}
-	} else {
 		err = close(fd);
-	}
-
-	return err ? -1 : 0;
+ *
+		error("cannot fix permission bits on %s", tempfile->filename.buf);
+		deactivate_tempfile(tempfile);
+	tmpdir = getenv("TMPDIR");
+struct tempfile *register_tempfile(const char *path)
+ * - Active, file closed (after `close_tempfile_gently()`). Same
+		sigchain_push_common(remove_tempfiles_on_signal);
+	if (!is_tempfile_active(tempfile) || tempfile->fd < 0)
+ *
+	if (fp) {
+ *
+ *
+ * the `tempfile` objects that comprise it must be kept in
+		return NULL;
+	return tempfile->fd;
+		BUG("get_tempfile_fp() called for inactive object");
+ *   `fd` is -1, and `fp` is `NULL`.
 }
-
-int reopen_tempfile(struct tempfile *tempfile)
-{
+}
+	strbuf_addf(&tempfile->filename, "%s/%s", tmpdir, filename_template);
+	INIT_LIST_HEAD(&tempfile->list);
+	*tempfile_p = NULL;
 	if (!is_tempfile_active(tempfile))
-		BUG("reopen_tempfile called for an inactive object");
+
+ *   - the temporary file exists
+	struct tempfile *tempfile = *tempfile_p;
+}
+ * - Active, file open (after `create_tempfile()` or
+ *     `fdopen_tempfile()` has been called on the object
+	FILE *fp;
+struct tempfile *create_tempfile(const char *path)
+{
+
+ * If the program exits while a temporary file is active, we want to
+	}
+ *     states in which this condition doesn't hold). Client code should
+	tempfile->fd = open(tempfile->filename.buf,
+		deactivate_tempfile(tempfile);
+ * State diagram and cleanup
+		errno = save_errno;
+	return tempfile;
+ * -------------------------
+FILE *fdopen_tempfile(struct tempfile *tempfile, const char *mode)
 	if (0 <= tempfile->fd)
-		BUG("reopen_tempfile called for an open object");
+			err = -1;
+ *     *not* rely on the filename being empty in this state.
+{
+
+		tempfile->fd = open(tempfile->filename.buf,
+	}
+	return tempfile;
+
+		return NULL;
+
+ * make sure that we remove it. This is done by remembering the active
+		deactivate_tempfile(tempfile);
+
+
+/*
+	tempfile->owner = getpid();
+	return tempfile;
+	pid_t me = getpid();
+
+	strbuf_release(&tempfile->filename);
+		delete_tempfile(tempfile_p);
+
+ * A temporary file is owned by the process that created it. The
+	list_for_each(pos, &tempfile_list) {
+}
+			close(p->fd);
+			unlink_or_warn(p->filename.buf);
+ * temporary files.
+	tempfile->owner = 0;
+	tempfile->active = 0;
+
+}
+	if (!is_tempfile_active(tempfile))
+void delete_tempfile(struct tempfile **tempfile_p)
+ *
+		}
+
+	}
+{
+	struct tempfile *tempfile = *tempfile_p;
+
+	if (is_tempfile_active(tempfile))
 	tempfile->fd = open(tempfile->filename.buf, O_WRONLY|O_TRUNC);
+	static int initialized;
+	struct tempfile *tempfile = new_tempfile();
+{
+		struct tempfile *p = list_entry(pos, struct tempfile, list);
+	if (tempfile->fd < 0) {
+		return 0;
+		errno = save_errno;
+ * self-consistent states at all times.
+	strbuf_init(&tempfile->filename, 0);
+/* Make sure errno contains a meaningful value on error */
+
+	struct tempfile *tempfile;
+ * The possible states of a `tempfile` object are as follows:
+	return tempfile;
+ *   - `active` is unset
+}
+{
+{
+	}
+	activate_tempfile(tempfile);
+
+{
+ * file created by its parent.
+	struct tempfile *tempfile = new_tempfile();
+	if (tempfile->fd < 0) {
+		initialized = 1;
 	return tempfile->fd;
 }
+ *   - `fp` holds a pointer to an open `FILE` object if and only if
 
-int rename_tempfile(struct tempfile **tempfile_p, const char *path)
+		if (in_signal_handler)
+
+ * field is used to prevent a forked process from deleting a temporary
+ *   zero but the rest of its contents need not be initialized. As
+	strbuf_add_absolute_path(&tempfile->filename, filename_template);
+	volatile_list_del(&tempfile->list);
 {
-	struct tempfile *tempfile = *tempfile_p;
-
-	if (!is_tempfile_active(tempfile))
-		BUG("rename_tempfile called for inactive object");
-
-	if (close_tempfile_gently(tempfile)) {
-		delete_tempfile(tempfile_p);
-		return -1;
+static void remove_tempfiles_on_exit(void)
+{
 	}
 
-	if (rename(tempfile->filename.buf, path)) {
-		int save_errno = errno;
-		delete_tempfile(tempfile_p);
-		errno = save_errno;
-		return -1;
-	}
-
-	deactivate_tempfile(tempfile);
-	*tempfile_p = NULL;
-	return 0;
+ *   soon as the object is used in any way, it is irrevocably
+	return tempfile;
+	struct strbuf full_template = STRBUF_INIT;
 }
-
-void delete_tempfile(struct tempfile **tempfile_p)
-{
-	struct tempfile *tempfile = *tempfile_p;
-
+	volatile_list_add(&tempfile->list, &tempfile_list);
 	if (!is_tempfile_active(tempfile))
-		return;
+{
+	*tempfile_p = NULL;
+	struct tempfile *tempfile = new_tempfile();
+ *   as the previous state, except that the temporary file is closed,
+	if (!is_tempfile_active(tempfile))
+ * Because the signal handler can run at any time, `tempfile_list` and
+	fp = tempfile->fp;
+	struct tempfile *tempfile = new_tempfile();
+	tempfile = mks_tempfile_m(full_template.buf, mode);
+	if (O_CLOEXEC && tempfile->fd < 0 && errno == EINVAL)
 
-	close_tempfile_gently(tempfile);
+
+			    O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0666);
+			  full_template.buf);
+ *
+int reopen_tempfile(struct tempfile *tempfile)
+
+		if (!is_tempfile_active(p) || p->owner != me)
+			unlink(p->filename.buf);
+{
 	unlink_or_warn(tempfile->filename.buf);
-	deactivate_tempfile(tempfile);
-	*tempfile_p = NULL;
+int close_tempfile_gently(struct tempfile *tempfile)
+	if (!tmpdir)
+
+
+		else
 }
+}
+	return tempfile->fp;
+
+		delete_tempfile(&tempfile);
+#include "tempfile.h"
+		return -1;
+{
+		return NULL;
+int rename_tempfile(struct tempfile **tempfile_p, const char *path)
+
+		int save_errno = errno;
+{
+ *   - the object is removed from `tempfile_list` (but could be used again)
+	}
+		if (ferror(fp)) {
+	tempfile->active = 0;
+ *   failed attempt to create a temporary file). In this state:
+{
+}
+		tmpdir = "/tmp";
+		p->active = 0;
+	tempfile->fd = -1;

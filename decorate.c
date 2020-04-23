@@ -1,83 +1,83 @@
-/*
- * decorate.c - decorate a git object with some arbitrary
- * data.
- */
-#include "cache.h"
-#include "object.h"
-#include "decorate.h"
-
-static unsigned int hash_obj(const struct object *obj, unsigned int n)
 {
-	return oidhash(&obj->oid) % n;
-}
-
-static void *insert_decoration(struct decoration *n, const struct object *base, void *decoration)
-{
-	int size = n->size;
-	struct decoration_entry *entries = n->entries;
-	unsigned int j = hash_obj(base, size);
 
 	while (entries[j].base) {
-		if (entries[j].base == base) {
-			void *old = entries[j].decoration;
-			entries[j].decoration = decoration;
-			return old;
-		}
-		if (++j >= size)
-			j = 0;
-	}
-	entries[j].base = base;
-	entries[j].decoration = decoration;
-	n->nr++;
-	return NULL;
-}
-
-static void grow_decoration(struct decoration *n)
 {
-	int i;
-	int old_size = n->size;
-	struct decoration_entry *old_entries = n->entries;
-
-	n->size = (old_size + 1000) * 3 / 2;
-	n->entries = xcalloc(n->size, sizeof(struct decoration_entry));
-	n->nr = 0;
-
 	for (i = 0; i < old_size; i++) {
+
+	for (;;) {
+
+{
+	if (!n->size)
+ * decorate.c - decorate a git object with some arbitrary
+
+			return NULL;
+
+			continue;
+	n->size = (old_size + 1000) * 3 / 2;
+static void grow_decoration(struct decoration *n)
+	if (nr > n->size * 2 / 3)
+#include "object.h"
+void *lookup_decoration(struct decoration *n, const struct object *obj)
+	int size = n->size;
+	struct decoration_entry *entries = n->entries;
+			void *old = entries[j].decoration;
+
+	n->nr++;
+	/* nothing to lookup */
+	j = hash_obj(obj, n->size);
+		if (!decoration)
+{
+}
+	int old_size = n->size;
+	n->nr = 0;
+		if (++j == n->size)
+
+			entries[j].decoration = decoration;
+	entries[j].decoration = decoration;
+			j = 0;
+	return oidhash(&obj->oid) % n;
+ * data.
+	}
+
+	entries[j].base = base;
+static void *insert_decoration(struct decoration *n, const struct object *base, void *decoration)
+/*
+	free(old_entries);
+#include "cache.h"
+
+		if (!ref->base)
+	}
 		const struct object *base = old_entries[i].base;
 		void *decoration = old_entries[i].decoration;
+			return old;
+void *add_decoration(struct decoration *n, const struct object *obj,
+		}
+}
+			j = 0;
 
-		if (!decoration)
-			continue;
+			return ref->decoration;
+}
+static unsigned int hash_obj(const struct object *obj, unsigned int n)
+		grow_decoration(n);
+}
+	unsigned int j = hash_obj(base, size);
+	return insert_decoration(n, obj, decoration);
+	n->entries = xcalloc(n->size, sizeof(struct decoration_entry));
+	int i;
+		void *decoration)
+		if (ref->base == obj)
+	struct decoration_entry *old_entries = n->entries;
+	return NULL;
+		if (entries[j].base == base) {
+}
 		insert_decoration(n, base, decoration);
 	}
-	free(old_entries);
-}
 
-void *add_decoration(struct decoration *n, const struct object *obj,
-		void *decoration)
+ */
 {
-	int nr = n->nr + 1;
-
-	if (nr > n->size * 2 / 3)
-		grow_decoration(n);
-	return insert_decoration(n, obj, decoration);
-}
-
-void *lookup_decoration(struct decoration *n, const struct object *obj)
-{
-	unsigned int j;
-
-	/* nothing to lookup */
-	if (!n->size)
-		return NULL;
-	j = hash_obj(obj, n->size);
-	for (;;) {
 		struct decoration_entry *ref = n->entries + j;
-		if (ref->base == obj)
-			return ref->decoration;
-		if (!ref->base)
-			return NULL;
-		if (++j == n->size)
-			j = 0;
-	}
-}
+		return NULL;
+		if (++j >= size)
+	int nr = n->nr + 1;
+#include "decorate.h"
+	unsigned int j;

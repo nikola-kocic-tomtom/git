@@ -1,940 +1,940 @@
-#include "cache.h"
-#include "config.h"
-#include "diff.h"
-#include "object-store.h"
-#include "repository.h"
-#include "commit.h"
-#include "tag.h"
-#include "graph.h"
-#include "log-tree.h"
-#include "reflog-walk.h"
-#include "refs.h"
-#include "string-list.h"
-#include "color.h"
-#include "gpg-interface.h"
-#include "sequencer.h"
-#include "line-log.h"
-#include "help.h"
-#include "interdiff.h"
-#include "range-diff.h"
+		    opt->verbose_header &&
 
-static struct decoration name_decoration = { "object names" };
-static int decoration_loaded;
-static int decoration_flags;
+					 abbrev_commit),
 
-static char decoration_colors[][COLOR_MAXLEN] = {
-	GIT_COLOR_RESET,
-	GIT_COLOR_BOLD_GREEN,	/* REF_LOCAL */
-	GIT_COLOR_BOLD_RED,	/* REF_REMOTE */
-	GIT_COLOR_BOLD_YELLOW,	/* REF_TAG */
-	GIT_COLOR_BOLD_MAGENTA,	/* REF_STASH */
-	GIT_COLOR_BOLD_CYAN,	/* REF_HEAD */
-	GIT_COLOR_BOLD_BLUE,	/* GRAFTED */
-};
 
-static const char *color_decorate_slots[] = {
-	[DECORATION_REF_LOCAL]	= "branch",
-	[DECORATION_REF_REMOTE] = "remoteBranch",
-	[DECORATION_REF_TAG]	= "tag",
-	[DECORATION_REF_STASH]	= "stash",
-	[DECORATION_REF_HEAD]	= "HEAD",
-	[DECORATION_GRAFTED]	= "grafted",
-};
 
-static const char *decorate_get_color(int decorate_use_color, enum decoration_type ix)
-{
-	if (want_color(decorate_use_color))
-		return decoration_colors[ix];
-	return "";
-}
+void format_decorations_extended(struct strbuf *sb,
+		diff_setup(&opts);
 
-define_list_config_array(color_decorate_slots);
-
-int parse_decorate_color_config(const char *var, const char *slot_name, const char *value)
-{
-	int slot = LOOKUP_CONFIG(color_decorate_slots, slot_name);
-	if (slot < 0)
-		return 0;
-	if (!value)
-		return config_error_nonbool(var);
-	return color_parse(value, decoration_colors[slot]);
-}
-
-/*
- * log-tree.c uses DIFF_OPT_TST for determining whether to use color
- * for showing the commit sha1, use the same check for --decorate
- */
-#define decorate_get_color_opt(o, ix) \
-	decorate_get_color((o)->use_color, ix)
-
-void add_name_decoration(enum decoration_type type, const char *name, struct object *obj)
-{
-	struct name_decoration *res;
-	FLEX_ALLOC_STR(res, name, name);
-	res->type = type;
-	res->next = add_decoration(&name_decoration, obj, res);
-}
-
-const struct name_decoration *get_name_decoration(const struct object *obj)
-{
-	load_ref_decorations(NULL, DECORATE_SHORT_REFS);
-	return lookup_decoration(&name_decoration, obj);
-}
-
-static int add_ref_decoration(const char *refname, const struct object_id *oid,
-			      int flags, void *cb_data)
-{
-	struct object *obj;
-	enum decoration_type type = DECORATION_NONE;
-	struct decoration_filter *filter = (struct decoration_filter *)cb_data;
-
-	if (filter && !ref_filter_match(refname,
-			      filter->include_ref_pattern,
-			      filter->exclude_ref_pattern))
-		return 0;
-
-	if (starts_with(refname, git_replace_ref_base)) {
-		struct object_id original_oid;
-		if (!read_replace_refs)
-			return 0;
-		if (get_oid_hex(refname + strlen(git_replace_ref_base),
-				&original_oid)) {
-			warning("invalid replace ref %s", refname);
-			return 0;
-		}
-		obj = parse_object(the_repository, &original_oid);
-		if (obj)
-			add_name_decoration(DECORATION_GRAFTED, "replaced", obj);
-		return 0;
-	}
-
-	obj = parse_object(the_repository, oid);
-	if (!obj)
-		return 0;
-
+		      opt->diffopt.file);
 	if (starts_with(refname, "refs/heads/"))
-		type = DECORATION_REF_LOCAL;
-	else if (starts_with(refname, "refs/remotes/"))
-		type = DECORATION_REF_REMOTE;
-	else if (starts_with(refname, "refs/tags/"))
-		type = DECORATION_REF_TAG;
-	else if (!strcmp(refname, "refs/stash"))
-		type = DECORATION_REF_STASH;
-	else if (!strcmp(refname, "HEAD"))
-		type = DECORATION_REF_HEAD;
-
-	add_name_decoration(type, refname, obj);
-	while (obj->type == OBJ_TAG) {
-		obj = ((struct tag *)obj)->tagged;
-		if (!obj)
-			break;
-		if (!obj->parsed)
-			parse_object(the_repository, &obj->oid);
-		add_name_decoration(DECORATION_REF_TAG, refname, obj);
-	}
-	return 0;
-}
-
-static int add_graft_decoration(const struct commit_graft *graft, void *cb_data)
-{
-	struct commit *commit = lookup_commit(the_repository, &graft->oid);
-	if (!commit)
-		return 0;
-	add_name_decoration(DECORATION_GRAFTED, "grafted", &commit->object);
-	return 0;
-}
-
-void load_ref_decorations(struct decoration_filter *filter, int flags)
-{
-	if (!decoration_loaded) {
-		if (filter) {
-			struct string_list_item *item;
-			for_each_string_list_item(item, filter->exclude_ref_pattern) {
-				normalize_glob_ref(item, NULL, item->string);
-			}
-			for_each_string_list_item(item, filter->include_ref_pattern) {
-				normalize_glob_ref(item, NULL, item->string);
-			}
-		}
-		decoration_loaded = 1;
-		decoration_flags = flags;
-		for_each_ref(add_ref_decoration, filter);
-		head_ref(add_ref_decoration, filter);
+	if (extra->len > payload_size) {
+		obj = parse_object(the_repository, &original_oid);
+		return;
 		for_each_commit_graft(add_graft_decoration, filter);
 	}
-}
-
-static void show_parents(struct commit *commit, int abbrev, FILE *file)
-{
-	struct commit_list *p;
-	for (p = commit->parents; p ; p = p->next) {
-		struct commit *parent = p->item;
-		fprintf(file, " %s", find_unique_abbrev(&parent->object.oid, abbrev));
-	}
-}
-
-static void show_children(struct rev_info *opt, struct commit *commit, int abbrev)
-{
-	struct commit_list *p = lookup_decoration(&opt->children, &commit->object);
-	for ( ; p; p = p->next) {
-		fprintf(opt->diffopt.file, " %s", find_unique_abbrev(&p->item->object.oid, abbrev));
-	}
-}
-
-/*
- * Do we have HEAD in the output, and also the branch it points at?
- * If so, find that decoration entry for that current branch.
- */
-static const struct name_decoration *current_pointed_by_HEAD(const struct name_decoration *decoration)
-{
-	const struct name_decoration *list, *head = NULL;
-	const char *branch_name = NULL;
-	int rru_flags;
-
-	/* First find HEAD */
-	for (list = decoration; list; list = list->next)
 		if (list->type == DECORATION_REF_HEAD) {
-			head = list;
-			break;
-		}
-	if (!head)
-		return NULL;
-
-	/* Now resolve and find the matching current branch */
-	branch_name = resolve_ref_unsafe("HEAD", 0, NULL, &rru_flags);
-	if (!branch_name || !(rru_flags & REF_ISSYMREF))
-		return NULL;
-
-	if (!starts_with(branch_name, "refs/"))
-		return NULL;
-
-	/* OK, do we have that ref in the list? */
-	for (list = decoration; list; list = list->next)
-		if ((list->type == DECORATION_REF_LOCAL) &&
-		    !strcmp(branch_name, list->name)) {
-			return list;
-		}
-
-	return NULL;
-}
-
-static void show_name(struct strbuf *sb, const struct name_decoration *decoration)
-{
-	if (decoration_flags == DECORATE_SHORT_REFS)
-		strbuf_addstr(sb, prettify_refname(decoration->name));
-	else
-		strbuf_addstr(sb, decoration->name);
-}
-
-/*
- * The caller makes sure there is no funny color before calling.
- * format_decorations_extended makes sure the same after return.
- */
-void format_decorations_extended(struct strbuf *sb,
-			const struct commit *commit,
-			int use_color,
-			const char *prefix,
-			const char *separator,
-			const char *suffix)
-{
-	const struct name_decoration *decoration;
-	const struct name_decoration *current_and_HEAD;
-	const char *color_commit =
-		diff_get_color(use_color, DIFF_COMMIT);
-	const char *color_reset =
-		decorate_get_color(use_color, DECORATION_NONE);
-
-	decoration = get_name_decoration(&commit->object);
-	if (!decoration)
-		return;
-
-	current_and_HEAD = current_pointed_by_HEAD(decoration);
-	while (decoration) {
-		/*
-		 * When both current and HEAD are there, only
-		 * show HEAD->current where HEAD would have
-		 * appeared, skipping the entry for current.
-		 */
-		if (decoration != current_and_HEAD) {
-			strbuf_addstr(sb, color_commit);
-			strbuf_addstr(sb, prefix);
-			strbuf_addstr(sb, color_reset);
-			strbuf_addstr(sb, decorate_get_color(use_color, decoration->type));
-			if (decoration->type == DECORATION_REF_TAG)
-				strbuf_addstr(sb, "tag: ");
-
-			show_name(sb, decoration);
-
-			if (current_and_HEAD &&
-			    decoration->type == DECORATION_REF_HEAD) {
-				strbuf_addstr(sb, " -> ");
-				strbuf_addstr(sb, color_reset);
-				strbuf_addstr(sb, decorate_get_color(use_color, current_and_HEAD->type));
-				show_name(sb, current_and_HEAD);
-			}
-			strbuf_addstr(sb, color_reset);
-
-			prefix = separator;
-		}
-		decoration = decoration->next;
-	}
-	strbuf_addstr(sb, color_commit);
-	strbuf_addstr(sb, suffix);
-	strbuf_addstr(sb, color_reset);
-}
-
-void show_decorations(struct rev_info *opt, struct commit *commit)
-{
-	struct strbuf sb = STRBUF_INIT;
-
-	if (opt->sources) {
-		char **slot = revision_sources_peek(opt->sources, commit);
-
-		if (slot && *slot)
-			fprintf(opt->diffopt.file, "\t%s", *slot);
-	}
-	if (!opt->show_decorations)
-		return;
-	format_decorations(&sb, commit, opt->diffopt.use_color);
-	fputs(sb.buf, opt->diffopt.file);
-	strbuf_release(&sb);
-}
-
-static unsigned int digits_in_number(unsigned int number)
-{
-	unsigned int i = 10, result = 1;
-	while (i <= number) {
-		i *= 10;
-		result++;
-	}
-	return result;
-}
-
-void fmt_output_subject(struct strbuf *filename,
-			const char *subject,
-			struct rev_info *info)
-{
-	const char *suffix = info->patch_suffix;
-	int nr = info->nr;
-	int start_len = filename->len;
-	int max_len = start_len + FORMAT_PATCH_NAME_MAX - (strlen(suffix) + 1);
-
-	if (0 < info->reroll_count)
-		strbuf_addf(filename, "v%d-", info->reroll_count);
-	strbuf_addf(filename, "%04d-%s", nr, subject);
-
-	if (max_len < filename->len)
-		strbuf_setlen(filename, max_len);
-	strbuf_addstr(filename, suffix);
-}
-
-void fmt_output_commit(struct strbuf *filename,
-		       struct commit *commit,
-		       struct rev_info *info)
-{
-	struct pretty_print_context ctx = {0};
-	struct strbuf subject = STRBUF_INIT;
-
-	format_commit_message(commit, "%f", &subject, &ctx);
-	fmt_output_subject(filename, subject.buf, info);
-	strbuf_release(&subject);
-}
-
-void fmt_output_email_subject(struct strbuf *sb, struct rev_info *opt)
-{
-	if (opt->total > 0) {
-		strbuf_addf(sb, "Subject: [%s%s%0*d/%d] ",
-			    opt->subject_prefix,
-			    *opt->subject_prefix ? " " : "",
-			    digits_in_number(opt->total),
-			    opt->nr, opt->total);
-	} else if (opt->total == 0 && opt->subject_prefix && *opt->subject_prefix) {
-		strbuf_addf(sb, "Subject: [%s] ",
-			    opt->subject_prefix);
-	} else {
-		strbuf_addstr(sb, "Subject: ");
-	}
-}
-
-void log_write_email_headers(struct rev_info *opt, struct commit *commit,
-			     const char **extra_headers_p,
-			     int *need_8bit_cte_p,
-			     int maybe_multipart)
-{
-	const char *extra_headers = opt->extra_headers;
-	const char *name = oid_to_hex(opt->zero_commit ?
-				      &null_oid : &commit->object.oid);
-
-	*need_8bit_cte_p = 0; /* unknown */
-
-	fprintf(opt->diffopt.file, "From %s Mon Sep 17 00:00:00 2001\n", name);
-	graph_show_oneline(opt->graph);
-	if (opt->message_id) {
-		fprintf(opt->diffopt.file, "Message-Id: <%s>\n", opt->message_id);
-		graph_show_oneline(opt->graph);
-	}
-	if (opt->ref_message_ids && opt->ref_message_ids->nr > 0) {
-		int i, n;
-		n = opt->ref_message_ids->nr;
-		fprintf(opt->diffopt.file, "In-Reply-To: <%s>\n", opt->ref_message_ids->items[n-1].string);
-		for (i = 0; i < n; i++)
-			fprintf(opt->diffopt.file, "%s<%s>\n", (i > 0 ? "\t" : "References: "),
-			       opt->ref_message_ids->items[i].string);
-		graph_show_oneline(opt->graph);
-	}
-	if (opt->mime_boundary && maybe_multipart) {
-		static struct strbuf subject_buffer = STRBUF_INIT;
-		static struct strbuf buffer = STRBUF_INIT;
-		struct strbuf filename =  STRBUF_INIT;
-		*need_8bit_cte_p = -1; /* NEVER */
-
-		strbuf_reset(&subject_buffer);
-		strbuf_reset(&buffer);
-
-		strbuf_addf(&subject_buffer,
-			 "%s"
-			 "MIME-Version: 1.0\n"
-			 "Content-Type: multipart/mixed;"
-			 " boundary=\"%s%s\"\n"
-			 "\n"
-			 "This is a multi-part message in MIME "
-			 "format.\n"
-			 "--%s%s\n"
-			 "Content-Type: text/plain; "
-			 "charset=UTF-8; format=fixed\n"
-			 "Content-Transfer-Encoding: 8bit\n\n",
-			 extra_headers ? extra_headers : "",
-			 mime_boundary_leader, opt->mime_boundary,
-			 mime_boundary_leader, opt->mime_boundary);
-		extra_headers = subject_buffer.buf;
-
-		if (opt->numbered_files)
-			strbuf_addf(&filename, "%d", opt->nr);
-		else
-			fmt_output_commit(&filename, commit, opt);
-		strbuf_addf(&buffer,
-			 "\n--%s%s\n"
-			 "Content-Type: text/x-patch;"
-			 " name=\"%s\"\n"
-			 "Content-Transfer-Encoding: 8bit\n"
-			 "Content-Disposition: %s;"
-			 " filename=\"%s\"\n\n",
-			 mime_boundary_leader, opt->mime_boundary,
-			 filename.buf,
-			 opt->no_inline ? "attachment" : "inline",
-			 filename.buf);
-		opt->diffopt.stat_sep = buffer.buf;
-		strbuf_release(&filename);
-	}
-	*extra_headers_p = extra_headers;
-}
-
-static void show_sig_lines(struct rev_info *opt, int status, const char *bol)
-{
-	const char *color, *reset, *eol;
-
-	color = diff_get_color_opt(&opt->diffopt,
-				   status ? DIFF_WHITESPACE : DIFF_FRAGINFO);
-	reset = diff_get_color_opt(&opt->diffopt, DIFF_RESET);
-	while (*bol) {
-		eol = strchrnul(bol, '\n');
-		fprintf(opt->diffopt.file, "%s%.*s%s%s", color, (int)(eol - bol), bol, reset,
-		       *eol ? "\n" : "");
-		graph_show_oneline(opt->graph);
-		bol = (*eol) ? (eol + 1) : eol;
-	}
-}
-
-static void show_signature(struct rev_info *opt, struct commit *commit)
-{
-	struct strbuf payload = STRBUF_INIT;
-	struct strbuf signature = STRBUF_INIT;
-	struct signature_check sigc = { 0 };
-	int status;
-
-	if (parse_signed_commit(commit, &payload, &signature) <= 0)
-		goto out;
-
-	status = check_signature(payload.buf, payload.len, signature.buf,
-				 signature.len, &sigc);
-	if (status && !sigc.gpg_output)
-		show_sig_lines(opt, status, "No signature\n");
-	else
-		show_sig_lines(opt, status, sigc.gpg_output);
-	signature_check_clear(&sigc);
-
- out:
-	strbuf_release(&payload);
-	strbuf_release(&signature);
-}
-
-static int which_parent(const struct object_id *oid, const struct commit *commit)
-{
-	int nth;
-	const struct commit_list *parent;
-
-	for (nth = 0, parent = commit->parents; parent; parent = parent->next) {
-		if (oideq(&parent->item->object.oid, oid))
-			return nth;
-		nth++;
-	}
-	return -1;
-}
-
-static int is_common_merge(const struct commit *commit)
-{
-	return (commit->parents
-		&& commit->parents->next
-		&& !commit->parents->next->next);
-}
-
-static int show_one_mergetag(struct commit *commit,
-			     struct commit_extra_header *extra,
-			     void *data)
-{
-	struct rev_info *opt = (struct rev_info *)data;
-	struct object_id oid;
-	struct tag *tag;
-	struct strbuf verify_message;
-	struct signature_check sigc = { 0 };
-	int status, nth;
+	 */
 	size_t payload_size;
 
-	hash_object_file(the_hash_algo, extra->value, extra->len,
-			 type_name(OBJ_TAG), &oid);
-	tag = lookup_tag(the_repository, &oid);
-	if (!tag)
-		return -1; /* error message already given */
-
-	strbuf_init(&verify_message, 256);
-	if (parse_tag_buffer(the_repository, tag, extra->value, extra->len))
-		strbuf_addstr(&verify_message, "malformed mergetag\n");
-	else if (is_common_merge(commit) &&
-		 oideq(&tag->tagged->oid,
-		       &commit->parents->next->item->object.oid))
-		strbuf_addf(&verify_message,
-			    "merged tag '%s'\n", tag->tag);
-	else if ((nth = which_parent(&tag->tagged->oid, commit)) < 0)
-		strbuf_addf(&verify_message, "tag %s names a non-parent %s\n",
-				    tag->tag, oid_to_hex(&tag->tagged->oid));
 	else
-		strbuf_addf(&verify_message,
-			    "parent #%d, tagged '%s'\n", nth + 1, tag->tag);
-
-	payload_size = parse_signature(extra->value, extra->len);
-	status = -1;
-	if (extra->len > payload_size) {
-		/* could have a good signature */
-		status = check_signature(extra->value, payload_size,
-					 extra->value + payload_size,
-					 extra->len - payload_size, &sigc);
-		if (sigc.gpg_output)
-			strbuf_addstr(&verify_message, sigc.gpg_output);
-		else
-			strbuf_addstr(&verify_message, "No signature\n");
-		signature_check_clear(&sigc);
-		/* otherwise we couldn't verify, which is shown as bad */
-	}
-
-	show_sig_lines(opt, status, verify_message.buf);
-	strbuf_release(&verify_message);
-	return 0;
-}
-
-static int show_mergetag(struct rev_info *opt, struct commit *commit)
-{
-	return for_each_mergetag(show_one_mergetag, commit, opt);
-}
-
-static void next_commentary_block(struct rev_info *opt, struct strbuf *sb)
-{
-	const char *x = opt->shown_dashes ? "\n" : "---\n";
-	if (sb)
-		strbuf_addstr(sb, x);
-	else
-		fputs(x, opt->diffopt.file);
-	opt->shown_dashes = 1;
-}
-
-void show_log(struct rev_info *opt)
-{
-	struct strbuf msgbuf = STRBUF_INIT;
-	struct log_info *log = opt->loginfo;
-	struct commit *commit = log->commit, *parent = log->parent;
-	int abbrev_commit = opt->abbrev_commit ? opt->abbrev : the_hash_algo->hexsz;
-	const char *extra_headers = opt->extra_headers;
-	struct pretty_print_context ctx = {0};
-
-	opt->loginfo = NULL;
-	if (!opt->verbose_header) {
-		graph_show_commit(opt->graph);
-
-		if (!opt->graph)
-			put_revision_mark(opt, commit);
-		fputs(find_unique_abbrev(&commit->object.oid, abbrev_commit), opt->diffopt.file);
-		if (opt->print_parents)
-			show_parents(commit, abbrev_commit, opt->diffopt.file);
-		if (opt->children.name)
-			show_children(opt, commit, abbrev_commit);
-		show_decorations(opt, commit);
-		if (opt->graph && !graph_is_commit_finished(opt->graph)) {
-			putc('\n', opt->diffopt.file);
-			graph_show_remainder(opt->graph);
-		}
-		putc(opt->diffopt.line_termination, opt->diffopt.file);
-		return;
-	}
-
-	/*
-	 * If use_terminator is set, we already handled any record termination
-	 * at the end of the last record.
-	 * Otherwise, add a diffopt.line_termination character before all
-	 * entries but the first.  (IOW, as a separator between entries)
-	 */
-	if (opt->shown_one && !opt->use_terminator) {
-		/*
-		 * If entries are separated by a newline, the output
-		 * should look human-readable.  If the last entry ended
-		 * with a newline, print the graph output before this
-		 * newline.  Otherwise it will end up as a completely blank
-		 * line and will look like a gap in the graph.
-		 *
-		 * If the entry separator is not a newline, the output is
-		 * primarily intended for programmatic consumption, and we
-		 * never want the extra graph output before the entry
-		 * separator.
-		 */
-		if (opt->diffopt.line_termination == '\n' &&
-		    !opt->missing_newline)
-			graph_show_padding(opt->graph);
-		putc(opt->diffopt.line_termination, opt->diffopt.file);
-	}
-	opt->shown_one = 1;
-
-	/*
-	 * If the history graph was requested,
-	 * print the graph, up to this commit's line
-	 */
-	graph_show_commit(opt->graph);
-
-	/*
-	 * Print header line of header..
-	 */
-
-	if (cmit_fmt_is_mail(opt->commit_format)) {
-		log_write_email_headers(opt, commit, &extra_headers,
-					&ctx.need_8bit_cte, 1);
-		ctx.rev = opt;
-		ctx.print_email_subject = 1;
-	} else if (opt->commit_format != CMIT_FMT_USERFORMAT) {
-		fputs(diff_get_color_opt(&opt->diffopt, DIFF_COMMIT), opt->diffopt.file);
-		if (opt->commit_format != CMIT_FMT_ONELINE)
-			fputs("commit ", opt->diffopt.file);
-
-		if (!opt->graph)
-			put_revision_mark(opt, commit);
-		fputs(find_unique_abbrev(&commit->object.oid,
-					 abbrev_commit),
-		      opt->diffopt.file);
-		if (opt->print_parents)
-			show_parents(commit, abbrev_commit, opt->diffopt.file);
-		if (opt->children.name)
-			show_children(opt, commit, abbrev_commit);
-		if (parent)
-			fprintf(opt->diffopt.file, " (from %s)",
+		memcpy(&dq, &diff_queued_diff, sizeof(diff_queued_diff));
+#include "object-store.h"
 			       find_unique_abbrev(&parent->object.oid, abbrev_commit));
-		fputs(diff_get_color_opt(&opt->diffopt, DIFF_RESET), opt->diffopt.file);
-		show_decorations(opt, commit);
-		if (opt->commit_format == CMIT_FMT_ONELINE) {
-			putc(' ', opt->diffopt.file);
-		} else {
-			putc('\n', opt->diffopt.file);
-			graph_show_oneline(opt->graph);
+		return 0;
+	decorate_get_color((o)->use_color, ix)
 		}
-		if (opt->reflog_info) {
+	fmt_output_subject(filename, subject.buf, info);
+	if (opt->message_id) {
+	}
+		 * should look human-readable.  If the last entry ended
+
+		strbuf_reset(&buffer);
+		graph_show_oneline(opt->graph);
+			int use_color,
+				      &null_oid : &commit->object.oid);
+
+{
+		if (filter) {
 			/*
-			 * setup_revisions() ensures that opt->reflog_info
-			 * and opt->graph cannot both be set,
-			 * so we don't need to worry about printing the
-			 * graph info here.
-			 */
-			show_reflog_message(opt->reflog_info,
-					    opt->commit_format == CMIT_FMT_ONELINE,
-					    &opt->date_mode,
+		fprintf_ln(opt->diffopt.file, "%s", opt->idiff_title);
+		 * line and will look like a gap in the graph.
+{
+/*
+			 mime_boundary_leader, opt->mime_boundary,
+	if (!branch_name || !(rru_flags & REF_ISSYMREF))
+			 "--%s%s\n"
+
+{
+	}
+			 * parent, showing summary diff of the others
+			    *opt->subject_prefix ? " " : "",
+	} else {
+	}
+		log_write_email_headers(opt, commit, &extra_headers,
+		if (opt->diffopt.line_termination == '\n' &&
+	struct object_id oid;
+		putc(opt->diffopt.line_termination, opt->diffopt.file);
+		ctx.print_email_subject = 1;
+		int i, n;
+
+			    opt->subject_prefix);
+	}
+		strbuf_addf(sb, "Subject: [%s%s%0*d/%d] ",
+			 type_name(OBJ_TAG), &oid);
+	strbuf_addstr(sb, color_reset);
 					    opt->date_mode_explicit);
-			if (opt->commit_format == CMIT_FMT_ONELINE)
-				return;
-		}
-	}
+			return 0;
+	format_commit_message(commit, "%f", &subject, &ctx);
+			 * after the three-dashes line.
+			if (opt->diffopt.output_prefix) {
+	if (status && !sigc.gpg_output)
 
-	if (opt->show_signature) {
+{
+	struct strbuf verify_message;
+	parents = get_saved_parents(opt, commit);
+		type = DECORATION_REF_LOCAL;
+		/* If we show individual diffs, show the parent info */
+			add_name_decoration(DECORATION_GRAFTED, "replaced", obj);
+	GIT_COLOR_BOLD_BLUE,	/* GRAFTED */
+		log.parent = NULL;
+	const struct name_decoration *list, *head = NULL;
+	 * print the graph, up to this commit's line
+	current_and_HEAD = current_pointed_by_HEAD(decoration);
+/*
+				normalize_glob_ref(item, NULL, item->string);
+				fwrite(msg->buf, msg->len, 1, opt->diffopt.file);
+	free(ctx.notes_message);
+{
+
+	int nr = info->nr;
+		fprintf(opt->diffopt.file, "Message-Id: <%s>\n", opt->message_id);
+	strbuf_addstr(sb, suffix);
+const struct name_decoration *get_name_decoration(const struct object *obj)
+
+	const char *extra_headers = opt->extra_headers;
+		fprintf(opt->diffopt.file, "In-Reply-To: <%s>\n", opt->ref_message_ids->items[n-1].string);
+static void show_sig_lines(struct rev_info *opt, int status, const char *bol)
+				strbuf_addstr(sb, " -> ");
+	 * If the history graph was requested,
+};
+
+	status = check_signature(payload.buf, payload.len, signature.buf,
+	}
+		strbuf_addf(&verify_message,
+	if (sb)
+			 * and opt->graph cannot both be set,
+	strbuf_release(&verify_message);
+		/*
+}
+	return -1;
+	tag = lookup_tag(the_repository, &oid);
+	color = diff_get_color_opt(&opt->diffopt,
+		opt->missing_newline = 0;
+	if (0 < info->reroll_count)
+	else
+	}
+	strbuf_addf(filename, "%04d-%s", nr, subject);
+				     get_log_output_encoding(), raw);
+	opt->loginfo = &log;
 		show_signature(opt, commit);
-		show_mergetag(opt, commit);
-	}
+	if (cmit_fmt_is_mail(opt->commit_format)) {
+		fputs(x, opt->diffopt.file);
+	while (i <= number) {
+			 mime_boundary_leader, opt->mime_boundary,
+			    "parent #%d, tagged '%s'\n", nth + 1, tag->tag);
+	if (!opt->show_decorations)
+{
+}
 
+	struct log_info *log = opt->loginfo;
+#include "diff.h"
+			strbuf_addf(&filename, "%d", opt->nr);
+	struct name_decoration *res;
+			 * between generated commentary (notes, etc.)
+	if (opt->shown_one && !opt->use_terminator) {
+		}
+int log_tree_diff_flush(struct rev_info *opt)
+		       struct rev_info *info)
+	 */
+			 "Content-Type: text/plain; "
+			parse_object(the_repository, &obj->oid);
+	struct commit *commit = lookup_commit(the_repository, &graft->oid);
+	res->type = type;
+
+		if (cmit_fmt_is_mail(ctx.fmt))
+		return 0;
+	ctx.color = opt->diffopt.use_color;
+	while (obj->type == OBJ_TAG) {
+	if (decoration_flags == DECORATE_SHORT_REFS)
+			 " filename=\"%s\"\n\n",
+				   status ? DIFF_WHITESPACE : DIFF_FRAGINFO);
+void fmt_output_commit(struct strbuf *filename,
+#include "gpg-interface.h"
+}
+ */
+
+		return 0;
+{
+		else if (opt->first_parent_only) {
+	struct commit_list *p = lookup_decoration(&opt->children, &commit->object);
+		opt->missing_newline = 1;
+		graph_show_oneline(opt->graph);
+	return 0;
+			fprintf(opt->diffopt.file, " (from %s)",
+		diff_get_color(use_color, DIFF_COMMIT);
+	if (opt->graph)
+}
+	    ctx.notes_message && *ctx.notes_message) {
+		n = opt->ref_message_ids->nr;
+	/* Root commit? */
+
+
+#include "range-diff.h"
+			    "merged tag '%s'\n", tag->tag);
+			 mime_boundary_leader, opt->mime_boundary);
 	if (opt->show_notes) {
-		int raw;
+		if (!obj->parsed)
+
+	if (!tag)
+	ctx.output_encoding = get_log_output_encoding();
+		if (sigc.gpg_output)
+
+			 "MIME-Version: 1.0\n"
+{
+			fprintf(opt->diffopt.file, "%s<%s>\n", (i > 0 ? "\t" : "References: "),
+			 " boundary=\"%s%s\"\n"
+		strbuf_reset(&subject_buffer);
+};
+	if (slot < 0)
+
+		return decoration_colors[ix];
+		return;
+			return !opt->loginfo;
+
+}
+		       struct commit *commit,
+			/*
+		return 0;
+		opt->diffopt.output_format = DIFF_FORMAT_NO_OUTPUT;
+
+			log_tree_diff_flush(opt);
+		decoration_loaded = 1;
+		return 0;
+			const struct commit *commit,
+			 "This is a multi-part message in MIME "
+			 "Content-Disposition: %s;"
+
+ */
+			 * so we don't need to worry about printing the
+		 * never want the extra graph output before the entry
+	int start_len = filename->len;
+		fclose(opt->diffopt.file);
+		type = DECORATION_REF_REMOTE;
+{
+	if (!obj)
+
+static struct decoration name_decoration = { "object names" };
+	struct strbuf payload = STRBUF_INIT;
+	}
+#define decorate_get_color_opt(o, ix) \
+	if (cmit_fmt_is_mail(ctx.fmt) && opt->rdiff1) {
+	if (opt->use_terminator && !commit_format_is_empty(opt->commit_format)) {
+	ctx.rev = opt;
+	showed_log = 0;
+{
+
+	if (!msgbuf.len || msgbuf.buf[msgbuf.len - 1] != '\n')
+
+		eol = strchrnul(bol, '\n');
+	}
+		}
+
+
+		decorate_get_color(use_color, DECORATION_NONE);
+	}
+	 * If use_terminator is set, we already handled any record termination
+		i *= 10;
+		 * can be added later if deemed desirable.
+
+{
+				return;
+	}
+	obj = parse_object(the_repository, oid);
+		obj = ((struct tag *)obj)->tagged;
+
+				msg = opt->diffopt.output_prefix(&opt->diffopt,
+	if (parse_signed_commit(commit, &payload, &signature) <= 0)
+}
+		opts.file = opt->diffopt.file;
+}
+					 extra->len - payload_size, &sigc);
+	struct commit *commit = log->commit, *parent = log->parent;
+	strbuf_release(&subject);
+	for (list = decoration; list; list = list->next)
+			 * we are showing the patch with diffstat, but
+		if (!parents)
+		fputs(diff_get_color_opt(&opt->diffopt, DIFF_COMMIT), opt->diffopt.file);
+	struct signature_check sigc = { 0 };
+				fprintf(opt->diffopt.file, "---");
+		memcpy(&diff_queued_diff, &dq, sizeof(diff_queued_diff));
+
+	}
+		if (opt->show_root_diff) {
+	 * Print header line of header..
+		fprintf(opt->diffopt.file, "log size %i\n", (int)msgbuf.len);
+}
+			     struct commit_extra_header *extra,
+	const struct name_decoration *decoration;
+{
+	unsigned int i = 10, result = 1;
+static int show_mergetag(struct rev_info *opt, struct commit *commit)
+	ctx.date_mode = opt->date_mode;
+	if (opt->from_ident.mail_begin && opt->from_ident.name_begin)
+			graph_show_padding(opt->graph);
+		DIFF_QUEUE_CLEAR(&diff_queued_diff);
+	strbuf_init(&verify_message, 256);
+			if (!opt->shown_dashes &&
+	graph_show_oneline(opt->graph);
+	if (opt->ref_message_ids && opt->ref_message_ids->nr > 0) {
+	int nth;
+	const char *x = opt->shown_dashes ? "\n" : "---\n";
+		}
+	pretty_print_commit(&ctx, commit, &msgbuf);
+	[DECORATION_REF_HEAD]	= "HEAD",
+	/* OK, do we have that ref in the list? */
+			prefix = separator;
 		struct strbuf notebuf = STRBUF_INIT;
 
-		raw = (opt->commit_format == CMIT_FMT_USERFORMAT);
-		format_display_notes(&commit->object.oid, &notebuf,
-				     get_log_output_encoding(), raw);
-		ctx.notes_message = strbuf_detach(&notebuf, NULL);
-	}
-
-	/*
-	 * And then the pretty-printed message itself
-	 */
-	if (ctx.need_8bit_cte >= 0 && opt->add_signoff)
-		ctx.need_8bit_cte =
-			has_non_ascii(fmt_name(WANT_COMMITTER_IDENT));
-	ctx.date_mode = opt->date_mode;
-	ctx.date_mode_explicit = opt->date_mode_explicit;
-	ctx.abbrev = opt->diffopt.abbrev;
-	ctx.after_subject = extra_headers;
-	ctx.preserve_subject = opt->preserve_subject;
-	ctx.encode_email_headers = opt->encode_email_headers;
-	ctx.reflog_info = opt->reflog_info;
-	ctx.fmt = opt->commit_format;
-	ctx.mailmap = opt->mailmap;
-	ctx.color = opt->diffopt.use_color;
-	ctx.expand_tabs_in_log = opt->expand_tabs_in_log;
-	ctx.output_encoding = get_log_output_encoding();
-	ctx.rev = opt;
-	if (opt->from_ident.mail_begin && opt->from_ident.name_begin)
-		ctx.from_ident = &opt->from_ident;
-	if (opt->graph)
-		ctx.graph_width = graph_width(opt->graph);
-	pretty_print_commit(&ctx, commit, &msgbuf);
-
-	if (opt->add_signoff)
-		append_signoff(&msgbuf, 0, APPEND_SIGNOFF_DEDUP);
-
-	if ((ctx.fmt != CMIT_FMT_USERFORMAT) &&
-	    ctx.notes_message && *ctx.notes_message) {
-		if (cmit_fmt_is_mail(ctx.fmt))
-			next_commentary_block(opt, &msgbuf);
-		strbuf_addstr(&msgbuf, ctx.notes_message);
-	}
-
-	if (opt->show_log_size) {
-		fprintf(opt->diffopt.file, "log size %i\n", (int)msgbuf.len);
-		graph_show_oneline(opt->graph);
-	}
-
-	/*
-	 * Set opt->missing_newline if msgbuf doesn't
-	 * end in a newline (including if it is empty)
-	 */
-	if (!msgbuf.len || msgbuf.buf[msgbuf.len - 1] != '\n')
-		opt->missing_newline = 1;
-	else
-		opt->missing_newline = 0;
-
-	graph_show_commit_msg(opt->graph, opt->diffopt.file, &msgbuf);
-	if (opt->use_terminator && !commit_format_is_empty(opt->commit_format)) {
-		if (!opt->missing_newline)
-			graph_show_padding(opt->graph);
-		putc(opt->diffopt.line_termination, opt->diffopt.file);
-	}
-
-	strbuf_release(&msgbuf);
-	free(ctx.notes_message);
-
-	if (cmit_fmt_is_mail(ctx.fmt) && opt->idiff_oid1) {
-		struct diff_queue_struct dq;
-
-		memcpy(&dq, &diff_queued_diff, sizeof(diff_queued_diff));
-		DIFF_QUEUE_CLEAR(&diff_queued_diff);
-
-		next_commentary_block(opt, NULL);
-		fprintf_ln(opt->diffopt.file, "%s", opt->idiff_title);
-		show_interdiff(opt, 2);
-
-		memcpy(&diff_queued_diff, &dq, sizeof(diff_queued_diff));
-	}
-
-	if (cmit_fmt_is_mail(ctx.fmt) && opt->rdiff1) {
-		struct diff_queue_struct dq;
-		struct diff_options opts;
-
-		memcpy(&dq, &diff_queued_diff, sizeof(diff_queued_diff));
-		DIFF_QUEUE_CLEAR(&diff_queued_diff);
-
-		next_commentary_block(opt, NULL);
-		fprintf_ln(opt->diffopt.file, "%s", opt->rdiff_title);
-		/*
-		 * Pass minimum required diff-options to range-diff; others
-		 * can be added later if deemed desirable.
-		 */
-		diff_setup(&opts);
-		opts.file = opt->diffopt.file;
-		opts.use_color = opt->diffopt.use_color;
-		diff_setup_done(&opts);
-		show_range_diff(opt->rdiff1, opt->rdiff2,
-				opt->creation_factor, 1, &opts, NULL);
-
-		memcpy(&diff_queued_diff, &dq, sizeof(diff_queued_diff));
-	}
-}
-
-int log_tree_diff_flush(struct rev_info *opt)
-{
-	opt->shown_dashes = 0;
-	diffcore_std(&opt->diffopt);
-
-	if (diff_queue_is_empty()) {
-		int saved_fmt = opt->diffopt.output_format;
-		opt->diffopt.output_format = DIFF_FORMAT_NO_OUTPUT;
-		diff_flush(&opt->diffopt);
-		opt->diffopt.output_format = saved_fmt;
-		return 0;
-	}
-
-	if (opt->loginfo && !opt->no_commit_id) {
-		show_log(opt);
-		if ((opt->diffopt.output_format & ~DIFF_FORMAT_NO_OUTPUT) &&
-		    opt->verbose_header &&
-		    opt->commit_format != CMIT_FMT_ONELINE &&
-		    !commit_format_is_empty(opt->commit_format)) {
-			/*
-			 * When showing a verbose header (i.e. log message),
-			 * and not in --pretty=oneline format, we would want
-			 * an extra newline between the end of log and the
-			 * diff/diffstat output for readability.
-			 */
-			int pch = DIFF_FORMAT_DIFFSTAT | DIFF_FORMAT_PATCH;
-			if (opt->diffopt.output_prefix) {
-				struct strbuf *msg = NULL;
-				msg = opt->diffopt.output_prefix(&opt->diffopt,
-					opt->diffopt.output_prefix_data);
-				fwrite(msg->buf, msg->len, 1, opt->diffopt.file);
-			}
-
-			/*
-			 * We may have shown three-dashes line early
-			 * between generated commentary (notes, etc.)
-			 * and the log message, in which case we only
-			 * want a blank line after the commentary
-			 * without (an extra) three-dashes line.
-			 * Otherwise, we show the three-dashes line if
-			 * we are showing the patch with diffstat, but
-			 * in that case, there is no extra blank line
-			 * after the three-dashes line.
-			 */
-			if (!opt->shown_dashes &&
-			    (pch & opt->diffopt.output_format) == pch)
-				fprintf(opt->diffopt.file, "---");
-			putc('\n', opt->diffopt.file);
-		}
-	}
-	diff_flush(&opt->diffopt);
-	return 1;
-}
-
-static int do_diff_combined(struct rev_info *opt, struct commit *commit)
-{
-	diff_tree_combined_merge(commit, opt->dense_combined_merges, opt);
-	return !opt->loginfo;
-}
-
-/*
- * Show the diff of a commit.
- *
- * Return true if we printed any log info messages
- */
-static int log_tree_diff(struct rev_info *opt, struct commit *commit, struct log_info *log)
-{
-	int showed_log;
-	struct commit_list *parents;
-	struct object_id *oid;
-
-	if (!opt->diff && !opt->diffopt.flags.exit_with_status)
-		return 0;
-
-	parse_commit_or_die(commit);
-	oid = get_commit_tree_oid(commit);
-
-	/* Root commit? */
-	parents = get_saved_parents(opt, commit);
-	if (!parents) {
-		if (opt->show_root_diff) {
-			diff_root_tree_oid(oid, "", &opt->diffopt);
-			log_tree_diff_flush(opt);
-		}
-		return !opt->loginfo;
-	}
-
-	/* More than one parent? */
-	if (parents && parents->next) {
-		if (opt->ignore_merges)
-			return 0;
+			 opt->no_inline ? "attachment" : "inline",
+ * Do we have HEAD in the output, and also the branch it points at?
 		else if (opt->combine_merges)
-			return do_diff_combined(opt, commit);
-		else if (opt->first_parent_only) {
-			/*
-			 * Generate merge log entry only for the first
-			 * parent, showing summary diff of the others
-			 * we merged _in_.
-			 */
-			parse_commit_or_die(parents->item);
-			diff_tree_oid(get_commit_tree_oid(parents->item),
-				      oid, "", &opt->diffopt);
-			log_tree_diff_flush(opt);
-			return !opt->loginfo;
-		}
+			break;
+		strbuf_release(&filename);
+			      oid, "", &opt->diffopt);
+		strbuf_addstr(sb, "Subject: ");
+	for (;;) {
+		graph_show_oneline(opt->graph);
+			putc(' ', opt->diffopt.file);
+{
+		strbuf_addstr(&msgbuf, ctx.notes_message);
+	strbuf_release(&sb);
+	branch_name = resolve_ref_unsafe("HEAD", 0, NULL, &rru_flags);
 
-		/* If we show individual diffs, show the parent info */
-		log->parent = parents->item;
 	}
 
-	showed_log = 0;
-	for (;;) {
-		struct commit *parent = parents->item;
+				 signature.len, &sigc);
+			diff_root_tree_oid(oid, "", &opt->diffopt);
+			strbuf_addstr(sb, decorate_get_color(use_color, decoration->type));
+	while (decoration) {
+	if (parse_tag_buffer(the_repository, tag, extra->value, extra->len))
+{
+	return (commit->parents
+		if (opt->reflog_info) {
+			 */
+{
 
+}
+	 */
+#include "repository.h"
+		for_each_ref(add_ref_decoration, filter);
+
+		*need_8bit_cte_p = -1; /* NEVER */
+}
+		}
+			 extra_headers ? extra_headers : "",
+static int which_parent(const struct object_id *oid, const struct commit *commit)
+		if (opt->graph && !graph_is_commit_finished(opt->graph)) {
+
+
+			}
+#include "graph.h"
+	struct tag *tag;
+	struct pretty_print_context ctx = {0};
+
+	opt->diffopt.close_file = 0;
+		fputs(find_unique_abbrev(&commit->object.oid,
+	else
+void show_decorations(struct rev_info *opt, struct commit *commit)
+	struct decoration_filter *filter = (struct decoration_filter *)cb_data;
+		int raw;
+static void show_children(struct rev_info *opt, struct commit *commit, int abbrev)
+	diff_tree_combined_merge(commit, opt->dense_combined_merges, opt);
+	[DECORATION_REF_TAG]	= "tag",
+}
+	else if ((nth = which_parent(&tag->tagged->oid, commit)) < 0)
+			 */
+	/*
+			graph_show_oneline(opt->graph);
+
+{
+		if (!opt->missing_newline)
+			 "\n"
+	else
+ * for showing the commit sha1, use the same check for --decorate
+	GIT_COLOR_BOLD_CYAN,	/* REF_HEAD */
+	if (parents && parents->next) {
+	ctx.encode_email_headers = opt->encode_email_headers;
+	const char *color_reset =
+static const char *color_decorate_slots[] = {
+	if (opt->sources) {
+		if (opt->print_parents)
+	}
+		nth++;
+		strbuf_addf(&subject_buffer,
+		 * primarily intended for programmatic consumption, and we
+		 *
+		if (!opt->graph)
+				    tag->tag, oid_to_hex(&tag->tagged->oid));
+			show_parents(commit, abbrev_commit, opt->diffopt.file);
+	const char *extra_headers = opt->extra_headers;
+
+define_list_config_array(color_decorate_slots);
+	*need_8bit_cte_p = 0; /* unknown */
+		fprintf(opt->diffopt.file, "\n%s\n", opt->break_bar);
+		 oideq(&tag->tagged->oid,
+		}
+
+	struct commit_list *parents;
+					opt->diffopt.output_prefix_data);
+			 * Generate merge log entry only for the first
+	graph_show_commit_msg(opt->graph, opt->diffopt.file, &msgbuf);
+
+			       opt->ref_message_ids->items[i].string);
+		DIFF_QUEUE_CLEAR(&diff_queued_diff);
+			     const char **extra_headers_p,
+		showed_log |= !opt->loginfo;
+	 * And then the pretty-printed message itself
+
+	}
+
+	if (filter && !ref_filter_match(refname,
+
+			    digits_in_number(opt->total),
+	}
+		show_sig_lines(opt, status, "No signature\n");
+
+			for_each_string_list_item(item, filter->include_ref_pattern) {
+			/*
+	/* More than one parent? */
+
+		 * Pass minimum required diff-options to range-diff; others
+		strbuf_addstr(sb, x);
+		decoration_flags = flags;
+	return 1;
+			return 0;
+		if (opt->children.name)
+		if (opt->commit_format == CMIT_FMT_ONELINE) {
+	show_sig_lines(opt, status, verify_message.buf);
+			graph_show_padding(opt->graph);
+	GIT_COLOR_BOLD_MAGENTA,	/* REF_STASH */
+#include "log-tree.h"
+void show_log(struct rev_info *opt)
+			putc('\n', opt->diffopt.file);
+ * Return true if we printed any log info messages
+}
+	log.parent = NULL;
+	strbuf_release(&msgbuf);
+			has_non_ascii(fmt_name(WANT_COMMITTER_IDENT));
+{
+	const char *suffix = info->patch_suffix;
+static int is_common_merge(const struct commit *commit)
+
+	if (close_file)
+		diff_setup_done(&opts);
+
+			break;
+static char decoration_colors[][COLOR_MAXLEN] = {
+	if (opt->track_linear && !opt->linear && !opt->reverse_output_stage)
+			strbuf_addstr(&verify_message, "No signature\n");
+	ctx.expand_tabs_in_log = opt->expand_tabs_in_log;
+void add_name_decoration(enum decoration_type type, const char *name, struct object *obj)
+		if (!read_replace_refs)
+		strbuf_addstr(&verify_message, "malformed mergetag\n");
+
+		 * separator.
+	ctx.after_subject = extra_headers;
+			 filename.buf,
+	int abbrev_commit = opt->abbrev_commit ? opt->abbrev : the_hash_algo->hexsz;
+	return showed_log;
+				show_name(sb, current_and_HEAD);
+void fmt_output_email_subject(struct strbuf *sb, struct rev_info *opt)
+{
+	[DECORATION_REF_REMOTE] = "remoteBranch",
+	struct strbuf msgbuf = STRBUF_INIT;
+	maybe_flush_or_die(opt->diffopt.file, "stdout");
+	return NULL;
+	struct object *obj;
+	if (opt->track_linear && !opt->linear && opt->reverse_output_stage)
+	if (opt->add_signoff)
+		}
+		strbuf_addf(sb, "Subject: [%s] ",
+static unsigned int digits_in_number(unsigned int number)
+	return lookup_decoration(&name_decoration, obj);
 		parse_commit_or_die(parent);
+			 * Otherwise, we show the three-dashes line if
+		}
+
+			const char *separator,
+	fprintf(opt->diffopt.file, "From %s Mon Sep 17 00:00:00 2001\n", name);
+}
+}
+static int decoration_flags;
+	const struct commit_list *parent;
+		next_commentary_block(opt, NULL);
+		 * If the entry separator is not a newline, the output is
+			diff_tree_oid(get_commit_tree_oid(parents->item),
+			show_children(opt, commit, abbrev_commit);
+		type = DECORATION_REF_STASH;
+	}
+ */
+
+
+			strbuf_addstr(sb, color_reset);
+		if (slot && *slot)
+
+	strbuf_release(&signature);
+
+	if (!parents) {
+			 * and the log message, in which case we only
+{
+		return NULL;
+		strbuf_addstr(sb, decoration->name);
+		if ((opt->diffopt.output_format & ~DIFF_FORMAT_NO_OUTPUT) &&
+	GIT_COLOR_RESET,
+	 */
+	shown = log_tree_diff(opt, commit, &log);
+#include "color.h"
+		show_interdiff(opt, 2);
+	strbuf_addstr(filename, suffix);
+	struct commit_list *p;
+
+		}
+		memcpy(&dq, &diff_queued_diff, sizeof(diff_queued_diff));
+static int add_ref_decoration(const char *refname, const struct object_id *oid,
+	if (!head)
+			put_revision_mark(opt, commit);
+}
+	for (nth = 0, parent = commit->parents; parent; parent = parent->next) {
+		show_decorations(opt, commit);
+			     void *data)
+{
+			head = list;
+			int pch = DIFF_FORMAT_DIFFSTAT | DIFF_FORMAT_PATCH;
+
+
+		struct commit *parent = p->item;
+ * The caller makes sure there is no funny color before calling.
+ * log-tree.c uses DIFF_OPT_TST for determining whether to use color
+}
+			 "Content-Transfer-Encoding: 8bit\n"
+
+		struct object_id original_oid;
+	int rru_flags;
+
+		struct diff_options opts;
+	 * Set opt->missing_newline if msgbuf doesn't
+	 */
+	res->next = add_decoration(&name_decoration, obj, res);
+	ctx.mailmap = opt->mailmap;
+		return !opt->loginfo;
+void load_ref_decorations(struct decoration_filter *filter, int flags)
+
+		 * If entries are separated by a newline, the output
+			 "charset=UTF-8; format=fixed\n"
+void log_write_email_headers(struct rev_info *opt, struct commit *commit,
+		&& !commit->parents->next->next);
+
+		if (opt->numbered_files)
+			    opt->subject_prefix,
+		} else {
+			parse_commit_or_die(parents->item);
+static const char *decorate_get_color(int decorate_use_color, enum decoration_type ix)
+	fputs(sb.buf, opt->diffopt.file);
+			fputs("commit ", opt->diffopt.file);
+
+}
+				strbuf_addstr(sb, "tag: ");
+			 "\n--%s%s\n"
+#include "reflog-walk.h"
+
+	diffcore_std(&opt->diffopt);
+			}
+			 "%s"
+	return 0;
+
+	payload_size = parse_signature(extra->value, extra->len);
+	if (!decoration)
+	return !opt->loginfo;
+			putc('\n', opt->diffopt.file);
+	opt->shown_one = 1;
+			 * want a blank line after the commentary
+			fprintf(opt->diffopt.file, "\t%s", *slot);
+}
+		if (oideq(&parent->item->object.oid, oid))
+
+			/*
+		/* Set up the log info for the next parent, if any.. */
+			      int flags, void *cb_data)
+		 * show HEAD->current where HEAD would have
+	const struct name_decoration *current_and_HEAD;
+		fprintf_ln(opt->diffopt.file, "%s", opt->rdiff_title);
+			log_tree_diff_flush(opt);
+			if (current_and_HEAD &&
+	if ((ctx.fmt != CMIT_FMT_USERFORMAT) &&
+#include "commit.h"
+	}
+		else
+	add_name_decoration(type, refname, obj);
+		ctx.graph_width = graph_width(opt->graph);
+	int max_len = start_len + FORMAT_PATCH_NAME_MAX - (strlen(suffix) + 1);
+			show_reflog_message(opt->reflog_info,
+
+
+{
+		fprintf(opt->diffopt.file, " %s", find_unique_abbrev(&p->item->object.oid, abbrev));
+
+		struct commit *parent = parents->item;
+		else
+		result++;
+		fprintf(opt->diffopt.file, "\n%s\n", opt->break_bar);
+}
+		&& commit->parents->next
+		return;
+		strbuf_setlen(filename, max_len);
+	else if (starts_with(refname, "refs/remotes/"))
+static void show_name(struct strbuf *sb, const struct name_decoration *decoration)
+}
+			putc('\n', opt->diffopt.file);
+}
+		int saved_fmt = opt->diffopt.output_format;
+ */
+	else if (is_common_merge(commit) &&
+	ctx.preserve_subject = opt->preserve_subject;
+ out:
+		/* otherwise we couldn't verify, which is shown as bad */
+			      filter->include_ref_pattern,
+	if (opt->loginfo && !opt->no_commit_id) {
+	reset = diff_get_color_opt(&opt->diffopt, DIFF_RESET);
+	GIT_COLOR_BOLD_RED,	/* REF_REMOTE */
+		if (opt->commit_format != CMIT_FMT_ONELINE)
+	int showed_log;
+	}
+			    opt->nr, opt->total);
+	if (opt->show_signature) {
+			struct string_list_item *item;
+				struct strbuf *msg = NULL;
+				      oid, "", &opt->diffopt);
+			next_commentary_block(opt, &msgbuf);
+		static struct strbuf subject_buffer = STRBUF_INIT;
+
+	/*
+	graph_show_commit(opt->graph);
+		if (obj)
+			warning("invalid replace ref %s", refname);
+			strbuf_addstr(sb, prefix);
+		shown = 1;
+	if (!decoration_loaded) {
+			strbuf_addstr(&verify_message, sigc.gpg_output);
+	}
+		show_decorations(opt, commit);
+
+		/* could have a good signature */
+{
+	if (opt->total > 0) {
+		putc(opt->diffopt.line_termination, opt->diffopt.file);
+			 * and not in --pretty=oneline format, we would want
+		/*
+
+		 * When both current and HEAD are there, only
+
+		if (opt->ignore_merges)
+		}
+		if (opt->print_parents)
+	}
+	*extra_headers_p = extra_headers;
+	if (max_len < filename->len)
+
+		next_commentary_block(opt, NULL);
+	}
+}
+		 */
+	signature_check_clear(&sigc);
+
+ *
+	struct strbuf subject = STRBUF_INIT;
+
+
+	if (want_color(decorate_use_color))
+{
+		show_mergetag(opt, commit);
+		add_name_decoration(DECORATION_REF_TAG, refname, obj);
+#include "cache.h"
+			show_children(opt, commit, abbrev_commit);
+	else if (!strcmp(refname, "refs/stash"))
+			show_name(sb, decoration);
+	if (ctx.need_8bit_cte >= 0 && opt->add_signoff)
+		goto out;
+		struct diff_queue_struct dq;
+
+	opt->loginfo = NULL;
+			const char *prefix,
+	} else if (opt->total == 0 && opt->subject_prefix && *opt->subject_prefix) {
+	struct signature_check sigc = { 0 };
+		log->parent = parents->item;
+			    (pch & opt->diffopt.output_format) == pch)
+		append_signoff(&msgbuf, 0, APPEND_SIGNOFF_DEDUP);
+	const char *color_commit =
+	if (!opt->diff && !opt->diffopt.flags.exit_with_status)
+	if (opt->mime_boundary && maybe_multipart) {
+			return do_diff_combined(opt, commit);
+	ctx.reflog_info = opt->reflog_info;
+#include "config.h"
+	status = -1;
+		if (parent)
+}
+			if (opt->commit_format == CMIT_FMT_ONELINE)
+		opt->loginfo = log;
+		bol = (*eol) ? (eol + 1) : eol;
+ * format_decorations_extended makes sure the same after return.
+			 * When showing a verbose header (i.e. log message),
+		graph_show_oneline(opt->graph);
+	for (p = commit->parents; p ; p = p->next) {
+			 filename.buf);
+	const char *name = oid_to_hex(opt->zero_commit ?
+	return 0;
+
+
+
+	}
+{
+		graph_show_commit(opt->graph);
+			 "Content-Type: text/x-patch;"
+	}
+ * If so, find that decoration entry for that current branch.
+			 * diff/diffstat output for readability.
+		fputs(find_unique_abbrev(&commit->object.oid, abbrev_commit), opt->diffopt.file);
+static int show_one_mergetag(struct commit *commit,
+	for (list = decoration; list; list = list->next)
+	format_decorations(&sb, commit, opt->diffopt.use_color);
+	if (opt->line_level_traverse)
+	for ( ; p; p = p->next) {
+					    opt->commit_format == CMIT_FMT_ONELINE,
+	struct object_id *oid;
+		    opt->commit_format != CMIT_FMT_ONELINE &&
+	if (!opt->verbose_header) {
+	/* Now resolve and find the matching current branch */
+
+			break;
+}
+		ctx.need_8bit_cte =
+	log.commit = commit;
+	}
+		       *eol ? "\n" : "");
+		show_range_diff(opt->rdiff1, opt->rdiff2,
+
+			show_parents(commit, abbrev_commit, opt->diffopt.file);
+		opt->diffopt.output_format = saved_fmt;
+		/*
+/*
+{
+{
+static int do_diff_combined(struct rev_info *opt, struct commit *commit)
+	}
+#include "line-log.h"
+	strbuf_release(&payload);
+	while (*bol) {
+		       &commit->parents->next->item->object.oid))
+			return 0;
+	struct strbuf signature = STRBUF_INIT;
+		raw = (opt->commit_format == CMIT_FMT_USERFORMAT);
+		parents = parents->next;
+	const char *color, *reset, *eol;
+		if (decoration != current_and_HEAD) {
+	return shown;
+	strbuf_addstr(sb, color_commit);
+	load_ref_decorations(NULL, DECORATE_SHORT_REFS);
+			     int maybe_multipart)
+			return nth;
+			graph_show_remainder(opt->graph);
+	}
+ * Show the diff of a commit.
+			      filter->exclude_ref_pattern))
+		struct diff_queue_struct dq;
+			 * we merged _in_.
+
+
+	}
+		ctx.from_ident = &opt->from_ident;
+		if (get_oid_hex(refname + strlen(git_replace_ref_base),
+			const char *subject,
+
+static int add_graft_decoration(const struct commit_graft *graft, void *cb_data)
+
+static const struct name_decoration *current_pointed_by_HEAD(const struct name_decoration *decoration)
+}
+	ctx.date_mode_explicit = opt->date_mode_explicit;
+		diff_flush(&opt->diffopt);
+	GIT_COLOR_BOLD_GREEN,	/* REF_LOCAL */
+static int decoration_loaded;
+			 * We may have shown three-dashes line early
+			 * without (an extra) three-dashes line.
+
+		 * with a newline, print the graph output before this
+	oid = get_commit_tree_oid(commit);
+				opt->creation_factor, 1, &opts, NULL);
+				&original_oid)) {
+		    !opt->missing_newline)
+		fprintf(opt->diffopt.file, "%s%.*s%s%s", color, (int)(eol - bol), bol, reset,
+		format_display_notes(&commit->object.oid, &notebuf,
+		return config_error_nonbool(var);
+#include "refs.h"
+					&ctx.need_8bit_cte, 1);
+
+			strbuf_addstr(sb, color_reset);
+		strbuf_addf(&buffer,
+{
+	if (!shown && opt->loginfo && opt->always_show_header) {
+	ctx.abbrev = opt->diffopt.abbrev;
+	if (cmit_fmt_is_mail(ctx.fmt) && opt->idiff_oid1) {
+}
+	struct pretty_print_context ctx = {0};
+	if (diff_queue_is_empty()) {
+			struct rev_info *info)
+		struct strbuf filename =  STRBUF_INIT;
+void fmt_output_subject(struct strbuf *filename,
+static int log_tree_diff(struct rev_info *opt, struct commit *commit, struct log_info *log)
+		}
+		extra_headers = subject_buffer.buf;
+	[DECORATION_REF_LOCAL]	= "branch",
+		return 0;
+		signature_check_clear(&sigc);
+	else
+	return result;
+		ctx.notes_message = strbuf_detach(&notebuf, NULL);
+		if (!opt->graph)
+		fprintf(file, " %s", find_unique_abbrev(&parent->object.oid, abbrev));
 		diff_tree_oid(get_commit_tree_oid(parent),
-			      oid, "", &opt->diffopt);
+				normalize_glob_ref(item, NULL, item->string);
+	}
+		opts.use_color = opt->diffopt.use_color;
+		 * appeared, skipping the entry for current.
+	 * end in a newline (including if it is empty)
+static void next_commentary_block(struct rev_info *opt, struct strbuf *sb)
+		strbuf_addf(filename, "v%d-", info->reroll_count);
+#include "interdiff.h"
+	}
+
+	else if (!strcmp(refname, "HEAD"))
+		if (!obj)
+				strbuf_addstr(sb, decorate_get_color(use_color, current_and_HEAD->type));
+	if (!commit)
+#include "sequencer.h"
+{
+		return line_log_print(opt, commit);
+	} else if (opt->commit_format != CMIT_FMT_USERFORMAT) {
+		char **slot = revision_sources_peek(opt->sources, commit);
+		show_log(opt);
+		return NULL;
+		if (opt->children.name)
+	struct strbuf sb = STRBUF_INIT;
+	opt->shown_dashes = 0;
+	parse_commit_or_die(commit);
+	if (!value)
+{
+			 * graph info here.
+		strbuf_addstr(sb, prettify_refname(decoration->name));
+#include "string-list.h"
+	int shown, close_file = opt->diffopt.close_file;
+	[DECORATION_GRAFTED]	= "grafted",
+		status = check_signature(extra->value, payload_size,
+	 * Otherwise, add a diffopt.line_termination character before all
+		putc(opt->diffopt.line_termination, opt->diffopt.file);
+int log_tree_commit(struct rev_info *opt, struct commit *commit)
+
+		show_log(opt);
+		return -1; /* error message already given */
+
+			 " name=\"%s\"\n"
+
+			strbuf_addstr(sb, color_commit);
+	return "";
+	opt->shown_dashes = 1;
+	int status, nth;
+	enum decoration_type type = DECORATION_NONE;
+	[DECORATION_REF_STASH]	= "stash",
+		show_sig_lines(opt, status, sigc.gpg_output);
+		decoration = decoration->next;
+		memcpy(&diff_queued_diff, &dq, sizeof(diff_queued_diff));
+
+		strbuf_addf(&verify_message,
+		fputs(diff_get_color_opt(&opt->diffopt, DIFF_RESET), opt->diffopt.file);
+	ctx.fmt = opt->commit_format;
+		type = DECORATION_REF_TAG;
+			 "format.\n"
+	diff_flush(&opt->diffopt);
+		ctx.rev = opt;
+	if (starts_with(refname, git_replace_ref_base)) {
+	if (opt->show_log_size) {
+			     int *need_8bit_cte_p,
+	}
+		 * newline.  Otherwise it will end up as a completely blank
+	struct rev_info *opt = (struct rev_info *)data;
+			if (decoration->type == DECORATION_REF_TAG)
+	GIT_COLOR_BOLD_YELLOW,	/* REF_TAG */
+}
+			 */
+
+	struct log_info log;
+}
+	if (!starts_with(branch_name, "refs/"))
+		    !strcmp(branch_name, list->name)) {
+
+
+
+	 * entries but the first.  (IOW, as a separator between entries)
+
+}
+		static struct strbuf buffer = STRBUF_INIT;
+			 "Content-Transfer-Encoding: 8bit\n\n",
+
+		head_ref(add_ref_decoration, filter);
+			fmt_output_commit(&filename, commit, opt);
+
+	 * at the end of the last record.
+static void show_signature(struct rev_info *opt, struct commit *commit)
+
+					    &opt->date_mode,
+
+	/* First find HEAD */
+				strbuf_addstr(sb, color_reset);
+/*
+static void show_parents(struct commit *commit, int abbrev, FILE *file)
+		log->parent = parents->item;
+		if ((list->type == DECORATION_REF_LOCAL) &&
+	FLEX_ALLOC_STR(res, name, name);
+		return 0;
+			return list;
+	/*
+			for_each_string_list_item(item, filter->exclude_ref_pattern) {
+		    !commit_format_is_empty(opt->commit_format)) {
+		return NULL;
+					 extra->value + payload_size,
+#include "tag.h"
+}
+		 */
 		log_tree_diff_flush(opt);
 
-		showed_log |= !opt->loginfo;
+			 * in that case, there is no extra blank line
+			 * setup_revisions() ensures that opt->reflog_info
+			    decoration->type == DECORATION_REF_HEAD) {
 
-		/* Set up the log info for the next parent, if any.. */
-		parents = parents->next;
-		if (!parents)
-			break;
-		log->parent = parents->item;
-		opt->loginfo = log;
-	}
-	return showed_log;
-}
+			 */
+#include "help.h"
+	int slot = LOOKUP_CONFIG(color_decorate_slots, slot_name);
+		strbuf_addf(&verify_message, "tag %s names a non-parent %s\n",
+	add_name_decoration(DECORATION_GRAFTED, "grafted", &commit->object);
 
-int log_tree_commit(struct rev_info *opt, struct commit *commit)
+			}
 {
-	struct log_info log;
-	int shown, close_file = opt->diffopt.close_file;
-
-	log.commit = commit;
-	log.parent = NULL;
-	opt->loginfo = &log;
-	opt->diffopt.close_file = 0;
-
-	if (opt->line_level_traverse)
-		return line_log_print(opt, commit);
-
-	if (opt->track_linear && !opt->linear && !opt->reverse_output_stage)
-		fprintf(opt->diffopt.file, "\n%s\n", opt->break_bar);
-	shown = log_tree_diff(opt, commit, &log);
-	if (!shown && opt->loginfo && opt->always_show_header) {
-		log.parent = NULL;
-		show_log(opt);
-		shown = 1;
-	}
-	if (opt->track_linear && !opt->linear && opt->reverse_output_stage)
-		fprintf(opt->diffopt.file, "\n%s\n", opt->break_bar);
+	const char *branch_name = NULL;
+	/*
+		 */
+	hash_object_file(the_hash_algo, extra->value, extra->len,
+			put_revision_mark(opt, commit);
+	return color_parse(value, decoration_colors[slot]);
+		opt->diffopt.stat_sep = buffer.buf;
+		type = DECORATION_REF_HEAD;
+int parse_decorate_color_config(const char *var, const char *slot_name, const char *value)
+			}
 	opt->loginfo = NULL;
-	maybe_flush_or_die(opt->diffopt.file, "stdout");
-	if (close_file)
-		fclose(opt->diffopt.file);
-	return shown;
-}
+	else if (starts_with(refname, "refs/tags/"))
+			 * an extra newline between the end of log and the
+		for (i = 0; i < n; i++)
+	int status;
+			 "Content-Type: multipart/mixed;"
+	/*
+	decoration = get_name_decoration(&commit->object);
+			const char *suffix)
+	return for_each_mergetag(show_one_mergetag, commit, opt);

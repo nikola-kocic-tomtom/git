@@ -1,599 +1,599 @@
-#include "builtin.h"
-#include "cache.h"
-#include "config.h"
-#include "object-store.h"
-#include "object.h"
-#include "delta.h"
-#include "pack.h"
-#include "blob.h"
-#include "commit.h"
-#include "tag.h"
-#include "tree.h"
-#include "tree-walk.h"
-#include "progress.h"
-#include "decorate.h"
-#include "fsck.h"
-
-static int dry_run, quiet, recover, has_errors, strict;
-static const char unpack_usage[] = "git unpack-objects [-n] [-q] [-r] [--strict]";
-
-/* We always read in 4kB chunks. */
-static unsigned char buffer[4096];
-static unsigned int offset, len;
-static off_t consumed_bytes;
-static off_t max_input_size;
+			oidclr(&obj_list[nr].oid);
 static git_hash_ctx ctx;
-static struct fsck_options fsck_options = FSCK_OPTIONS_STRICT;
-static struct progress *progress;
 
-/*
- * When running under --strict mode, objects whose reachability are
- * suspect are kept in core without getting written in the object
- * store.
- */
-struct obj_buffer {
-	char *buffer;
-	unsigned long size;
-};
-
-static struct decoration obj_decorate;
-
-static struct obj_buffer *lookup_object_buffer(struct object *base)
 {
-	return lookup_decoration(&obj_decorate, base);
-}
-
-static void add_object_buffer(struct object *object, char *buffer, unsigned long size)
-{
-	struct obj_buffer *obj;
-	obj = xcalloc(1, sizeof(struct obj_buffer));
-	obj->buffer = buffer;
-	obj->size = size;
-	if (add_decoration(&obj_decorate, object, obj))
-		die("object %s tried to add buffer twice!", oid_to_hex(&object->oid));
-}
-
-/*
- * Make sure at least "min" bytes are available in the buffer, and
- * return the pointer to the buffer.
- */
-static void *fill(int min)
-{
-	if (min <= len)
-		return buffer + offset;
-	if (min > sizeof(buffer))
-		die("cannot fill %d bytes", min);
-	if (offset) {
-		the_hash_algo->update_fn(&ctx, buffer, offset);
-		memmove(buffer, buffer + offset, len);
-		offset = 0;
-	}
-	do {
-		ssize_t ret = xread(0, buffer + len, sizeof(buffer) - len);
-		if (ret <= 0) {
-			if (!ret)
-				die("early EOF");
-			die_errno("read error on input");
-		}
-		len += ret;
-	} while (len < min);
-	return buffer;
-}
-
-static void use(int bytes)
-{
-	if (bytes > len)
-		die("used more bytes than were available");
-	len -= bytes;
-	offset += bytes;
-
-	/* make sure off_t is sufficiently large not to wrap */
-	if (signed_add_overflows(consumed_bytes, bytes))
-		die("pack too large for current definition of off_t");
-	consumed_bytes += bytes;
-	if (max_input_size && consumed_bytes > max_input_size)
-		die(_("pack exceeds maximum allowed size"));
-	display_throughput(progress, consumed_bytes);
-}
-
-static void *get_data(unsigned long size)
-{
-	git_zstream stream;
-	void *buf = xmallocz(size);
-
-	memset(&stream, 0, sizeof(stream));
-
-	stream.next_out = buf;
-	stream.avail_out = size;
-	stream.next_in = fill(1);
-	stream.avail_in = len;
-	git_inflate_init(&stream);
-
-	for (;;) {
-		int ret = git_inflate(&stream, 0);
-		use(len - stream.avail_in);
-		if (stream.total_out == size && ret == Z_STREAM_END)
-			break;
-		if (ret != Z_OK) {
-			error("inflate returned %d", ret);
-			FREE_AND_NULL(buf);
-			if (!recover)
-				exit(1);
-			has_errors = 1;
-			break;
-		}
-		stream.next_in = fill(1);
-		stream.avail_in = len;
-	}
-	git_inflate_end(&stream);
-	return buf;
-}
-
-struct delta_info {
-	struct object_id base_oid;
-	unsigned nr;
-	off_t base_offset;
-	unsigned long size;
-	void *delta;
-	struct delta_info *next;
-};
-
-static struct delta_info *delta_list;
-
-static void add_delta_to_list(unsigned nr, const struct object_id *base_oid,
-			      off_t base_offset,
 			      void *delta, unsigned long size)
 {
-	struct delta_info *info = xmalloc(sizeof(*info));
+			     delta, delta_size,
+		if (!base_found) {
+	/* Write the last part of the buffer to stdout */
+			free(delta_data);
+			      off_t base_offset,
+	consumed_bytes += bytes;
 
-	oidcpy(&info->base_oid, base_oid);
-	info->base_offset = base_offset;
-	info->size = size;
-	info->delta = delta;
-	info->nr = nr;
-	info->next = delta_list;
-	delta_list = info;
-}
 
-struct obj_info {
-	off_t offset;
-	struct object_id oid;
-	struct object *obj;
+static const char unpack_usage[] = "git unpack-objects [-n] [-q] [-r] [--strict]";
+static void write_object(unsigned nr, enum object_type type,
+		obj_list[nr].obj = NULL;
+	unsigned shift;
+
+
 };
 
-/* Remember to update object flag allocation in object.h */
-#define FLAG_OPEN (1u<<20)
-#define FLAG_WRITTEN (1u<<21)
+#include "pack.h"
+	return 1;
+	void *buf = xmallocz(size);
+		display_progress(progress, i + 1);
+	read_replace_refs = 0;
+		return;
+	return buffer;
 
-static struct obj_info *obj_list;
-static unsigned nr_objects;
+struct delta_info {
+			}
+		if (dry_run || !delta_data) {
+	if (!obj)
+		while (c & 128) {
+	pack = fill(1);
+	stop_progress(&progress);
+	obj_buffer = lookup_object_buffer(obj);
+	} else {
+	off_t base_offset;
+int cmd_unpack_objects(int argc, const char **argv, const char *prefix)
+	resolve_delta(nr, obj->type, obj_buffer->buffer,
+					  type, size, buf,
 
-/*
- * Called only from check_object() after it verified this object
- * is Ok.
- */
-static void write_cached_object(struct object *obj, struct obj_buffer *obj_buf)
-{
-	struct object_id oid;
+		unpack_non_delta_entry(type, size, nr);
 
-	if (write_object_file(obj_buf->buffer, obj_buf->size,
-			      type_name(obj->type), &oid) < 0)
-		die("failed to write object %s", oid_to_hex(&obj->oid));
-	obj->flags |= FLAG_WRITTEN;
-}
-
-/*
- * At the very end of the processing, write_rest() scans the objects
- * that have reachability requirements and calls this function.
- * Verify its reachability and validity recursively and write it out.
- */
-static int check_object(struct object *obj, int type, void *data, struct fsck_options *options)
-{
+	the_hash_algo->init_fn(&ctx);
+	unsigned nr;
 	struct obj_buffer *obj_buf;
 
-	if (!obj)
-		return 1;
-
-	if (obj->flags & FLAG_WRITTEN)
-		return 0;
-
-	if (type != OBJ_ANY && obj->type != type)
-		die("object type mismatch");
-
-	if (!(obj->flags & FLAG_OPEN)) {
-		unsigned long size;
-		int type = oid_object_info(the_repository, &obj->oid, &size);
-		if (type != obj->type || type <= 0)
-			die("object of unexpected type");
-		obj->flags |= FLAG_WRITTEN;
-		return 0;
-	}
-
-	obj_buf = lookup_object_buffer(obj);
-	if (!obj_buf)
-		die("Whoops! Cannot find object '%s'", oid_to_hex(&obj->oid));
-	if (fsck_object(obj, obj_buf->buffer, obj_buf->size, &fsck_options))
-		die("fsck error in packed object");
-	fsck_options.walk = check_object;
-	if (fsck_walk(obj, NULL, &fsck_options))
-		die("Error on reachable objects of %s", oid_to_hex(&obj->oid));
-	write_cached_object(obj, obj_buf);
-	return 0;
-}
-
-static void write_rest(void)
-{
-	unsigned i;
-	for (i = 0; i < nr_objects; i++) {
-		if (obj_list[i].obj)
-			check_object(obj_list[i].obj, OBJ_ANY, NULL, NULL);
-	}
-}
-
-static void added_object(unsigned nr, enum object_type type,
-			 void *data, unsigned long size);
-
-/*
- * Write out nr-th object from the list, now we know the contents
- * of it.  Under --strict, this buffers structured objects in-core,
- * to be checked at the end.
- */
-static void write_object(unsigned nr, enum object_type type,
-			 void *buf, unsigned long size)
-{
-	if (!strict) {
-		if (write_object_file(buf, size, type_name(type),
-				      &obj_list[nr].oid) < 0)
-			die("failed to write object");
-		added_object(nr, type, buf, size);
-		free(buf);
-		obj_list[nr].obj = NULL;
-	} else if (type == OBJ_BLOB) {
-		struct blob *blob;
-		if (write_object_file(buf, size, type_name(type),
-				      &obj_list[nr].oid) < 0)
-			die("failed to write object");
-		added_object(nr, type, buf, size);
-		free(buf);
-
-		blob = lookup_blob(the_repository, &obj_list[nr].oid);
-		if (blob)
-			blob->object.flags |= FLAG_WRITTEN;
-		else
-			die("invalid blob object");
-		obj_list[nr].obj = NULL;
-	} else {
-		struct object *obj;
-		int eaten;
-		hash_object_file(the_hash_algo, buf, size, type_name(type),
-				 &obj_list[nr].oid);
-		added_object(nr, type, buf, size);
-		obj = parse_object_buffer(the_repository, &obj_list[nr].oid,
-					  type, size, buf,
-					  &eaten);
-		if (!obj)
-			die("invalid %s", type_name(type));
-		add_object_buffer(obj, buf, size);
-		obj->flags |= FLAG_OPEN;
-		obj_list[nr].obj = obj;
-	}
-}
-
-static void resolve_delta(unsigned nr, enum object_type type,
-			  void *base, unsigned long base_size,
-			  void *delta, unsigned long delta_size)
-{
-	void *result;
-	unsigned long result_size;
-
-	result = patch_delta(base, base_size,
-			     delta, delta_size,
-			     &result_size);
-	if (!result)
-		die("failed to apply delta");
-	free(delta);
-	write_object(nr, type, result, result_size);
-}
-
-/*
- * We now know the contents of an object (which is nr-th in the pack);
- * resolve all the deltified objects that are based on it.
- */
-static void added_object(unsigned nr, enum object_type type,
-			 void *data, unsigned long size)
-{
-	struct delta_info **p = &delta_list;
-	struct delta_info *info;
-
-	while ((info = *p) != NULL) {
-		if (oideq(&info->base_oid, &obj_list[nr].oid) ||
-		    info->base_offset == obj_list[nr].offset) {
-			*p = info->next;
-			p = &delta_list;
-			resolve_delta(info->nr, type, data, size,
-				      info->delta, info->size);
-			free(info);
-			continue;
-		}
-		p = &info->next;
-	}
-}
-
-static void unpack_non_delta_entry(enum object_type type, unsigned long size,
-				   unsigned nr)
-{
-	void *buf = get_data(size);
-
-	if (!dry_run && buf)
-		write_object(nr, type, buf, size);
-	else
-		free(buf);
-}
-
-static int resolve_against_held(unsigned nr, const struct object_id *base,
-				void *delta_data, unsigned long delta_size)
-{
-	struct object *obj;
-	struct obj_buffer *obj_buffer;
-	obj = lookup_object(the_repository, base);
-	if (!obj)
-		return 0;
-	obj_buffer = lookup_object_buffer(obj);
-	if (!obj_buffer)
-		return 0;
-	resolve_delta(nr, obj->type, obj_buffer->buffer,
-		      obj_buffer->size, delta_data, delta_size);
-	return 1;
-}
-
-static void unpack_delta_entry(enum object_type type, unsigned long delta_size,
-			       unsigned nr)
-{
-	void *delta_data, *base;
-	unsigned long base_size;
-	struct object_id base_oid;
-
-	if (type == OBJ_REF_DELTA) {
-		hashcpy(base_oid.hash, fill(the_hash_algo->rawsz));
-		use(the_hash_algo->rawsz);
-		delta_data = get_data(delta_size);
-		if (dry_run || !delta_data) {
-			free(delta_data);
-			return;
-		}
-		if (has_object_file(&base_oid))
-			; /* Ok we have this one */
-		else if (resolve_against_held(nr, &base_oid,
-					      delta_data, delta_size))
-			return; /* we are done */
-		else {
-			/* cannot resolve yet --- queue it */
-			oidclr(&obj_list[nr].oid);
-			add_delta_to_list(nr, &base_oid, 0, delta_data, delta_size);
-			return;
-		}
-	} else {
-		unsigned base_found = 0;
-		unsigned char *pack, c;
-		off_t base_offset;
-		unsigned lo, mid, hi;
-
-		pack = fill(1);
-		c = *pack;
-		use(1);
-		base_offset = c & 127;
-		while (c & 128) {
-			base_offset += 1;
-			if (!base_offset || MSB(base_offset, 7))
-				die("offset value overflow for delta base object");
-			pack = fill(1);
-			c = *pack;
-			use(1);
-			base_offset = (base_offset << 7) + (c & 127);
-		}
-		base_offset = obj_list[nr].offset - base_offset;
-		if (base_offset <= 0 || base_offset >= obj_list[nr].offset)
-			die("offset value out of bound for delta base object");
-
-		delta_data = get_data(delta_size);
-		if (dry_run || !delta_data) {
-			free(delta_data);
-			return;
-		}
-		lo = 0;
-		hi = nr;
-		while (lo < hi) {
-			mid = lo + (hi - lo) / 2;
-			if (base_offset < obj_list[mid].offset) {
-				hi = mid;
-			} else if (base_offset > obj_list[mid].offset) {
-				lo = mid + 1;
-			} else {
-				oidcpy(&base_oid, &obj_list[mid].oid);
-				base_found = !is_null_oid(&base_oid);
-				break;
-			}
-		}
-		if (!base_found) {
-			/*
-			 * The delta base object is itself a delta that
-			 * has not been resolved yet.
-			 */
-			oidclr(&obj_list[nr].oid);
-			add_delta_to_list(nr, &null_oid, base_offset, delta_data, delta_size);
-			return;
-		}
-	}
-
-	if (resolve_against_held(nr, &base_oid, delta_data, delta_size))
-		return;
-
-	base = read_object_file(&base_oid, &type, &base_size);
-	if (!base) {
-		error("failed to read delta-pack base object %s",
-		      oid_to_hex(&base_oid));
-		if (!recover)
-			exit(1);
-		has_errors = 1;
-		return;
-	}
-	resolve_delta(nr, type, base, base_size, delta_data, delta_size);
 	free(base);
 }
-
-static void unpack_one(unsigned nr)
-{
-	unsigned shift;
-	unsigned char *pack;
-	unsigned long size, c;
-	enum object_type type;
-
-	obj_list[nr].offset = consumed_bytes;
-
-	pack = fill(1);
-	c = *pack;
-	use(1);
-	type = (c >> 4) & 7;
-	size = (c & 15);
-	shift = 4;
-	while (c & 0x80) {
-		pack = fill(1);
-		c = *pack;
-		use(1);
-		size += (c & 0x7f) << shift;
-		shift += 7;
-	}
-
-	switch (type) {
-	case OBJ_COMMIT:
-	case OBJ_TREE:
-	case OBJ_BLOB:
-	case OBJ_TAG:
-		unpack_non_delta_entry(type, size, nr);
+ */
 		return;
-	case OBJ_REF_DELTA:
-	case OBJ_OFS_DELTA:
-		unpack_delta_entry(type, size, nr);
-		return;
-	default:
-		error("bad object type %d", type);
-		has_errors = 1;
-		if (recover)
-			return;
-		exit(1);
-	}
-}
-
-static void unpack_all(void)
-{
-	int i;
-	struct pack_header *hdr = fill(sizeof(struct pack_header));
-
-	nr_objects = ntohl(hdr->hdr_entries);
-
-	if (ntohl(hdr->hdr_signature) != PACK_SIGNATURE)
-		die("bad pack file");
-	if (!pack_version_ok(hdr->hdr_version))
-		die("unknown pack file version %"PRIu32,
-			ntohl(hdr->hdr_version));
-	use(sizeof(struct pack_header));
-
-	if (!quiet)
-		progress = start_progress(_("Unpacking objects"), nr_objects);
-	obj_list = xcalloc(nr_objects, sizeof(*obj_list));
-	for (i = 0; i < nr_objects; i++) {
-		unpack_one(i);
-		display_progress(progress, i + 1);
-	}
-	stop_progress(&progress);
-
-	if (delta_list)
-		die("unresolved deltas left after unpacking");
-}
-
-int cmd_unpack_objects(int argc, const char **argv, const char *prefix)
-{
-	int i;
-	struct object_id oid;
-
-	read_replace_refs = 0;
-
-	git_config(git_default_config, NULL);
-
-	quiet = !isatty(2);
-
-	for (i = 1 ; i < argc; i++) {
-		const char *arg = argv[i];
-
-		if (*arg == '-') {
-			if (!strcmp(arg, "-n")) {
-				dry_run = 1;
 				continue;
+				hdr->hdr_entries = htonl(strtoul(c + 1, &c, 10));
+	display_throughput(progress, consumed_bytes);
+		obj->flags |= FLAG_WRITTEN;
+#include "object-store.h"
+{
+			has_errors = 1;
+		if (blob)
 			}
-			if (!strcmp(arg, "-q")) {
-				quiet = 1;
+	nr_objects = ntohl(hdr->hdr_entries);
+	size = (c & 15);
+	int i;
+		write_rest();
+		}
+	if (!obj_buffer)
+		if (dry_run || !delta_data) {
+	resolve_delta(nr, type, base, base_size, delta_data, delta_size);
 				continue;
+			} else if (base_offset > obj_list[mid].offset) {
+				char *c;
+		die("failed to apply delta");
+			return;
+	}
+static void add_delta_to_list(unsigned nr, const struct object_id *base_oid,
+			if (!strcmp(arg, "-n")) {
+		if (stream.total_out == size && ret == Z_STREAM_END)
+		obj = parse_object_buffer(the_repository, &obj_list[nr].oid,
+	git_inflate_init(&stream);
+ * When running under --strict mode, objects whose reachability are
+	case OBJ_TAG:
+		/* We don't take any non-flag arguments now.. Maybe some day */
+#include "decorate.h"
+				hdr->hdr_version = htonl(strtoul(arg + 14, &c, 10));
+		}
+	stream.avail_in = len;
+static void use(int bytes)
+		return 0;
+	}
+	if (min > sizeof(buffer))
+static unsigned nr_objects;
+#include "fsck.h"
+		die("pack too large for current definition of off_t");
+		return buffer + offset;
+		hi = nr;
+}
+		struct object *obj;
+		use(1);
+}
+	struct object_id oid;
+				base_found = !is_null_oid(&base_oid);
 			}
 			if (!strcmp(arg, "-r")) {
-				recover = 1;
-				continue;
-			}
-			if (!strcmp(arg, "--strict")) {
-				strict = 1;
-				continue;
-			}
-			if (skip_prefix(arg, "--strict=", &arg)) {
-				strict = 1;
-				fsck_set_msg_types(&fsck_options, arg);
-				continue;
-			}
-			if (starts_with(arg, "--pack_header=")) {
-				struct pack_header *hdr;
-				char *c;
 
-				hdr = (struct pack_header *)buffer;
-				hdr->hdr_signature = htonl(PACK_SIGNATURE);
-				hdr->hdr_version = htonl(strtoul(arg + 14, &c, 10));
-				if (*c != ',')
-					die("bad %s", arg);
-				hdr->hdr_entries = htonl(strtoul(c + 1, &c, 10));
-				if (*c)
-					die("bad %s", arg);
-				len = sizeof(*hdr);
-				continue;
-			}
-			if (skip_prefix(arg, "--max-input-size=", &arg)) {
-				max_input_size = strtoumax(arg, NULL, 10);
-				continue;
-			}
-			usage(unpack_usage);
-		}
-
-		/* We don't take any non-flag arguments now.. Maybe some day */
-		usage(unpack_usage);
-	}
-	the_hash_algo->init_fn(&ctx);
-	unpack_all();
-	the_hash_algo->update_fn(&ctx, buffer, offset);
-	the_hash_algo->final_fn(oid.hash, &ctx);
-	if (strict) {
-		write_rest();
-		if (fsck_finish(&fsck_options))
-			die(_("fsck error in pack objects"));
-	}
-	if (!hasheq(fill(the_hash_algo->rawsz), oid.hash))
-		die("final sha1 did not match");
-	use(the_hash_algo->rawsz);
-
-	/* Write the last part of the buffer to stdout */
-	while (len) {
-		int ret = xwrite(1, buffer + offset, len);
+	unsigned i;
+			 */
+	void *result;
 		if (ret <= 0)
-			break;
-		len -= ret;
-		offset += ret;
+		hashcpy(base_oid.hash, fill(the_hash_algo->rawsz));
+		die(_("pack exceeds maximum allowed size"));
+		unsigned char *pack, c;
+ * Verify its reachability and validity recursively and write it out.
+
+ * return the pointer to the buffer.
+
+
+			return;
+	struct delta_info *info;
+
+	write_object(nr, type, result, result_size);
+	for (i = 1 ; i < argc; i++) {
+#include "cache.h"
+	struct object_id base_oid;
+			}
+	use(sizeof(struct pack_header));
+
+	for (i = 0; i < nr_objects; i++) {
+			if (base_offset < obj_list[mid].offset) {
+			resolve_delta(info->nr, type, data, size,
+	unsigned long size;
+		}
+				fsck_set_msg_types(&fsck_options, arg);
+	off_t offset;
+		}
+ * At the very end of the processing, write_rest() scans the objects
+		else {
+		add_object_buffer(obj, buf, size);
+	return 0;
+}
+	use(the_hash_algo->rawsz);
+			die(_("fsck error in pack objects"));
+		    info->base_offset == obj_list[nr].offset) {
+
+			      type_name(obj->type), &oid) < 0)
+			c = *pack;
+			/* cannot resolve yet --- queue it */
+	unpack_all();
+			base_offset += 1;
+				if (*c)
+		die("final sha1 did not match");
+				max_input_size = strtoumax(arg, NULL, 10);
+
+	struct delta_info *next;
+		else
 	}
 
-	/* All done */
-	return has_errors;
+	case OBJ_COMMIT:
+
+static void *get_data(unsigned long size)
+
+	struct object_id oid;
+		pack = fill(1);
+		free(buf);
+		offset += ret;
+	free(delta);
+		struct blob *blob;
+	}
+			break;
+	if (add_decoration(&obj_decorate, object, obj))
+
+
+/* We always read in 4kB chunks. */
+				quiet = 1;
+	else
+		free(buf);
+
+	}
+				   unsigned nr)
+			/*
+	for (i = 0; i < nr_objects; i++) {
+		unpack_delta_entry(type, size, nr);
+			if (skip_prefix(arg, "--strict=", &arg)) {
+		added_object(nr, type, buf, size);
+#include "tag.h"
+
+	git_zstream stream;
+	}
+		offset = 0;
+				exit(1);
+
+	obj_buf = lookup_object_buffer(obj);
+ */
+struct obj_info {
+
+	stream.next_out = buf;
+			base_offset = (base_offset << 7) + (c & 127);
+static void unpack_delta_entry(enum object_type type, unsigned long delta_size,
+			die("object of unexpected type");
+		const char *arg = argv[i];
+			oidclr(&obj_list[nr].oid);
+
+	/* make sure off_t is sufficiently large not to wrap */
+			}
 }
+{
+				oidcpy(&base_oid, &obj_list[mid].oid);
+		else if (resolve_against_held(nr, &base_oid,
+ */
+				void *delta_data, unsigned long delta_size)
+static struct fsck_options fsck_options = FSCK_OPTIONS_STRICT;
+		unsigned lo, mid, hi;
+#include "object.h"
+		while (lo < hi) {
+}
+{
+			 * has not been resolved yet.
+	}
+		}
+	enum object_type type;
+	git_inflate_end(&stream);
+			free(info);
+
+				continue;
+			if (!strcmp(arg, "--strict")) {
+
+		unsigned base_found = 0;
+		stream.avail_in = len;
+	info->next = delta_list;
+{
+	shift = 4;
+			die("failed to write object");
+
+	do {
+			if (!ret)
+{
+
+		}
+static int dry_run, quiet, recover, has_errors, strict;
+			return;
+	case OBJ_REF_DELTA:
+/*
+	memset(&stream, 0, sizeof(stream));
+static void write_cached_object(struct object *obj, struct obj_buffer *obj_buf)
+/*
+		base_offset = c & 127;
+ * is Ok.
+		added_object(nr, type, buf, size);
+		delta_data = get_data(delta_size);
+}
+#include "config.h"
+	if (resolve_against_held(nr, &base_oid, delta_data, delta_size))
+	if (type != OBJ_ANY && obj->type != type)
+				struct pack_header *hdr;
+		write_object(nr, type, buf, size);
+
+	c = *pack;
+		return 0;
+		if (*arg == '-') {
+ */
+		die("fsck error in packed object");
+		if (write_object_file(buf, size, type_name(type),
+static struct delta_info *delta_list;
+	} else if (type == OBJ_BLOB) {
+ * store.
+			return; /* we are done */
+		if (ret <= 0) {
+	if (strict) {
+			error("inflate returned %d", ret);
+	switch (type) {
+
+	if (fsck_object(obj, obj_buf->buffer, obj_buf->size, &fsck_options))
+
+	if (delta_list)
+	type = (c >> 4) & 7;
+			  void *delta, unsigned long delta_size)
+#include "tree.h"
+	struct object_id base_oid;
+
+}
+		if (oideq(&info->base_oid, &obj_list[nr].oid) ||
+	/* All done */
+			die("invalid blob object");
+	info->size = size;
+	if (offset) {
+{
+				continue;
+/*
+				break;
+			die("offset value out of bound for delta base object");
+		      obj_buffer->size, delta_data, delta_size);
+				die("early EOF");
+			free(delta_data);
+		die("unresolved deltas left after unpacking");
+}
+}
+			     &result_size);
+		progress = start_progress(_("Unpacking objects"), nr_objects);
+		if (recover)
+	if (!hasheq(fill(the_hash_algo->rawsz), oid.hash))
+	obj->flags |= FLAG_WRITTEN;
+
+				die("offset value overflow for delta base object");
+static void unpack_non_delta_entry(enum object_type type, unsigned long size,
+#include "tree-walk.h"
+
+			add_delta_to_list(nr, &null_oid, base_offset, delta_data, delta_size);
+		if (ret != Z_OK) {
+		len -= ret;
+	struct object *obj;
+				len = sizeof(*hdr);
+/*
+static struct obj_buffer *lookup_object_buffer(struct object *base)
+}
+		stream.next_in = fill(1);
+}
+
+	unsigned char *pack;
+static void add_object_buffer(struct object *object, char *buffer, unsigned long size)
+		if (write_object_file(buf, size, type_name(type),
+
+
+ * that have reachability requirements and calls this function.
+		size += (c & 0x7f) << shift;
+#include "builtin.h"
+		exit(1);
+			}
+
+			*p = info->next;
+			add_delta_to_list(nr, &base_oid, 0, delta_data, delta_size);
+				      &obj_list[nr].oid) < 0)
+}
+			break;
+	for (;;) {
+	oidcpy(&info->base_oid, base_oid);
+		if (base_offset <= 0 || base_offset >= obj_list[nr].offset)
+			mid = lo + (hi - lo) / 2;
+	struct object_id oid;
+	if (obj->flags & FLAG_WRITTEN)
+	return lookup_decoration(&obj_decorate, base);
+	if (signed_add_overflows(consumed_bytes, bytes))
+ * We now know the contents of an object (which is nr-th in the pack);
+				      info->delta, info->size);
+			break;
+	case OBJ_OFS_DELTA:
+static unsigned int offset, len;
+static void write_rest(void)
+		delta_data = get_data(delta_size);
+				lo = mid + 1;
+	default:
+
+	if (!base) {
+		die("failed to write object %s", oid_to_hex(&obj->oid));
+				continue;
+		return 0;
+	struct object *obj;
+		memmove(buffer, buffer + offset, len);
+static void unpack_one(unsigned nr)
+	if (write_object_file(obj_buf->buffer, obj_buf->size,
+};
+	if (ntohl(hdr->hdr_signature) != PACK_SIGNATURE)
+	obj = xcalloc(1, sizeof(struct obj_buffer));
+#define FLAG_WRITTEN (1u<<21)
+		blob = lookup_blob(the_repository, &obj_list[nr].oid);
+	base = read_object_file(&base_oid, &type, &base_size);
+					die("bad %s", arg);
+	use(1);
+ * Make sure at least "min" bytes are available in the buffer, and
+	return has_errors;
+ */
+	}
+ * resolve all the deltified objects that are based on it.
+					  &eaten);
+	if (max_input_size && consumed_bytes > max_input_size)
+static void unpack_all(void)
+
+	if (min <= len)
+
+				strict = 1;
+}
+			p = &delta_list;
+			 void *data, unsigned long size)
+			; /* Ok we have this one */
+	info->nr = nr;
+	git_config(git_default_config, NULL);
+		p = &info->next;
+			use(1);
+#include "delta.h"
+	struct pack_header *hdr = fill(sizeof(struct pack_header));
+	}
+		base_offset = obj_list[nr].offset - base_offset;
+	unsigned long size, c;
+	void *delta_data, *base;
+		return 1;
+		die("object %s tried to add buffer twice!", oid_to_hex(&object->oid));
+		int ret = xwrite(1, buffer + offset, len);
+	struct delta_info *info = xmalloc(sizeof(*info));
+		int eaten;
+	int i;
+		die("cannot fill %d bytes", min);
+static void resolve_delta(unsigned nr, enum object_type type,
+				      &obj_list[nr].oid) < 0)
+	info->base_offset = base_offset;
+
+#include "blob.h"
+
+		if (!obj)
+	info->delta = delta;
+	struct delta_info **p = &delta_list;
+					      delta_data, delta_size))
+				continue;
+	unsigned long base_size;
+	}
+
+	while ((info = *p) != NULL) {
+	} else {
+	while (c & 0x80) {
+
+			check_object(obj_list[i].obj, OBJ_ANY, NULL, NULL);
+			return;
+		}
+{
+static int check_object(struct object *obj, int type, void *data, struct fsck_options *options)
+		free(buf);
+static struct decoration obj_decorate;
+{
+/*
+		c = *pack;
+static struct progress *progress;
+				if (*c != ',')
+{
+				continue;
+	void *delta;
+			if (skip_prefix(arg, "--max-input-size=", &arg)) {
+ * suspect are kept in core without getting written in the object
+	obj_list[nr].offset = consumed_bytes;
+	obj_list = xcalloc(nr_objects, sizeof(*obj_list));
+			die_errno("read error on input");
+/*
+
+		if (!recover)
+			 void *data, unsigned long size);
+ */
+static struct obj_info *obj_list;
+	struct obj_buffer *obj;
+				recover = 1;
+		use(the_hash_algo->rawsz);
+		}
+	if (!(obj->flags & FLAG_OPEN)) {
+static void added_object(unsigned nr, enum object_type type,
+			if (!base_offset || MSB(base_offset, 7))
+
+static off_t consumed_bytes;
+ * to be checked at the end.
+	}
+#include "progress.h"
+	void *buf = get_data(size);
+
+				strict = 1;
+	if (!pack_version_ok(hdr->hdr_version))
+			ntohl(hdr->hdr_version));
+static unsigned char buffer[4096];
+			usage(unpack_usage);
+		the_hash_algo->update_fn(&ctx, buffer, offset);
+	stream.next_in = fill(1);
+
+
+	char *buffer;
+
+	if (!result)
+
+			if (!recover)
+		error("bad object type %d", type);
+	obj = lookup_object(the_repository, base);
+{
+		len += ret;
+		}
+			if (starts_with(arg, "--pack_header=")) {
+				 &obj_list[nr].oid);
+	case OBJ_TREE:
+			die("invalid %s", type_name(type));
+	if (!strict) {
+	while (len) {
+		obj_list[nr].obj = obj;
+	}
+	obj->buffer = buffer;
+		has_errors = 1;
+			blob->object.flags |= FLAG_WRITTEN;
+		if (obj_list[i].obj)
+			  void *base, unsigned long base_size,
+{
+	obj->size = size;
+		off_t base_offset;
+
+static void *fill(int min)
+		die("Error on reachable objects of %s", oid_to_hex(&obj->oid));
+{
+			exit(1);
+		die("bad pack file");
+	if (!obj)
+}
+		unpack_one(i);
+			} else {
+			 void *buf, unsigned long size)
+static int resolve_against_held(unsigned nr, const struct object_id *base,
+	if (!dry_run && buf)
+}
+		      oid_to_hex(&base_oid));
+		}
+			continue;
+	the_hash_algo->final_fn(oid.hash, &ctx);
+
+	if (bytes > len)
+	if (type == OBJ_REF_DELTA) {
+	if (!quiet)
+		if (has_object_file(&base_oid))
+{
+ * Called only from check_object() after it verified this object
+		hash_object_file(the_hash_algo, buf, size, type_name(type),
+			 * The delta base object is itself a delta that
+	quiet = !isatty(2);
+	return buf;
+		unsigned long size;
+		pack = fill(1);
+		int ret = git_inflate(&stream, 0);
+		die("object type mismatch");
+			if (!strcmp(arg, "-q")) {
+		use(len - stream.avail_in);
+#define FLAG_OPEN (1u<<20)
+}
+		use(1);
+
+{
+		int type = oid_object_info(the_repository, &obj->oid, &size);
+		c = *pack;
+				hi = mid;
+	delta_list = info;
+		ssize_t ret = xread(0, buffer + len, sizeof(buffer) - len);
+static void added_object(unsigned nr, enum object_type type,
+		return;
+	fsck_options.walk = check_object;
+struct obj_buffer {
+			FREE_AND_NULL(buf);
+{
+			}
+
+		has_errors = 1;
+		added_object(nr, type, buf, size);
+};
+
+				hdr->hdr_signature = htonl(PACK_SIGNATURE);
+					die("bad %s", arg);
+static off_t max_input_size;
+	unsigned long size;
+		if (fsck_finish(&fsck_options))
+	len -= bytes;
+		lo = 0;
+	offset += bytes;
+			pack = fill(1);
+				dry_run = 1;
+			       unsigned nr)
+	stream.avail_out = size;
+
+	result = patch_delta(base, base_size,
+}
+		obj->flags |= FLAG_OPEN;
+		usage(unpack_usage);
+		die("used more bytes than were available");
+	struct obj_buffer *obj_buffer;
+/* Remember to update object flag allocation in object.h */
+		error("failed to read delta-pack base object %s",
+
+		if (type != obj->type || type <= 0)
+	} while (len < min);
+			return;
+	the_hash_algo->update_fn(&ctx, buffer, offset);
+	}
+ * of it.  Under --strict, this buffers structured objects in-core,
+		return 0;
+#include "commit.h"
+			}
+	}
+
+		return;
+		shift += 7;
+				hdr = (struct pack_header *)buffer;
+	unsigned long result_size;
+ * Write out nr-th object from the list, now we know the contents
+		die("Whoops! Cannot find object '%s'", oid_to_hex(&obj->oid));
+{
+	if (!obj_buf)
+	case OBJ_BLOB:
+		obj_list[nr].obj = NULL;
+		die("unknown pack file version %"PRIu32,
+	if (fsck_walk(obj, NULL, &fsck_options))
+	write_cached_object(obj, obj_buf);
+			die("failed to write object");

@@ -1,88 +1,88 @@
-#include "cache.h"
-#include "config.h"
-#include "run-command.h"
-#include "strbuf.h"
-#include "prompt.h"
-#include "compat/terminal.h"
-
-static char *do_askpass(const char *cmd, const char *prompt)
-{
-	struct child_process pass = CHILD_PROCESS_INIT;
-	const char *args[3];
-	static struct strbuf buffer = STRBUF_INIT;
-	int err = 0;
-
-	args[0] = cmd;
-	args[1]	= prompt;
-	args[2] = NULL;
-
-	pass.argv = args;
-	pass.out = -1;
-
-	if (start_command(&pass))
-		return NULL;
-
-	strbuf_reset(&buffer);
+		if (!r) {
 	if (strbuf_read(&buffer, pass.out, 20) < 0)
-		err = 1;
+			die("could not read %s%s", prompt, err);
 
-	close(pass.out);
-
-	if (finish_command(&pass))
-		err = 1;
-
-	if (err) {
+	struct child_process pass = CHILD_PROCESS_INIT;
+#include "compat/terminal.h"
 		error("unable to read askpass response from '%s'", cmd);
-		strbuf_release(&buffer);
-		return NULL;
-	}
 
-	strbuf_setlen(&buffer, strcspn(buffer.buf, "\r\n"));
 
+	const char *args[3];
+	strbuf_reset(&buffer);
+	if (err) {
 	return buffer.buf;
-}
+			r = git_terminal_prompt(prompt, flags & PROMPT_ECHO);
+	if (start_command(&pass))
 
+
+			/* prompts already contain ": " at the end */
+			err = "terminal prompts disabled";
+		if (askpass && *askpass)
 char *git_prompt(const char *prompt, int flags)
-{
-	char *r = NULL;
 
-	if (flags & PROMPT_ASKPASS) {
+{
+	return ret;
+
 		const char *askpass;
 
-		askpass = getenv("GIT_ASKPASS");
-		if (!askpass)
-			askpass = askpass_program;
-		if (!askpass)
-			askpass = getenv("SSH_ASKPASS");
-		if (askpass && *askpass)
+	strbuf_setlen(&buffer, strcspn(buffer.buf, "\r\n"));
 			r = do_askpass(askpass, prompt);
+			askpass = getenv("SSH_ASKPASS");
+
+	args[1]	= prompt;
 	}
-
-	if (!r) {
-		const char *err;
-
-		if (git_env_bool("GIT_TERMINAL_PROMPT", 1)) {
-			r = git_terminal_prompt(prompt, flags & PROMPT_ECHO);
-			err = strerror(errno);
-		} else {
-			err = "terminal prompts disabled";
-		}
-		if (!r) {
-			/* prompts already contain ": " at the end */
-			die("could not read %s%s", prompt, err);
-		}
-	}
-	return r;
-}
-
 int git_read_line_interactively(struct strbuf *line)
+	pass.argv = args;
+
+
+		return NULL;
+	return r;
 {
+
+#include "run-command.h"
+		err = 1;
+
+			err = strerror(errno);
+		return NULL;
+#include "cache.h"
+	args[2] = NULL;
+	int err = 0;
+		strbuf_trim_trailing_newline(line);
+		const char *err;
+}
+			askpass = askpass_program;
 	int ret;
 
+{
 	fflush(stdout);
-	ret = strbuf_getline_lf(line, stdin);
-	if (ret != EOF)
-		strbuf_trim_trailing_newline(line);
-
-	return ret;
 }
+
+		askpass = getenv("GIT_ASKPASS");
+	if (finish_command(&pass))
+#include "config.h"
+	if (!r) {
+static char *do_askpass(const char *cmd, const char *prompt)
+	static struct strbuf buffer = STRBUF_INIT;
+	char *r = NULL;
+#include "strbuf.h"
+	args[0] = cmd;
+
+	if (ret != EOF)
+	pass.out = -1;
+		}
+#include "prompt.h"
+
+
+	}
+	close(pass.out);
+		strbuf_release(&buffer);
+		if (!askpass)
+		}
+	ret = strbuf_getline_lf(line, stdin);
+		err = 1;
+		if (!askpass)
+}
+		} else {
+	}
+		if (git_env_bool("GIT_TERMINAL_PROMPT", 1)) {
+	if (flags & PROMPT_ASKPASS) {

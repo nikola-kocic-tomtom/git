@@ -1,631 +1,631 @@
-#include "builtin.h"
-#include "config.h"
-#include "dir.h"
-#include "parse-options.h"
-#include "pathspec.h"
-#include "repository.h"
-#include "run-command.h"
-#include "strbuf.h"
-#include "string-list.h"
-#include "cache.h"
-#include "cache-tree.h"
-#include "lockfile.h"
-#include "resolve-undo.h"
-#include "unpack-trees.h"
-#include "wt-status.h"
+	e->pattern = strbuf_detach(path, NULL);
+	result = write_patterns_and_update(&pl);
+{
+		if (!strcmp(argv[0], "set"))
+}
+	struct pattern_entry *e = xmalloc(sizeof(*e));
+
+	o.fn = oneway_merge;
+	git_config_set_in_file_gently(config_path,
+				strbuf_setlen(&line, 0);
+		mode = MODE_CONE_PATTERNS;
+		add_patterns_from_input(&pl, argc, argv);
+	if (line->buf[0] != '/')
+					pe->pattern, &buffer) ||
+	struct string_list sl = STRING_LIST_INIT_DUP;
+		OPT_END(),
+	resolve_undo_clear_index(r->index);
+	core_apply_sparse_checkout = 1;
+				   struct pattern_list *pl)
+		free(pattern);
+	char *sparse_filename = get_sparse_checkout_filename();
+					pe->pattern, &buffer)) {
+	repo_hold_locked_index(r, &lock_file, LOCK_DIE_ON_ERROR);
+
+
+		fprintf(fp, "\n");
+
+
+		else
+				   strihash(e->pattern) :
+{
+			add_patterns_literal(argc, argv, &pl);
+	insert_recursive_pattern(pl, line);
+	res = add_patterns_from_file_to_list(sparse_filename, "", 0, &pl, NULL);
+			return sparse_checkout_set(argc, argv, prefix, REPLACE);
+	o.head_idx = -1;
+	}
+				      LOCK_DIE_ON_ERROR);
+	o.src_index = r->index;
+	if (get_oid("HEAD", &oid)) {
+				      "core.sparseCheckout",
+			     builtin_sparse_checkout_usage,
+			     builtin_sparse_checkout_set_options,
+
+	}
+	setup_work_tree();
+	struct hashmap_iter iter;
+
+				}
+		set_config(MODE_ALL_PATTERNS);
+		struct string_list sl = STRING_LIST_INIT_DUP;
+
+	sparse_filename = get_sparse_checkout_filename();
+
+	for (i = 0; i < sl.nr; i++) {
+		error(_("failed to set extensions.worktreeConfig setting"));
+		die(_("error while refreshing working directory"));
+		int i;
+			strbuf_addstr(&buffer, pe->pattern);
+	hashmap_for_each_entry(&existing.recursive_hashmap, &iter, pe, ent) {
+	result = update_working_directory(pl);
+		rollback_lock_file(&lk);
+};
+		hashmap_entry_init(&e->ent,
+	hashmap_init(&pl.recursive_hashmap, pl_hashmap_cmp, NULL, 0);
+static void insert_recursive_pattern(struct pattern_list *pl, struct strbuf *path)
+	if (init_opts.cone_mode) {
+					   &existing, NULL))
+	}
+		strbuf_addch(&final, *p);
+
+
+		mode = MODE_ALL_PATTERNS;
+	string_list_clear(&sl, 0);
+	struct hashmap_iter iter;
+	return strbuf_detach(&final, NULL);
+				   builtin_sparse_checkout_options);
+	}
+			return sparse_checkout_set(argc, argv, prefix, ADD);
+
+{
+{
+	char *sparse_filename;
+	return 0;
+		return result;
+	int result;
+	commit_lock_file(&lk);
+}
+} init_opts;
+
+static char const * const builtin_sparse_checkout_init_usage[] = {
+	struct pattern_list pl;
+	}
 #include "quote.h"
+			/* pe->pattern starts with "/", skip it */
+					if (unquote_c_style(&unquoted, line.buf, NULL))
+		/* assume we are in a fresh repo, but update the sparse-checkout file */
+	struct pattern_list existing;
+	struct strbuf buffer = STRBUF_INIT;
+static char const * const builtin_sparse_checkout_usage[] = {
+
+static struct sparse_checkout_set_opts {
+static struct sparse_checkout_init_opts {
+	if (res < 0) {
+		if (!strcmp(argv[0], "list"))
+	argc = parse_options(argc, argv, NULL,
+
+	char *p = pattern;
+	o.dst_index = r->index;
+#include "builtin.h"
+				strbuf_to_cone_pattern(&line, pl);
+
+	argc = parse_options(argc, argv, prefix,
+
+		if (!hashmap_get_entry(&pl->parent_hashmap, e, ent, NULL))
+			insert_recursive_pattern(pl, &buffer);
+
+		return update_working_directory(NULL);
+{
+}
+	struct pattern_list pl;
+
+	static struct option builtin_sparse_checkout_set_options[] = {
+	add_pattern(strbuf_detach(&pattern, NULL), empty_base, 0, &pl, 0);
+};
+	require_clean_work_tree(the_repository,
+		if (!hashmap_contains_parent(&pl->recursive_hashmap,
+		struct path_pattern *p = pl->patterns[i];
+	strbuf_addstr(&pattern, "/*");
+	MODE_ALL_PATTERNS = 1,
+	git_config_set_in_file_gently(config_path,
+			       enum modify_type m)
+	struct lock_file lock_file = LOCK_INIT;
+	if (result) {
+static int sparse_checkout_disable(int argc, const char **argv)
+#include "dir.h"
+	}
+
+	return 0;
+		if (!strcmp(argv[0], "init"))
+				    int argc, const char **argv)
+				size_t len;
+	strbuf_trim_trailing_dir_sep(line);
+	}
+			fprintf(fp, "/");
+		update_working_directory(NULL);
+			   strhash(e->pattern));
+}
+
+	e->patternlen = path->len;
+
+
+
+
+	struct unpack_trees_options o;
+	strbuf_addstr(&match_all, "/*");
+
+				N_("set sparse-checkout patterns"), NULL, 1, 0);
+			     PARSE_OPT_STOP_AT_NON_OPTION);
+	} else {
+		set_config(MODE_NO_PATTERNS);
+
+	free(sparse_filename);
+					     pe->pattern,
+		core_sparse_checkout_cone = 1;
+		    !hashmap_contains_parent(&pl->parent_hashmap,
+
+
+
+	free(sparse_filename);
+	pl.use_cone_patterns = 0;
+
+		OPT_BOOL(0, "cone", &init_opts.cone_mode,
+			   builtin_sparse_checkout_options);
+
+static void add_patterns_cone_mode(int argc, const char **argv,
+
+
+static void write_cone_to_file(FILE *fp, struct pattern_list *pl)
+#include "cache-tree.h"
+
+	}
+}
+
+static char *get_sparse_checkout_filename(void)
+
+			     builtin_sparse_checkout_set_usage,
+	if (add_patterns_from_file_to_list(sparse_filename, "", 0,
+{
+			   strihash(e->pattern) :
+	return result;
+
+		break;
+		strbuf_insertstr(line, 0, "/");
+		if (set_opts.use_stdin) {
+	int result = 0;
+						die(_("unable to unquote C-style string '%s'"),
+
+		return 0;
+	if (res >= 0) {
+				   strhash(e->pattern));
+{
+		string_list_sort(&sl);
+	result = unpack_trees(1, &t, &o);
+	struct object_id oid;
+	cache_tree_free(&r->index->cache_tree);
+{
+		if (!hashmap_contains_parent(&pl->recursive_hashmap,
+
+	};
+	argc = parse_options(argc, argv, prefix,
+	return 0;
+			while (!strbuf_getline(&line, stdin)) {
+
+static int sparse_checkout_list(int argc, const char **argv)
+		clear_pattern_list(pl);
+
+int cmd_sparse_checkout(int argc, const char **argv, const char *prefix)
+	struct pattern_entry *pe;
+#include "resolve-undo.h"
+		if (strlen(pattern))
+
+					     &parent_pattern))
+	write_patterns_to_file(stdout, &pl);
+{
+}
+
+	string_list_remove_duplicates(&sl, 0);
+	tree = parse_tree_indirect(&oid);
+
+			     builtin_sparse_checkout_init_options,
+	N_("git sparse-checkout (set|add) (--stdin | <patterns>)"),
+
+	int i;
+	}
+		struct strbuf line = STRBUF_INIT;
+	char *sparse_filename = get_sparse_checkout_filename();
+	add_patterns_from_input(pl, argc, argv);
+	memset(&o, 0, sizeof(o));
+}
+
+	o.update = 1;
+	int mode;
+	}
+	N_("git sparse-checkout (init|list|set|add|disable) <options>"),
+#include "cache.h"
+				   ignore_case ?
+					strbuf_reset(&unquoted);
+
+				strbuf_addstr(&line, argv[i]);
+					   pl, NULL))
+
+	hashmap_init(&pl.parent_hashmap, pl_hashmap_cmp, NULL, 0);
+	return set_config(MODE_NO_PATTERNS);
+
+		p++;
+	clear_pattern_list(&pl);
+}
+	memset(&pl, 0, sizeof(pl));
+	int i;
+
+
+
+	if (pl.use_cone_patterns) {
+		}
+
+				if (line.buf[0] == '"') {
+static int write_patterns_and_update(struct pattern_list *pl)
+
+
+	}
+		if (core_sparse_checkout_cone)
+
+		return 0;
+	};
+			struct strbuf unquoted = STRBUF_INIT;
+
+				      mode ? "true" : NULL);
+	free(sparse_filename);
+	fprintf(fp, "/*\n!/*/\n");
+				char *buf = strbuf_detach(&line, &len);
+
+	switch (m) {
+
+
+	for (i = 0; i < sl.nr; i++) {
+
+			 N_("initialize the sparse-checkout in cone mode")),
+			for (i = 0; i < argc; i++)
+				      mode == MODE_CONE_PATTERNS ? "true" : NULL);
+					     pe->pattern,
+		return 1;
+
+	if (core_sparse_checkout_cone)
+		if (hashmap_get_entry(&pl->recursive_hashmap, pe, ent, NULL))
+	char *sparse_filename;
+			hashmap_add(&pl->parent_hashmap, &e->ent);
+	init_tree_desc(&t, tree->buffer, tree->size);
+	struct repository *r = the_repository;
+			string_list_insert(&sl, pe->pattern + 1);
+
+			     builtin_sparse_checkout_init_usage, 0);
+		die(_("unable to load existing sparse-checkout patterns"));
+		if (slash == e->pattern)
+	fd = hold_lock_file_for_update(&lk, sparse_filename,
+	while (*p) {
+
+	core_apply_sparse_checkout = 1;
+
+		usage_with_options(builtin_sparse_checkout_usage,
+		fp = xfopen(sparse_filename, "w");
+	struct pattern_entry *pe;
+	case ADD:
+		write_locked_index(r->index, &lock_file, COMMIT_LOCK);
+
+
+	repo_read_index(the_repository);
+		hashmap_init(&pl->parent_hashmap, pl_hashmap_cmp, NULL, 0);
+
+			     builtin_sparse_checkout_options,
+};
+	if (!result) {
+			fprintf(fp, "%s/\n!%s/*/\n", pattern, pattern);
+	int i;
+	res = add_patterns_from_file_to_list(sparse_filename, "", 0, &pl, NULL);
+#include "wt-status.h"
+#include "parse-options.h"
+
+	if (result && changed_config)
+
+		fclose(fp);
+}
+	static struct option builtin_sparse_checkout_options[] = {
+
+	for (i = 0; i < pl->nr; i++) {
+		fprintf(fp, "%s/\n", pattern);
+
+	struct tree *tree;
+
+enum sparse_checkout_mode {
+			break;
+	o.skip_sparse_checkout = 0;
+
+		if (p->flags & PATTERN_FLAG_NEGATIVE)
+	if (git_config_set_gently("extensions.worktreeConfig", "true")) {
+
+		OPT_BOOL(0, "stdin", &set_opts.use_stdin,
+	o.pl = pl;
+	fp = xfdopen(fd, "w");
+		if (p->flags & PATTERN_FLAG_MUSTBEDIR)
+	int use_stdin;
+
+{
+static void add_patterns_from_input(struct pattern_list *pl,
+			add_patterns_cone_mode(argc, argv, &pl);
+				add_pattern(buf, empty_base, 0, pl, 0);
+	git_config(git_default_config, NULL);
+
+static char *escaped_pattern(char *pattern)
+		warning(_("this worktree is not sparse (sparse-checkout file may not exist)"));
+	if (!line->len)
+
+	const char *config_path;
+		rollback_lock_file(&lock_file);
+		if (!strcmp(argv[0], "disable"))
+	struct strbuf pattern = STRBUF_INIT;
+static int modify_pattern_list(int argc, const char **argv, enum modify_type m)
+	N_("git sparse-checkout init [--cone]"),
+	char *sparse_filename;
+	int res;
+#include "pathspec.h"
+		}
+
+	require_clean_work_tree(the_repository,
+		char *oldpattern = e->pattern;
+
+enum modify_type {
+	memset(&pl, 0, sizeof(pl));
+}
+	struct lock_file lk = LOCK_INIT;
+		free(pattern);
+		}
+	hashmap_for_each_entry(&pl->recursive_hashmap, &iter, pe, ent) {
+
+						line.buf);
+
+
+	if (argc == 2 && !strcmp(argv[1], "-h"))
+	add_pattern(strbuf_detach(&pattern, NULL), empty_base, 0, &pl, 0);
+					     &parent_pattern))
+	int cone_mode;
+
+	MODE_NO_PATTERNS = 0,
+			}
+			die(_("failed to open '%s'"), sparse_filename);
+	while (e->patternlen) {
+	struct strbuf parent_pattern = STRBUF_INIT;
+
+	repo_read_index(the_repository);
+		write_patterns_to_file(fp, pl);
+	if (!core_apply_sparse_checkout) {
+
+		}
+				strbuf_to_cone_pattern(&line, pl);
+		if (is_glob_special(*p))
+	fflush(fp);
+
+		die(_("you need to resolve your current index first"));
+		OPT_END(),
+
+	struct pattern_list pl;
+	struct strbuf match_all = STRBUF_INIT;
+	o.keep_pattern_list = !!pl;
+
+	require_clean_work_tree(the_repository,
+}
+		struct pattern_entry *pe;
+
+}
+	pl.use_cone_patterns = core_sparse_checkout_cone;
+	}
+	static struct option builtin_sparse_checkout_init_options[] = {
+static void add_patterns_literal(int argc, const char **argv,
+	}
+			strbuf_addch(&final, '\\');
+	}
+	hashmap_add(&pl->recursive_hashmap, &e->ent);
+	o.merge = 1;
+		return 0;
+		core_apply_sparse_checkout = 1;
+	NULL
+
+			     PARSE_OPT_KEEP_UNKNOWN);
+{
+}
+	usage_with_options(builtin_sparse_checkout_usage,
+			}
+	}
+
+				 struct pattern_list *pl)
+		FILE *fp;
+
+	int result;
+	if (add_patterns_from_file_to_list(sparse_filename, "", 0,
+	return result;
+			struct strbuf line = STRBUF_INIT;
+	memset(&existing, 0, sizeof(existing));
+
+	struct pattern_list pl;
+			quote_c_style(sl.items[i].string, NULL, stdout, 0);
+	sparse_filename = get_sparse_checkout_filename();
+	if (set_config(mode))
+	ADD,
+	struct strbuf final = STRBUF_INIT;
+	string_list_sort(&sl);
+{
+			for (i = 0; i < argc; i++) {
+	parse_tree(tree);
+
+	sparse_filename = get_sparse_checkout_filename();
+		char *pattern = escaped_pattern(sl.items[i].string);
+		hashmap_for_each_entry(&pl.recursive_hashmap, &iter, pe, ent) {
+
+
+	NULL
+
+static int update_working_directory(struct pattern_list *pl)
+			}
+			string_list_insert(&sl, pe->pattern);
+};
+
+		e->pattern = xstrndup(oldpattern, newlen);
+
+
+
+	strbuf_addstr(&pattern, "!/*/");
+}
+		prime_cache_tree(r, r->index, tree);
+
+};
+
+	if (update_working_directory(&pl))
+		OPT_END(),
+
+
+		core_apply_sparse_checkout = 1;
+	clear_pattern_list(&existing);
+
+			string_list_insert(&sl, pe->pattern);
+	if (argc > 0) {
+}
+
+}
+	strbuf_release(&buffer);
+			return sparse_checkout_list(argc, argv);
+			   ignore_case ?
+		size_t newlen;
+	REPLACE,
 
 static const char *empty_base = "";
 
-static char const * const builtin_sparse_checkout_usage[] = {
-	N_("git sparse-checkout (init|list|set|add|disable) <options>"),
-	NULL
-};
-
-static char *get_sparse_checkout_filename(void)
-{
-	return git_pathdup("info/sparse-checkout");
-}
-
-static void write_patterns_to_file(FILE *fp, struct pattern_list *pl)
-{
-	int i;
-
-	for (i = 0; i < pl->nr; i++) {
-		struct path_pattern *p = pl->patterns[i];
-
-		if (p->flags & PATTERN_FLAG_NEGATIVE)
-			fprintf(fp, "!");
-
-		fprintf(fp, "%s", p->pattern);
-
-		if (p->flags & PATTERN_FLAG_MUSTBEDIR)
-			fprintf(fp, "/");
-
-		fprintf(fp, "\n");
-	}
-}
-
-static int sparse_checkout_list(int argc, const char **argv)
-{
-	struct pattern_list pl;
-	char *sparse_filename;
-	int res;
-
-	memset(&pl, 0, sizeof(pl));
-
-	pl.use_cone_patterns = core_sparse_checkout_cone;
-
-	sparse_filename = get_sparse_checkout_filename();
-	res = add_patterns_from_file_to_list(sparse_filename, "", 0, &pl, NULL);
-	free(sparse_filename);
-
-	if (res < 0) {
-		warning(_("this worktree is not sparse (sparse-checkout file may not exist)"));
-		return 0;
-	}
-
-	if (pl.use_cone_patterns) {
-		int i;
-		struct pattern_entry *pe;
-		struct hashmap_iter iter;
-		struct string_list sl = STRING_LIST_INIT_DUP;
-
-		hashmap_for_each_entry(&pl.recursive_hashmap, &iter, pe, ent) {
-			/* pe->pattern starts with "/", skip it */
-			string_list_insert(&sl, pe->pattern + 1);
-		}
-
-		string_list_sort(&sl);
-
-		for (i = 0; i < sl.nr; i++) {
-			quote_c_style(sl.items[i].string, NULL, stdout, 0);
-			printf("\n");
-		}
-
-		return 0;
-	}
-
-	write_patterns_to_file(stdout, &pl);
-	clear_pattern_list(&pl);
-
-	return 0;
-}
-
-static int update_working_directory(struct pattern_list *pl)
-{
-	int result = 0;
-	struct unpack_trees_options o;
-	struct lock_file lock_file = LOCK_INIT;
-	struct object_id oid;
-	struct tree *tree;
-	struct tree_desc t;
-	struct repository *r = the_repository;
-
-	if (repo_read_index_unmerged(r))
-		die(_("you need to resolve your current index first"));
-
-	if (get_oid("HEAD", &oid))
-		return 0;
-
-	tree = parse_tree_indirect(&oid);
-	parse_tree(tree);
-	init_tree_desc(&t, tree->buffer, tree->size);
-
-	memset(&o, 0, sizeof(o));
-	o.verbose_update = isatty(2);
-	o.merge = 1;
-	o.update = 1;
-	o.fn = oneway_merge;
-	o.head_idx = -1;
-	o.src_index = r->index;
-	o.dst_index = r->index;
-	o.skip_sparse_checkout = 0;
-	o.pl = pl;
-	o.keep_pattern_list = !!pl;
-
-	resolve_undo_clear_index(r->index);
-	setup_work_tree();
-
-	cache_tree_free(&r->index->cache_tree);
-
-	repo_hold_locked_index(r, &lock_file, LOCK_DIE_ON_ERROR);
-
-	core_apply_sparse_checkout = 1;
-	result = unpack_trees(1, &t, &o);
-
-	if (!result) {
-		prime_cache_tree(r, r->index, tree);
-		write_locked_index(r->index, &lock_file, COMMIT_LOCK);
-	} else
-		rollback_lock_file(&lock_file);
-
-	return result;
-}
-
-static char *escaped_pattern(char *pattern)
-{
-	char *p = pattern;
-	struct strbuf final = STRBUF_INIT;
-
-	while (*p) {
-		if (is_glob_special(*p))
-			strbuf_addch(&final, '\\');
-
-		strbuf_addch(&final, *p);
-		p++;
-	}
-
-	return strbuf_detach(&final, NULL);
-}
-
-static void write_cone_to_file(FILE *fp, struct pattern_list *pl)
-{
-	int i;
-	struct pattern_entry *pe;
-	struct hashmap_iter iter;
-	struct string_list sl = STRING_LIST_INIT_DUP;
-	struct strbuf parent_pattern = STRBUF_INIT;
-
-	hashmap_for_each_entry(&pl->parent_hashmap, &iter, pe, ent) {
-		if (hashmap_get_entry(&pl->recursive_hashmap, pe, ent, NULL))
-			continue;
-
-		if (!hashmap_contains_parent(&pl->recursive_hashmap,
-					     pe->pattern,
-					     &parent_pattern))
-			string_list_insert(&sl, pe->pattern);
-	}
-
 	string_list_sort(&sl);
-	string_list_remove_duplicates(&sl, 0);
-
-	fprintf(fp, "/*\n!/*/\n");
-
-	for (i = 0; i < sl.nr; i++) {
+	}
 		char *pattern = escaped_pattern(sl.items[i].string);
-
-		if (strlen(pattern))
-			fprintf(fp, "%s/\n!%s/*/\n", pattern, pattern);
-		free(pattern);
-	}
-
-	string_list_clear(&sl, 0);
-
-	hashmap_for_each_entry(&pl->recursive_hashmap, &iter, pe, ent) {
-		if (!hashmap_contains_parent(&pl->recursive_hashmap,
-					     pe->pattern,
-					     &parent_pattern))
-			string_list_insert(&sl, pe->pattern);
-	}
-
-	strbuf_release(&parent_pattern);
-
-	string_list_sort(&sl);
-	string_list_remove_duplicates(&sl, 0);
-
-	for (i = 0; i < sl.nr; i++) {
-		char *pattern = escaped_pattern(sl.items[i].string);
-		fprintf(fp, "%s/\n", pattern);
-		free(pattern);
-	}
-}
-
-static int write_patterns_and_update(struct pattern_list *pl)
+static void strbuf_to_cone_pattern(struct strbuf *line, struct pattern_list *pl)
+#include "unpack-trees.h"
+		changed_config = 1;
 {
-	char *sparse_filename;
-	FILE *fp;
-	int fd;
-	struct lock_file lk = LOCK_INIT;
-	int result;
-
-	sparse_filename = get_sparse_checkout_filename();
+		newlen = slash - e->pattern;
 
 	if (safe_create_leading_directories(sparse_filename))
-		die(_("failed to create directory for sparse-checkout file"));
-
-	fd = hold_lock_file_for_update(&lk, sparse_filename,
-				      LOCK_DIE_ON_ERROR);
-
-	result = update_working_directory(pl);
-	if (result) {
-		rollback_lock_file(&lk);
-		free(sparse_filename);
-		clear_pattern_list(pl);
-		update_working_directory(NULL);
-		return result;
-	}
-
-	fp = xfdopen(fd, "w");
-
-	if (core_sparse_checkout_cone)
-		write_cone_to_file(fp, pl);
-	else
-		write_patterns_to_file(fp, pl);
-
-	fflush(fp);
-	commit_lock_file(&lk);
-
-	free(sparse_filename);
-	clear_pattern_list(pl);
-
-	return 0;
-}
-
-enum sparse_checkout_mode {
-	MODE_NO_PATTERNS = 0,
-	MODE_ALL_PATTERNS = 1,
-	MODE_CONE_PATTERNS = 2,
-};
-
-static int set_config(enum sparse_checkout_mode mode)
-{
-	const char *config_path;
-
-	if (git_config_set_gently("extensions.worktreeConfig", "true")) {
-		error(_("failed to set extensions.worktreeConfig setting"));
-		return 1;
-	}
-
-	config_path = git_path("config.worktree");
-	git_config_set_in_file_gently(config_path,
-				      "core.sparseCheckout",
-				      mode ? "true" : NULL);
-
-	git_config_set_in_file_gently(config_path,
-				      "core.sparseCheckoutCone",
-				      mode == MODE_CONE_PATTERNS ? "true" : NULL);
-
-	return 0;
-}
-
-static char const * const builtin_sparse_checkout_init_usage[] = {
-	N_("git sparse-checkout init [--cone]"),
-	NULL
-};
-
-static struct sparse_checkout_init_opts {
-	int cone_mode;
-} init_opts;
-
-static int sparse_checkout_init(int argc, const char **argv)
-{
-	struct pattern_list pl;
-	char *sparse_filename;
-	int res;
-	struct object_id oid;
-	int mode;
-	struct strbuf pattern = STRBUF_INIT;
-
-	static struct option builtin_sparse_checkout_init_options[] = {
-		OPT_BOOL(0, "cone", &init_opts.cone_mode,
-			 N_("initialize the sparse-checkout in cone mode")),
-		OPT_END(),
-	};
-
-	repo_read_index(the_repository);
-	require_clean_work_tree(the_repository,
-				N_("initialize sparse-checkout"), NULL, 1, 0);
-
-	argc = parse_options(argc, argv, NULL,
-			     builtin_sparse_checkout_init_options,
-			     builtin_sparse_checkout_init_usage, 0);
-
-	if (init_opts.cone_mode) {
-		mode = MODE_CONE_PATTERNS;
-		core_sparse_checkout_cone = 1;
-	} else
-		mode = MODE_ALL_PATTERNS;
-
-	if (set_config(mode))
-		return 1;
-
-	memset(&pl, 0, sizeof(pl));
-
-	sparse_filename = get_sparse_checkout_filename();
-	res = add_patterns_from_file_to_list(sparse_filename, "", 0, &pl, NULL);
-
-	/* If we already have a sparse-checkout file, use it. */
-	if (res >= 0) {
-		free(sparse_filename);
-		core_apply_sparse_checkout = 1;
-		return update_working_directory(NULL);
-	}
-
-	if (get_oid("HEAD", &oid)) {
-		FILE *fp;
-
-		/* assume we are in a fresh repo, but update the sparse-checkout file */
-		fp = xfopen(sparse_filename, "w");
 		if (!fp)
-			die(_("failed to open '%s'"), sparse_filename);
-
-		free(sparse_filename);
-		fprintf(fp, "/*\n!/*/\n");
-		fclose(fp);
-		return 0;
-	}
-
-	strbuf_addstr(&pattern, "/*");
-	add_pattern(strbuf_detach(&pattern, NULL), empty_base, 0, &pl, 0);
-	strbuf_addstr(&pattern, "!/*/");
-	add_pattern(strbuf_detach(&pattern, NULL), empty_base, 0, &pl, 0);
-
-	return write_patterns_and_update(&pl);
 }
+static int sparse_checkout_set(int argc, const char **argv, const char *prefix,
+	clear_pattern_list(&pl);
 
-static void insert_recursive_pattern(struct pattern_list *pl, struct strbuf *path)
-{
-	struct pattern_entry *e = xmalloc(sizeof(*e));
-	e->patternlen = path->len;
-	e->pattern = strbuf_detach(path, NULL);
-	hashmap_entry_init(&e->ent,
-			   ignore_case ?
-			   strihash(e->pattern) :
-			   strhash(e->pattern));
-
-	hashmap_add(&pl->recursive_hashmap, &e->ent);
-
-	while (e->patternlen) {
-		char *slash = strrchr(e->pattern, '/');
-		char *oldpattern = e->pattern;
-		size_t newlen;
-
-		if (slash == e->pattern)
-			break;
-
-		newlen = slash - e->pattern;
-		e = xmalloc(sizeof(struct pattern_entry));
 		e->patternlen = newlen;
-		e->pattern = xstrndup(oldpattern, newlen);
-		hashmap_entry_init(&e->ent,
-				   ignore_case ?
-				   strihash(e->pattern) :
-				   strhash(e->pattern));
-
-		if (!hashmap_get_entry(&pl->parent_hashmap, e, ent, NULL))
-			hashmap_add(&pl->parent_hashmap, &e->ent);
-	}
-}
-
-static void strbuf_to_cone_pattern(struct strbuf *line, struct pattern_list *pl)
-{
-	strbuf_trim(line);
-
-	strbuf_trim_trailing_dir_sep(line);
-
-	if (strbuf_normalize_path(line))
-		die(_("could not normalize path %s"), line->buf);
-
-	if (!line->len)
-		return;
-
-	if (line->buf[0] != '/')
-		strbuf_insertstr(line, 0, "/");
-
-	insert_recursive_pattern(pl, line);
-}
-
-static char const * const builtin_sparse_checkout_set_usage[] = {
-	N_("git sparse-checkout (set|add) (--stdin | <patterns>)"),
-	NULL
-};
-
-static struct sparse_checkout_set_opts {
-	int use_stdin;
-} set_opts;
-
-static void add_patterns_from_input(struct pattern_list *pl,
-				    int argc, const char **argv)
-{
-	int i;
-	if (core_sparse_checkout_cone) {
-		struct strbuf line = STRBUF_INIT;
-
-		hashmap_init(&pl->recursive_hashmap, pl_hashmap_cmp, NULL, 0);
-		hashmap_init(&pl->parent_hashmap, pl_hashmap_cmp, NULL, 0);
-		pl->use_cone_patterns = 1;
-
-		if (set_opts.use_stdin) {
-			struct strbuf unquoted = STRBUF_INIT;
-			while (!strbuf_getline(&line, stdin)) {
-				if (line.buf[0] == '"') {
-					strbuf_reset(&unquoted);
-					if (unquote_c_style(&unquoted, line.buf, NULL))
-						die(_("unable to unquote C-style string '%s'"),
-						line.buf);
-
-					strbuf_swap(&unquoted, &line);
-				}
-
-				strbuf_to_cone_pattern(&line, pl);
-			}
+	case REPLACE:
 
 			strbuf_release(&unquoted);
-		} else {
-			for (i = 0; i < argc; i++) {
-				strbuf_setlen(&line, 0);
-				strbuf_addstr(&line, argv[i]);
-				strbuf_to_cone_pattern(&line, pl);
-			}
-		}
-	} else {
-		if (set_opts.use_stdin) {
-			struct strbuf line = STRBUF_INIT;
+	FILE *fp;
 
-			while (!strbuf_getline(&line, stdin)) {
-				size_t len;
-				char *buf = strbuf_detach(&line, &len);
-				add_pattern(buf, empty_base, 0, pl, 0);
-			}
-		} else {
-			for (i = 0; i < argc; i++)
-				add_pattern(argv[i], empty_base, 0, pl, 0);
-		}
-	}
-}
-
-enum modify_type {
-	REPLACE,
-	ADD,
-};
-
-static void add_patterns_cone_mode(int argc, const char **argv,
-				   struct pattern_list *pl)
 {
-	struct strbuf buffer = STRBUF_INIT;
-	struct pattern_entry *pe;
-	struct hashmap_iter iter;
-	struct pattern_list existing;
-	char *sparse_filename = get_sparse_checkout_filename();
-
-	add_patterns_from_input(pl, argc, argv);
-
-	memset(&existing, 0, sizeof(existing));
-	existing.use_cone_patterns = core_sparse_checkout_cone;
-
-	if (add_patterns_from_file_to_list(sparse_filename, "", 0,
-					   &existing, NULL))
-		die(_("unable to load existing sparse-checkout patterns"));
-	free(sparse_filename);
-
-	hashmap_for_each_entry(&existing.recursive_hashmap, &iter, pe, ent) {
-		if (!hashmap_contains_parent(&pl->recursive_hashmap,
-					pe->pattern, &buffer) ||
-		    !hashmap_contains_parent(&pl->parent_hashmap,
-					pe->pattern, &buffer)) {
-			strbuf_reset(&buffer);
-			strbuf_addstr(&buffer, pe->pattern);
-			insert_recursive_pattern(pl, &buffer);
-		}
-	}
-
-	clear_pattern_list(&existing);
-	strbuf_release(&buffer);
-}
-
-static void add_patterns_literal(int argc, const char **argv,
-				 struct pattern_list *pl)
-{
-	char *sparse_filename = get_sparse_checkout_filename();
-	if (add_patterns_from_file_to_list(sparse_filename, "", 0,
-					   pl, NULL))
-		die(_("unable to load existing sparse-checkout patterns"));
-	free(sparse_filename);
-	add_patterns_from_input(pl, argc, argv);
-}
-
-static int modify_pattern_list(int argc, const char **argv, enum modify_type m)
-{
-	int result;
-	int changed_config = 0;
-	struct pattern_list pl;
 	memset(&pl, 0, sizeof(pl));
+		}
 
-	switch (m) {
-	case ADD:
-		if (core_sparse_checkout_cone)
-			add_patterns_cone_mode(argc, argv, &pl);
-		else
-			add_patterns_literal(argc, argv, &pl);
-		break;
-
-	case REPLACE:
-		add_patterns_from_input(&pl, argc, argv);
-		break;
-	}
-
-	if (!core_apply_sparse_checkout) {
-		set_config(MODE_ALL_PATTERNS);
-		core_apply_sparse_checkout = 1;
-		changed_config = 1;
-	}
-
-	result = write_patterns_and_update(&pl);
-
-	if (result && changed_config)
-		set_config(MODE_NO_PATTERNS);
-
-	clear_pattern_list(&pl);
-	return result;
-}
-
-static int sparse_checkout_set(int argc, const char **argv, const char *prefix,
-			       enum modify_type m)
+			return sparse_checkout_init(argc, argv);
+	strbuf_release(&parent_pattern);
 {
-	static struct option builtin_sparse_checkout_set_options[] = {
-		OPT_BOOL(0, "stdin", &set_opts.use_stdin,
-			 N_("read patterns from standard in")),
-		OPT_END(),
-	};
 
-	repo_read_index(the_repository);
-	require_clean_work_tree(the_repository,
-				N_("set sparse-checkout patterns"), NULL, 1, 0);
 
-	argc = parse_options(argc, argv, prefix,
-			     builtin_sparse_checkout_set_options,
-			     builtin_sparse_checkout_set_usage,
-			     PARSE_OPT_KEEP_UNKNOWN);
+		return 0;
 
 	return modify_pattern_list(argc, argv, m);
-}
-
-static int sparse_checkout_disable(int argc, const char **argv)
-{
-	struct pattern_list pl;
-	struct strbuf match_all = STRBUF_INIT;
-
-	repo_read_index(the_repository);
-	require_clean_work_tree(the_repository,
-				N_("disable sparse-checkout"), NULL, 1, 0);
-
-	memset(&pl, 0, sizeof(pl));
-	hashmap_init(&pl.recursive_hashmap, pl_hashmap_cmp, NULL, 0);
-	hashmap_init(&pl.parent_hashmap, pl_hashmap_cmp, NULL, 0);
-	pl.use_cone_patterns = 0;
-	core_apply_sparse_checkout = 1;
-
-	strbuf_addstr(&match_all, "/*");
 	add_pattern(strbuf_detach(&match_all, NULL), empty_base, 0, &pl, 0);
-
-	if (update_working_directory(&pl))
-		die(_("error while refreshing working directory"));
-
-	clear_pattern_list(&pl);
-	return set_config(MODE_NO_PATTERNS);
-}
-
-int cmd_sparse_checkout(int argc, const char **argv, const char *prefix)
 {
-	static struct option builtin_sparse_checkout_options[] = {
-		OPT_END(),
-	};
-
-	if (argc == 2 && !strcmp(argv[1], "-h"))
-		usage_with_options(builtin_sparse_checkout_usage,
-				   builtin_sparse_checkout_options);
-
-	argc = parse_options(argc, argv, prefix,
-			     builtin_sparse_checkout_options,
-			     builtin_sparse_checkout_usage,
-			     PARSE_OPT_STOP_AT_NON_OPTION);
-
-	git_config(git_default_config, NULL);
-
-	if (argc > 0) {
-		if (!strcmp(argv[0], "list"))
-			return sparse_checkout_list(argc, argv);
-		if (!strcmp(argv[0], "init"))
-			return sparse_checkout_init(argc, argv);
-		if (!strcmp(argv[0], "set"))
-			return sparse_checkout_set(argc, argv, prefix, REPLACE);
-		if (!strcmp(argv[0], "add"))
-			return sparse_checkout_set(argc, argv, prefix, ADD);
-		if (!strcmp(argv[0], "disable"))
+	} else
+			fprintf(fp, "!");
+	else
 			return sparse_checkout_disable(argc, argv);
+		break;
+		fprintf(fp, "%s", p->pattern);
+static int set_config(enum sparse_checkout_mode mode)
+	MODE_CONE_PATTERNS = 2,
+		if (set_opts.use_stdin) {
+	int res;
+			strbuf_reset(&buffer);
+			 N_("read patterns from standard in")),
+		write_cone_to_file(fp, pl);
+				add_pattern(argv[i], empty_base, 0, pl, 0);
+		fprintf(fp, "/*\n!/*/\n");
+	NULL
+	int fd;
+
+		free(sparse_filename);
+
+		die(_("failed to create directory for sparse-checkout file"));
 	}
 
-	usage_with_options(builtin_sparse_checkout_usage,
-			   builtin_sparse_checkout_options);
+
+	clear_pattern_list(&pl);
+
+	hashmap_entry_init(&e->ent,
+
+
+	existing.use_cone_patterns = core_sparse_checkout_cone;
+	if (repo_read_index_unmerged(r))
+				N_("initialize sparse-checkout"), NULL, 1, 0);
+	clear_pattern_list(pl);
+static int sparse_checkout_init(int argc, const char **argv)
+		} else {
+#include "config.h"
+	int changed_config = 0;
+	memset(&pl, 0, sizeof(pl));
+		free(sparse_filename);
+			continue;
 }
+	/* If we already have a sparse-checkout file, use it. */
+	if (strbuf_normalize_path(line))
+	return write_patterns_and_update(&pl);
+		char *slash = strrchr(e->pattern, '/');
+	if (get_oid("HEAD", &oid))
+
+	} else
+	repo_read_index(the_repository);
+	hashmap_for_each_entry(&pl->parent_hashmap, &iter, pe, ent) {
+			printf("\n");
+	struct object_id oid;
+#include "run-command.h"
+		for (i = 0; i < sl.nr; i++) {
+	return git_pathdup("info/sparse-checkout");
+	}
+
+		return;
+	struct tree_desc t;
+static char const * const builtin_sparse_checkout_set_usage[] = {
+	strbuf_trim(line);
+		free(sparse_filename);
+#include "repository.h"
+				      "core.sparseCheckoutCone",
+
+	string_list_remove_duplicates(&sl, 0);
+
+
+		die(_("could not normalize path %s"), line->buf);
+		struct hashmap_iter iter;
+		} else {
+		e = xmalloc(sizeof(struct pattern_entry));
+#include "lockfile.h"
+		pl->use_cone_patterns = 1;
+} set_opts;
+				N_("disable sparse-checkout"), NULL, 1, 0);
+	if (core_sparse_checkout_cone) {
+#include "strbuf.h"
+	add_patterns_from_input(pl, argc, argv);
+		if (!hashmap_contains_parent(&pl->recursive_hashmap,
+	free(sparse_filename);
+{
+{
+		if (!strcmp(argv[0], "add"))
+		die(_("unable to load existing sparse-checkout patterns"));
+			while (!strbuf_getline(&line, stdin)) {
+		hashmap_init(&pl->recursive_hashmap, pl_hashmap_cmp, NULL, 0);
+#include "string-list.h"
+					strbuf_swap(&unquoted, &line);
+	config_path = git_path("config.worktree");
+
+	o.verbose_update = isatty(2);
+		return 1;
+	};
+static void write_patterns_to_file(FILE *fp, struct pattern_list *pl)

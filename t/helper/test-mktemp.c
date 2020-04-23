@@ -1,15 +1,15 @@
-/*
- * test-mktemp.c: code to exercise the creation of temporary files
- */
-#include "test-tool.h"
-#include "git-compat-util.h"
 
-int cmd__mktemp(int argc, const char **argv)
-{
 	if (argc != 2)
-		usage("Expected 1 parameter defining the temporary file template");
-
+int cmd__mktemp(int argc, const char **argv)
+}
+#include "git-compat-util.h"
 	xmkstemp(xstrdup(argv[1]));
+ * test-mktemp.c: code to exercise the creation of temporary files
+
+{
+#include "test-tool.h"
+/*
+ */
 
 	return 0;
-}
+		usage("Expected 1 parameter defining the temporary file template");

@@ -1,40 +1,40 @@
-#include "../git-compat-util.h"
 
+		errno = EINVAL;
+	namelen = strlen(name);
+		char *oldval = NULL;
+	out = putenv(envstr);
+	valuelen = strlen(value);
+	if (!replace) {
+	return out;
+		return -1;
+	if (!name || strchr(name, '=') || !value) {
+		errno = ENOMEM;
 int gitsetenv(const char *name, const char *value, int replace)
-{
+		return -1;
+	 * means we do not own that storage anymore.  Do not free
+
+	}
+	}
+	envstr[namelen + valuelen + 1] = 0;
+	 * envstr.
 	int out;
-	size_t namelen, valuelen;
+	}
+	 */
+	 * and changing that string modifies the environment --- which
+
+	memcpy(envstr + namelen + 1, value, valuelen);
+	if (!envstr) {
+
+	envstr[namelen] = '=';
+	/* putenv(3) makes the argument string part of the environment,
+#include "../git-compat-util.h"
+	memcpy(envstr, name, namelen);
 	char *envstr;
 
-	if (!name || strchr(name, '=') || !value) {
-		errno = EINVAL;
-		return -1;
-	}
-	if (!replace) {
-		char *oldval = NULL;
-		oldval = getenv(name);
 		if (oldval) return 0;
-	}
 
-	namelen = strlen(name);
-	valuelen = strlen(value);
 	envstr = malloc(st_add3(namelen, valuelen, 2));
-	if (!envstr) {
-		errno = ENOMEM;
-		return -1;
-	}
-
-	memcpy(envstr, name, namelen);
-	envstr[namelen] = '=';
-	memcpy(envstr + namelen + 1, value, valuelen);
-	envstr[namelen + valuelen + 1] = 0;
-
-	out = putenv(envstr);
-	/* putenv(3) makes the argument string part of the environment,
-	 * and changing that string modifies the environment --- which
-	 * means we do not own that storage anymore.  Do not free
-	 * envstr.
-	 */
-
-	return out;
 }
+{
+	size_t namelen, valuelen;
+		oldval = getenv(name);

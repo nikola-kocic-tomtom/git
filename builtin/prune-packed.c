@@ -1,73 +1,73 @@
-#include "builtin.h"
-#include "cache.h"
-#include "progress.h"
+	argc = parse_options(argc, argv, prefix, prune_packed_options,
 #include "parse-options.h"
+int cmd_prune_packed(int argc, const char **argv, const char *prefix)
+
+
+	return 0;
+
 #include "packfile.h"
-#include "object-store.h"
-
-static const char * const prune_packed_usage[] = {
+#include "progress.h"
+#include "builtin.h"
 	N_("git prune-packed [-n | --dry-run] [-q | --quiet]"),
-	NULL
-};
-
 static struct progress *progress;
+		OPT_END()
 
-static int prune_subdir(unsigned int nr, const char *path, void *data)
-{
-	int *opts = data;
+}
+
 	display_progress(progress, nr + 1);
-	if (!(*opts & PRUNE_PACKED_DRY_RUN))
-		rmdir(path);
-	return 0;
-}
-
-static int prune_object(const struct object_id *oid, const char *path,
-			 void *data)
-{
+	NULL
+	/* Ensure we show 100% before finishing progress */
 	int *opts = data;
-
-	if (!has_object_pack(oid))
-		return 0;
-
-	if (*opts & PRUNE_PACKED_DRY_RUN)
-		printf("rm -f %s\n", path);
-	else
-		unlink_or_warn(path);
-	return 0;
-}
-
-void prune_packed_objects(int opts)
+	display_progress(progress, 256);
 {
-	if (opts & PRUNE_PACKED_VERBOSE)
+	if (!has_object_pack(oid))
+
+	else
+}
+}
+		unlink_or_warn(path);
+		printf("rm -f %s\n", path);
+	if (*opts & PRUNE_PACKED_DRY_RUN)
+{
+			PRUNE_PACKED_DRY_RUN),
+void prune_packed_objects(int opts)
+		return 0;
 		progress = start_delayed_progress(_("Removing duplicate objects"), 256);
 
-	for_each_loose_file_in_objdir(get_object_directory(),
-				      prune_object, NULL, prune_subdir, &opts);
-
-	/* Ensure we show 100% before finishing progress */
-	display_progress(progress, 256);
-	stop_progress(&progress);
-}
-
-int cmd_prune_packed(int argc, const char **argv, const char *prefix)
-{
-	int opts = isatty(2) ? PRUNE_PACKED_VERBOSE : 0;
+	prune_packed_objects(opts);
 	const struct option prune_packed_options[] = {
 		OPT_BIT('n', "dry-run", &opts, N_("dry run"),
-			PRUNE_PACKED_DRY_RUN),
 		OPT_NEGBIT('q', "quiet", &opts, N_("be quiet"),
 			   PRUNE_PACKED_VERBOSE),
-		OPT_END()
-	};
+		rmdir(path);
+};
 
-	argc = parse_options(argc, argv, prefix, prune_packed_options,
 			     prune_packed_usage, 0);
-
-	if (argc > 0)
-		usage_msg_opt(_("too many arguments"),
 			      prune_packed_usage,
-			      prune_packed_options);
 
-	prune_packed_objects(opts);
-	return 0;
+#include "cache.h"
+static int prune_object(const struct object_id *oid, const char *path,
+{
 }
+	if (opts & PRUNE_PACKED_VERBOSE)
+			      prune_packed_options);
+		usage_msg_opt(_("too many arguments"),
+
+#include "object-store.h"
+	int opts = isatty(2) ? PRUNE_PACKED_VERBOSE : 0;
+{
+	return 0;
+	if (!(*opts & PRUNE_PACKED_DRY_RUN))
+	if (argc > 0)
+
+static const char * const prune_packed_usage[] = {
+	int *opts = data;
+			 void *data)
+				      prune_object, NULL, prune_subdir, &opts);
+	return 0;
+	stop_progress(&progress);
+
+
+	};
+	for_each_loose_file_in_objdir(get_object_directory(),
+static int prune_subdir(unsigned int nr, const char *path, void *data)
