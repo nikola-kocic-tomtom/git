@@ -1,3 +1,4 @@
+#include "advice.h"
 #include "cache.h"
 #include "tag.h"
 #include "commit.h"
@@ -16,7 +17,6 @@
 #include "prio-queue.h"
 #include "sha1-lookup.h"
 #include "wt-status.h"
-#include "advice.h"
 #include "refs.h"
 #include "commit-reach.h"
 #include "run-command.h"
